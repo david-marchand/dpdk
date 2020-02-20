@@ -49,10 +49,10 @@ jobs:
   - env: DEF_LIB="static"
     arch: amd64
     compiler: gcc
-  - env: DEF_LIB="shared" RUN_TESTS=true
+  - env: DEF_LIB="shared" JOBTASKS=build+tests
     arch: amd64
     compiler: gcc
-  - env: DEF_LIB="shared" BUILD_DOCS=true
+  - env: DEF_LIB="shared" JOBTASKS=docs
     arch: amd64
     compiler: gcc
     addons:
@@ -60,7 +60,7 @@ jobs:
         packages:
           - *required_packages
           - *doc_packages
-  - env: DEF_LIB="shared" ABI_CHECKS=true
+  - env: DEF_LIB="shared" JOBTASKS=build+abi
     arch: amd64
     compiler: gcc
     addons:
@@ -72,7 +72,7 @@ jobs:
   - env: DEF_LIB="static"
     arch: amd64
     compiler: clang
-  - env: DEF_LIB="shared" RUN_TESTS=true
+  - env: DEF_LIB="shared" JOBTASKS=build+tests
     arch: amd64
     compiler: clang
   # x86_64 cross-compiling 32-bits jobs
@@ -118,14 +118,13 @@ jobs:
     arch: arm64-graviton2
     virt: vm
     group: edge
-    compiler: gcc
-  - env: DEF_LIB="shared" RUN_TESTS=true
+  - env: DEF_LIB="shared" JOBTASKS=build+tests
     dist: focal
     arch: arm64-graviton2
     virt: vm
     group: edge
     compiler: gcc
-  - env: DEF_LIB="shared" BUILD_DOCS=true
+  - env: DEF_LIB="shared" JOBTASKS=docs
     dist: focal
     arch: arm64-graviton2
     virt: vm
@@ -136,7 +135,7 @@ jobs:
         packages:
           - *required_packages
           - *doc_packages
-  - env: DEF_LIB="shared" ABI_CHECKS=true
+  - env: DEF_LIB="shared" JOBTASKS=build+abi
     dist: focal
     arch: arm64-graviton2
     virt: vm
@@ -154,7 +153,7 @@ jobs:
     virt: vm
     group: edge
     compiler: clang
-  - env: DEF_LIB="shared" RUN_TESTS=true
+  - env: DEF_LIB="shared" JOBTASKS=build+tests
     dist: focal
     arch: arm64-graviton2
     virt: vm

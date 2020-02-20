@@ -19,6 +19,12 @@ on_error() {
 # them via a EXIT handler.
 [ -n "$GITHUB_WORKFLOW" ] || trap on_error EXIT
 
+JOBTASKS=${JOBTASKS:-build}
+
+check_jobtasks() {
+    [ "${JOBTASKS##*$1}" != "$JOBTASKS" ]
+}
+
 install_libabigail() {
     version=$1
     instdir=$2
@@ -62,10 +68,6 @@ if [ "$AARCH64" = "true" ]; then
     fi
 fi
 
-if [ "$BUILD_DOCS" = "true" ]; then
-    OPTS="$OPTS -Denable_docs=true"
-fi
-
 if [ "$BUILD_32BIT" = "true" ]; then
     OPTS="$OPTS -Dc_args=-m32 -Dc_link_args=-m32"
     export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig"
@@ -82,17 +84,19 @@ OPTS="$OPTS --default-library=$DEF_LIB"
 OPTS="$OPTS --buildtype=debugoptimized"
 OPTS="$OPTS -Dcheck_includes=true"
 meson build --werror $OPTS
-ninja -C build
+if check_jobtasks 'build'; then
+    ninja -C build
 
-if [ "$AARCH64" != "true" ]; then
-    failed=
-    configure_coredump
-    devtools/test-null.sh || failed="true"
-    catch_coredump
-    [ "$failed" != "true" ]
+    if [ "$AARCH64" != "true" ]; then
+        failed=
+        configure_coredump
+        devtools/test-null.sh || failed="true"
+        catch_coredump
+        [ "$failed" != "true" ]
+    fi
 fi
 
-if [ "$ABI_CHECKS" = "true" ]; then
+if check_jobtasks 'abi'; then
     LIBABIGAIL_VERSION=${LIBABIGAIL_VERSION:-libabigail-1.6}
 
     if [ "$(cat libabigail/VERSION 2>/dev/null)" != "$LIBABIGAIL_VERSION" ]; then
@@ -133,7 +137,11 @@ if [ "$ABI_CHECKS" = "true" ]; then
     devtools/check-abi.sh reference install ${ABI_CHECKS_WARN_ONLY:-}
 fi
 
-if [ "$RUN_TESTS" = "true" ]; then
+if check_jobtasks 'docs'; then
+    ninja -C build doc
+fi
+
+if check_jobtasks 'tests'; then
     failed=
     configure_coredump
     sudo meson test -C build --suite fast-tests -t 3 || failed="true"

@@ -15,14 +15,12 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     env:
       AARCH64: ${{ matrix.config.cross == 'aarch64' }}
-      ABI_CHECKS: ${{ contains(matrix.config.checks, 'abi') }}
       BUILD_32BIT: ${{ matrix.config.cross == 'i386' }}
-      BUILD_DOCS: ${{ contains(matrix.config.checks, 'doc') }}
       CC: ccache ${{ matrix.config.compiler }}
       DEF_LIB: ${{ matrix.config.library }}
+      JOBTASKS: ${{ matrix.config.jobtasks }}
       LIBABIGAIL_VERSION: libabigail-1.8
       REF_GIT_TAG: v20.11
-      RUN_TESTS: ${{ contains(matrix.config.checks, 'tests') }}
 
     strategy:
       fail-fast: false
@@ -34,14 +32,18 @@ jobs:
           - os: ubuntu-18.04
             compiler: gcc
             library: shared
-            checks: abi+doc+tests
+            jobtasks: build+abi+tests
+          - os: ubuntu-18.04
+            compiler: gcc
+            library: shared
+            jobtasks: docs
           - os: ubuntu-18.04
             compiler: clang
             library: static
           - os: ubuntu-18.04
             compiler: clang
             library: shared
-            checks: tests
+            jobtasks: build+tests
           - os: ubuntu-18.04
             compiler: gcc
             library: static
@@ -77,13 +79,13 @@ jobs:
     - name: Retrieve libabigail cache
       id: libabigail-cache
       uses: actions/cache@v2
-      if: env.ABI_CHECKS == 'true'
+      if: contains(matrix.config.jobtasks, 'abi')
       with:
         path: libabigail
         key: ${{ steps.get_ref_keys.outputs.libabigail }}
     - name: Retrieve ABI reference cache
       uses: actions/cache@v2
-      if: env.ABI_CHECKS == 'true'
+      if: contains(matrix.config.jobtasks, 'abi')
       with:
         path: reference
         key: ${{ steps.get_ref_keys.outputs.abi }}
@@ -94,7 +96,7 @@ jobs:
         python3-wheel python3-pip python3-pyelftools ninja-build libbsd-dev
         libpcap-dev libibverbs-dev libcrypto++-dev libfdt-dev libjansson-dev
     - name: Install libabigail build dependencies if no cache is available
-      if: env.ABI_CHECKS == 'true' && steps.libabigail-cache.outputs.cache-hit != 'true'
+      if: contains(matrix.config.jobtasks, 'abi') && steps.libabigail-cache.outputs.cache-hit != 'true'
       run: sudo apt install -y autoconf automake libtool pkg-config libxml2-dev
           libdw-dev
     - name: Install i386 cross compiling packages
@@ -105,10 +107,10 @@ jobs:
       run: sudo apt install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
         pkg-config-aarch64-linux-gnu
     - name: Install test tools packages
-      if: env.AARCH64 != 'true' || env.RUN_TESTS == 'true'
+      if: env.AARCH64 != 'true' || contains(matrix.config.jobtasks, 'tests')
       run: sudo apt install -y gdb
     - name: Install doc generation packages
-      if: env.BUILD_DOCS == 'true'
+      if: contains(matrix.config.jobtasks, 'docs')
       run: sudo apt install -y doxygen graphviz python3-sphinx
         python3-sphinx-rtd-theme
     - name: Run setup
