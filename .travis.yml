@@ -75,14 +75,6 @@ jobs:
   - env: DEF_LIB="shared" RUN_TESTS=true
     arch: amd64
     compiler: clang
-  - env: DEF_LIB="shared" BUILD_DOCS=true
-    arch: amd64
-    compiler: clang
-    addons:
-      apt:
-        packages:
-          - *required_packages
-          - *doc_packages
   # x86_64 cross-compiling 32-bits jobs
   - env: DEF_LIB="static" BUILD_32BIT=true
     arch: amd64

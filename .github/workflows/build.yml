@@ -41,7 +41,7 @@ jobs:
           - os: ubuntu-18.04
             compiler: clang
             library: shared
-            checks: doc+tests
+            checks: tests
           - os: ubuntu-18.04
             compiler: gcc
             library: static
