@@ -73,9 +73,9 @@ test_macros(int __rte_unused unused_parm)
 	/* FIXME: TEST_SIDE_EFFECT_2(RTE_ALIGN, unsigned int, unsigned int); */
 	/* FIXME: TEST_SIDE_EFFECT_2(RTE_ALIGN_CEIL, unsigned int, unsigned int); */
 	TEST_SIDE_EFFECT_2(RTE_ALIGN_FLOOR, unsigned int, unsigned int);
-	/* FIXME: TEST_SIDE_EFFECT_2(RTE_ALIGN_MUL_CEIL, unsigned int, unsigned int); */
-	/* FIXME: TEST_SIDE_EFFECT_2(RTE_ALIGN_MUL_FLOOR, unsigned int, unsigned int); */
-	/* FIXME: TEST_SIDE_EFFECT_2(RTE_ALIGN_MUL_NEAR, unsigned int, unsigned int); */
+	TEST_SIDE_EFFECT_2(RTE_ALIGN_MUL_CEIL, unsigned int, unsigned int);
+	TEST_SIDE_EFFECT_2(RTE_ALIGN_MUL_FLOOR, unsigned int, unsigned int);
+	TEST_SIDE_EFFECT_2(RTE_ALIGN_MUL_NEAR, unsigned int, unsigned int);
 	return ret;
 }
 
