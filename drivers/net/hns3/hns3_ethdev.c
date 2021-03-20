@@ -6758,5 +6758,5 @@ static struct rte_pci_driver rte_hns3_pmd = {
 RTE_PMD_REGISTER_PCI(net_hns3, rte_hns3_pmd);
 RTE_PMD_REGISTER_PCI_TABLE(net_hns3, pci_id_hns3_map);
 RTE_PMD_REGISTER_KMOD_DEP(net_hns3, "* igb_uio | vfio-pci");
-RTE_LOG_REGISTER(hns3_logtype_init, pmd.net.hns3.init, NOTICE);
-RTE_LOG_REGISTER(hns3_logtype_driver, pmd.net.hns3.driver, NOTICE);
+RTE_LOG_REGISTER(hns3_logtype_init, .init, NOTICE);
+RTE_LOG_REGISTER(hns3_logtype_driver, .driver, NOTICE);

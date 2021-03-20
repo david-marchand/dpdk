@@ -5238,16 +5238,16 @@ RTE_PMD_REGISTER_PCI(net_txgbe, rte_txgbe_pmd);
 RTE_PMD_REGISTER_PCI_TABLE(net_txgbe, pci_id_txgbe_map);
 RTE_PMD_REGISTER_KMOD_DEP(net_txgbe, "* igb_uio | uio_pci_generic | vfio-pci");
 
-RTE_LOG_REGISTER(txgbe_logtype_init, pmd.net.txgbe.init, NOTICE);
-RTE_LOG_REGISTER(txgbe_logtype_driver, pmd.net.txgbe.driver, NOTICE);
+RTE_LOG_REGISTER(txgbe_logtype_init, .init, NOTICE);
+RTE_LOG_REGISTER(txgbe_logtype_driver, .driver, NOTICE);
 
 #ifdef RTE_LIBRTE_TXGBE_DEBUG_RX
-	RTE_LOG_REGISTER(txgbe_logtype_rx, pmd.net.txgbe.rx, DEBUG);
+	RTE_LOG_REGISTER(txgbe_logtype_rx, .rx, DEBUG);
 #endif
 #ifdef RTE_LIBRTE_TXGBE_DEBUG_TX
-	RTE_LOG_REGISTER(txgbe_logtype_tx, pmd.net.txgbe.tx, DEBUG);
+	RTE_LOG_REGISTER(txgbe_logtype_tx, .tx, DEBUG);
 #endif
 
 #ifdef RTE_LIBRTE_TXGBE_DEBUG_TX_FREE
-	RTE_LOG_REGISTER(txgbe_logtype_tx_free, pmd.net.txgbe.tx_free, DEBUG);
+	RTE_LOG_REGISTER(txgbe_logtype_tx_free, .tx_free, DEBUG);
 #endif

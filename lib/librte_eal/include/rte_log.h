@@ -26,6 +26,7 @@ extern "C" {
 #include <rte_common.h>
 #include <rte_config.h>
 #include <rte_compat.h>
+#include <rte_string_fns.h>
 
 /* SDK log type */
 #define RTE_LOGTYPE_EAL        0 /**< Log related to eal. */
@@ -358,6 +359,25 @@ int rte_vlog(uint32_t level, uint32_t logtype, const char *format, va_list ap)
 		 RTE_LOGTYPE_ ## t, # t ": " __VA_ARGS__) :	\
 	 0)
 
+/*
+ * @warning
+ * @b EXPERIMENTAL: this API may change without prior notice
+ *
+ * Generates a log type based on the file which calls RTE_LOG_REGISTER.
+ *
+ * @param logtype
+ *   A buffer where this helper writes the log type.
+ * @param size
+ *   The size of the logtype buffer.
+ * @param file
+ *   The file which called RTE_LOG_REGISTER.
+ * @return
+ *   - 0: Success.
+ *   - Negative on error, the logtype content is invalid.
+ */
+__rte_experimental
+int rte_log_default_logtype(char *logtype, size_t size, const char *file);
+
 /**
  * @warning
  * @b EXPERIMENTAL: this API may change without prior notice
@@ -369,18 +389,33 @@ int rte_vlog(uint32_t level, uint32_t logtype, const char *format, va_list ap)
  *
  * @param type
  *   The log type identifier
- * @param name
- *    Name for the log type to be registered
+ * @param suffix
+ *    Name for the log type to be registered.
+ *    If empty or starts with a ., then this name is used as a suffix appended
+ *    to the default logtype for the current file
+ *    (see rte_log_default_logtype).
  * @param level
  *   Log level. A value between EMERG (1) and DEBUG (8).
  */
-#define RTE_LOG_REGISTER(type, name, level)				\
+#define RTE_LOG_REGISTER(type, suffix, level)				\
 int type;								\
 RTE_INIT(__##type)							\
 {									\
-	type = rte_log_register_type_and_pick_level(RTE_STR(name),	\
-						    RTE_LOG_##level);	\
-	type = RTE_MAX(0, type);                                        \
+	const char *name = RTE_STR(suffix); \
+	char pattern[PATH_MAX]; \
+	type = -1; \
+	if (name[0] == '\0' || name[0] == '.') { \
+		if (rte_log_default_logtype(pattern, sizeof(pattern), \
+				__FILE__) < 0) \
+			goto out; \
+		strlcat(pattern, name, sizeof(pattern) - strlen(pattern)); \
+		name = pattern; \
+	} \
+	type = rte_log_register_type_and_pick_level(name, \
+						    RTE_LOG_##level); \
+out: \
+	if (type < 0) \
+		type = RTE_LOGTYPE_EAL; \
 }
 
 #ifdef __cplusplus
