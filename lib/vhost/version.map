@@ -49,6 +49,12 @@ DPDK_21 {
 	local: *;
 };
 
+DPDK_22 {
+	global:
+
+	rte_vhost_dequeue_burst;
+} DPDK_21;
+
 EXPERIMENTAL {
 	global:
 
