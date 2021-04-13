@@ -84,6 +84,7 @@ rte_devargs_layers_parse(struct rte_devargs *devargs,
 	size_t i = 0;
 	int ret = 0;
 	bool allocated_data = false;
+	rte_bus_devargs_parse_t parse;
 
 	/* Split each sub-lists. */
 	nblayer = devargs_layer_count(devstr);
@@ -186,8 +187,8 @@ next_layer:
 	}
 
 	/* Resolve devargs name. */
-	if (bus != NULL && bus->devargs_parse != NULL)
-		ret = bus->devargs_parse(devargs);
+	if (bus != NULL && (parse = rte_bus_get_devargs_parse(bus)) != NULL)
+		ret = parse(devargs);
 	else if (layers[0].kvlist != NULL)
 		ret = devargs_bus_parse_default(devargs, layers[0].kvlist);
 

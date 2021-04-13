@@ -283,7 +283,6 @@ struct rte_bus {
 				/**< handle hot-unplug failure on the bus */
 	rte_bus_sigbus_handler_t sigbus_handler;
 					/**< handle sigbus error on the bus */
-	rte_bus_devargs_parse_t devargs_parse; /**< Parse bus devargs */
 
 };
 
@@ -295,6 +294,19 @@ struct rte_bus {
  *   to be registered.
  */
 void rte_bus_register(struct rte_bus *bus);
+
+/**
+ * Register a Bus devargs handler.
+ *
+ * @param bus
+ * @param parse
+ */
+__rte_internal
+int rte_bus_register_devargs_parse(struct rte_bus *bus,
+	rte_bus_devargs_parse_t parse);
+
+__rte_internal
+rte_bus_devargs_parse_t rte_bus_get_devargs_parse(const struct rte_bus *bus);
 
 /**
  * Unregister a Bus handler.

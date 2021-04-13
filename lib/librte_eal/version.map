@@ -428,6 +428,8 @@ EXPERIMENTAL {
 INTERNAL {
 	global:
 
+	rte_bus_get_devargs_parse;
+	rte_bus_register_devargs_parse;
 	rte_mem_lock;
 	rte_mem_map;
 	rte_mem_page_size;

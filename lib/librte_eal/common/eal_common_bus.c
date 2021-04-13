@@ -16,6 +16,15 @@
 static struct rte_bus_list rte_bus_list =
 	TAILQ_HEAD_INITIALIZER(rte_bus_list);
 
+struct bus_priv {
+	TAILQ_ENTRY(bus_priv) next;
+	struct rte_bus *bus;
+	rte_bus_devargs_parse_t parse;
+};
+TAILQ_HEAD(bus_priv_list, bus_priv);
+static struct bus_priv_list bus_priv_list =
+	TAILQ_HEAD_INITIALIZER(bus_priv_list);
+
 void
 rte_bus_register(struct rte_bus *bus)
 {
@@ -32,10 +41,53 @@ rte_bus_register(struct rte_bus *bus)
 	RTE_LOG(DEBUG, EAL, "Registered [%s] bus.\n", bus->name);
 }
 
+int
+rte_bus_register_devargs_parse(struct rte_bus *bus,
+	rte_bus_devargs_parse_t parse)
+{
+	struct bus_priv *bus_priv;
+
+	TAILQ_FOREACH(bus_priv, &bus_priv_list, next) {
+		if (bus_priv->bus == bus)
+			break;
+	}
+	if (bus_priv == NULL) {
+		bus_priv = calloc(1, sizeof(*bus_priv));
+		if (bus_priv == NULL)
+			return -1;
+	}
+	if (bus_priv->parse != NULL)
+		return -1;
+	bus_priv->bus = bus;
+	bus_priv->parse = parse;
+	return 0;
+}
+
+rte_bus_devargs_parse_t
+rte_bus_get_devargs_parse(const struct rte_bus *bus)
+{
+	struct bus_priv *bus_priv;
+
+	TAILQ_FOREACH(bus_priv, &bus_priv_list, next) {
+		if (bus_priv->bus == bus)
+			return bus_priv->parse;
+	}
+	return NULL;
+}
+
 void
 rte_bus_unregister(struct rte_bus *bus)
 {
+	struct bus_priv *bus_priv;
+
 	TAILQ_REMOVE(&rte_bus_list, bus, next);
+	TAILQ_FOREACH(bus_priv, &bus_priv_list, next) {
+		if (bus_priv->bus != bus)
+			continue;
+		TAILQ_REMOVE(&bus_priv_list, bus_priv, next);
+		free(bus_priv);
+		break;
+	}
 	RTE_LOG(DEBUG, EAL, "Unregistered [%s] bus.\n", bus->name);
 }
 
