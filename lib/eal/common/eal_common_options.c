@@ -682,43 +682,33 @@ eal_service_cores_parsed(void)
 	return 0;
 }
 
-static int
-update_lcore_config(int *cores)
+static void
+update_lcore_config(unsigned int count, int *lcores)
 {
 	struct rte_config *cfg = rte_eal_get_configuration();
-	unsigned int count = 0;
 	unsigned int i;
-	int ret = 0;
 
 	for (i = 0; i < RTE_MAX_LCORE; i++) {
-		if (cores[i] != -1) {
-			if (eal_cpu_detected(i) == 0) {
-				RTE_LOG(ERR, EAL, "lcore %u unavailable\n", i);
-				ret = -1;
-				continue;
-			}
-			cfg->lcore_role[i] = ROLE_RTE;
-			count++;
-		} else {
-			cfg->lcore_role[i] = ROLE_OFF;
-		}
-		lcore_config[i].core_index = cores[i];
+		cfg->lcore_role[i] = ROLE_OFF;
+		lcore_config[i].core_index = -1;
 	}
-	if (!ret)
-		cfg->lcore_count = count;
-	return ret;
+	cfg->lcore_count = 0;
+	for (i = 0; i < count; i++) {
+		cfg->lcore_role[lcores[i]] = ROLE_RTE;
+		lcore_config[lcores[i]].core_index  = lcores[i];
+	}
+	cfg->lcore_count = count;
 }
 
 static int
-eal_parse_coremask(const char *coremask, int *cores)
+eal_parse_coremask(const char *coremask, unsigned int *count, int **lcores)
 {
-	unsigned count = 0;
 	int i, j, idx;
 	int val;
 	char c;
 
-	for (idx = 0; idx < RTE_MAX_LCORE; idx++)
-		cores[idx] = -1;
+	*count = 0;
+	*lcores = NULL;
 	idx = 0;
 
 	/* Remove all blank characters ahead and after .
@@ -733,29 +723,35 @@ eal_parse_coremask(const char *coremask, int *cores)
 	while ((i > 0) && isblank(coremask[i - 1]))
 		i--;
 	if (i == 0)
-		return -1;
+		return 0;
 
-	for (i = i - 1; i >= 0 && idx < RTE_MAX_LCORE; i--) {
+	for (i = i - 1; i >= 0; i--) {
 		c = coremask[i];
 		if (isxdigit(c) == 0) {
 			/* invalid characters */
-			return -1;
+			goto err;
 		}
 		val = xdigit2val(c);
-		for (j = 0; j < BITS_PER_HEX && idx < RTE_MAX_LCORE; j++, idx++)
-		{
+		for (j = 0; j < BITS_PER_HEX; j++, idx++) {
 			if ((1 << j) & val) {
-				cores[idx] = count;
-				count++;
+				int *tmp;
+
+				tmp = realloc(*lcores,
+					(*count + 1) * sizeof(*lcores[0]));
+				if (tmp == NULL)
+					goto err;
+				*lcores = tmp;
+				(*lcores)[(*count)++] = idx;
 			}
 		}
 	}
-	for (; i >= 0; i--)
-		if (coremask[i] != '0')
-			return -1;
-	if (count == 0)
-		return -1;
 	return 0;
+
+err:
+	free(*lcores);
+	*lcores = NULL;
+	*count = 0;
+	return -1;
 }
 
 static int
@@ -837,56 +833,70 @@ eal_parse_service_corelist(const char *corelist)
 }
 
 static int
-eal_parse_corelist(const char *corelist, int *cores)
+eal_parse_corelist(const char *corelist, unsigned int *count, int **lcores)
 {
-	unsigned count = 0;
 	char *end = NULL;
 	int min, max;
 	int idx;
 
-	for (idx = 0; idx < RTE_MAX_LCORE; idx++)
-		cores[idx] = -1;
+	*lcores = NULL;
+	*count = 0;
 
 	/* Remove all blank characters ahead */
 	while (isblank(*corelist))
 		corelist++;
 
 	/* Get list of cores */
-	min = RTE_MAX_LCORE;
+	min = INT_MAX;
 	do {
 		while (isblank(*corelist))
 			corelist++;
 		if (*corelist == '\0')
-			return -1;
+			goto err;
 		errno = 0;
 		idx = strtol(corelist, &end, 10);
 		if (errno || end == NULL)
-			return -1;
-		if (idx < 0 || idx >= RTE_MAX_LCORE)
-			return -1;
+			goto err;
+		if (idx < 0)
+			goto err;
 		while (isblank(*end))
 			end++;
 		if (*end == '-') {
 			min = idx;
 		} else if ((*end == ',') || (*end == '\0')) {
 			max = idx;
-			if (min == RTE_MAX_LCORE)
+			if (min == INT_MAX)
 				min = idx;
 			for (idx = min; idx <= max; idx++) {
-				if (cores[idx] == -1) {
-					cores[idx] = count;
-					count++;
+				int *tmp;
+				unsigned int j;
+
+				for (j = 0; j < *count; j++) {
+					if ((*lcores)[j] == idx)
+						break;
 				}
+				if (j != *count)
+					continue;
+
+				tmp = realloc(*lcores,
+					(*count + 1) * sizeof(*lcores[0]));
+				if (tmp == NULL)
+					goto err;
+				*lcores = tmp;
+				(*lcores)[(*count)++] = idx;
 			}
-			min = RTE_MAX_LCORE;
+			min = INT_MAX;
 		} else
-			return -1;
+			goto err;
 		corelist = end + 1;
 	} while (*end != '\0');
 
-	if (count == 0)
-		return -1;
 	return 0;
+err:
+	free(*lcores);
+	*lcores = NULL;
+	*count = 0;
+	return -1;
 }
 
 /* Changes the lcore id of the main thread */
@@ -1513,6 +1523,73 @@ available_cores(void)
 	return str;
 }
 
+static int
+check_lcores(const char *type, const char *opt, unsigned int count,
+	int *lcores)
+{
+	bool unavailable = false;
+	bool unsupported = false;
+	unsigned int i;
+
+	if (count == 0) {
+		RTE_LOG(ERR, EAL, "No lcore in %s: %s\n", type, opt);
+		return -1;
+	}
+	if (count > RTE_MAX_LCORE) {
+		RTE_LOG(ERR, EAL, "Too many lcores in %s: %s\n", type, opt);
+		return -1;
+	}
+
+	for (i = 0; i < count; i++) {
+		if (eal_cpu_detected(lcores[i]) == 0) {
+			RTE_LOG(ERR, EAL, "lcore %u unavailable\n", lcores[i]);
+			unavailable = true;
+		}
+		if (lcores[i] >= RTE_MAX_LCORE) {
+			RTE_LOG(ERR, EAL, "lcore %u >= RTE_MAX_LCORE (%u)\n",
+				lcores[i], RTE_MAX_LCORE);
+			unsupported = true;
+		}
+	}
+
+	if (unavailable) {
+		char *available = available_cores();
+
+		RTE_LOG(ERR, EAL,
+			"Invalid %s, please check specified cores are part of %s\n",
+			type, available);
+		free(available);
+		return -1;
+	}
+
+	if (unsupported) {
+		char *suggest = strdup("");
+
+		if (suggest != NULL) {
+			for (i = 0; i < count; i++) {
+				char *tmp;
+
+				if (asprintf(&tmp, "%s%u@%u,", suggest, i,
+						lcores[i]) < 0) {
+					free(suggest);
+					suggest = NULL;
+					break;
+				}
+				suggest = tmp;
+			}
+		}
+		if (suggest != NULL) {
+			/* Trim last , */
+			suggest[strlen(suggest) - 1] = '\0';
+			RTE_LOG(ERR, EAL, "Please use --lcores %s\n", suggest);
+			free(suggest);
+		}
+		return -1;
+	}
+
+	return 0;
+}
+
 int
 eal_parse_common_option(int opt, const char *optarg,
 			struct internal_config *conf)
@@ -1546,24 +1623,22 @@ eal_parse_common_option(int opt, const char *optarg,
 		break;
 	/* coremask */
 	case 'c': {
-		int lcore_indexes[RTE_MAX_LCORE];
+		unsigned int lcores_count;
+		int *lcores;
 
 		if (eal_service_cores_parsed())
 			RTE_LOG(WARNING, EAL,
 				"Service cores parsed before dataplane cores. Please ensure -c is before -s or -S\n");
-		if (eal_parse_coremask(optarg, lcore_indexes) < 0) {
+		if (eal_parse_coremask(optarg, &lcores_count, &lcores) < 0) {
 			RTE_LOG(ERR, EAL, "invalid coremask syntax\n");
 			return -1;
 		}
-		if (update_lcore_config(lcore_indexes) < 0) {
-			char *available = available_cores();
-
-			RTE_LOG(ERR, EAL,
-				"invalid coremask, please check specified cores are part of %s\n",
-				available);
-			free(available);
+		if (check_lcores("coremask", optarg, lcores_count, lcores) < 0) {
+			free(lcores);
 			return -1;
 		}
+		update_lcore_config(lcores_count, lcores);
+		free(lcores);
 
 		if (core_parsed) {
 			RTE_LOG(ERR, EAL, "Option -c is ignored, because (%s) is set!\n",
@@ -1578,25 +1653,22 @@ eal_parse_common_option(int opt, const char *optarg,
 	}
 	/* corelist */
 	case 'l': {
-		int lcore_indexes[RTE_MAX_LCORE];
+		unsigned int lcores_count;
+		int *lcores;
 
 		if (eal_service_cores_parsed())
 			RTE_LOG(WARNING, EAL,
 				"Service cores parsed before dataplane cores. Please ensure -l is before -s or -S\n");
-
-		if (eal_parse_corelist(optarg, lcore_indexes) < 0) {
+		if (eal_parse_corelist(optarg, &lcores_count, &lcores) < 0) {
 			RTE_LOG(ERR, EAL, "invalid core list syntax\n");
 			return -1;
 		}
-		if (update_lcore_config(lcore_indexes) < 0) {
-			char *available = available_cores();
-
-			RTE_LOG(ERR, EAL,
-				"invalid core list, please check specified cores are part of %s\n",
-				available);
-			free(available);
+		if (check_lcores("core list", optarg, lcores_count, lcores) < 0) {
+			free(lcores);
 			return -1;
 		}
+		update_lcore_config(lcores_count, lcores);
+		free(lcores);
 
 		if (core_parsed) {
 			RTE_LOG(ERR, EAL, "Option -l is ignored, because (%s) is set!\n",
