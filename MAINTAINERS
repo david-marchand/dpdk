@@ -418,8 +418,7 @@ M: Nicolas Chautru <nicolas.chautru@intel.com>
 T: git://dpdk.org/next/dpdk-next-crypto
 F: lib/bbdev/
 F: doc/guides/prog_guide/bbdev.rst
-F: drivers/baseband/
-F: doc/guides/bbdevs/
+F: doc/guides/bbdevs/features/default.ini
 F: app/test-bbdev/
 F: doc/guides/tools/testbbdev.rst
 F: examples/bbdev_app/
@@ -446,7 +445,6 @@ M: Fan Zhang <roy.fan.zhang@intel.com>
 M: Ashish Gupta <ashish.gupta@marvell.com>
 T: git://dpdk.org/next/dpdk-next-crypto
 F: lib/compressdev/
-F: drivers/compress/
 F: app/test/test_compressdev*
 F: doc/guides/prog_guide/compressdev.rst
 F: doc/guides/compressdevs/features/default.ini
@@ -480,6 +478,8 @@ Eventdev API
 M: Jerin Jacob <jerinj@marvell.com>
 T: git://dpdk.org/next/dpdk-next-eventdev
 F: lib/eventdev/
+F: doc/guides/prog_guide/eventdev.rst
+F: doc/guides/eventdev/features/default.ini
 F: drivers/event/skeleton/
 F: app/test/test_eventdev.c
 F: examples/l3fwd/l3fwd_event*
@@ -523,6 +523,7 @@ F: doc/guides/prog_guide/rawdev.rst
 
 Memory Pool Drivers
 -------------------
+T: git://dpdk.org/dpdk
 
 Bucket memory pool
 M: Artem V. Andreev <artem.andreev@oktetlabs.ru>
@@ -539,6 +540,7 @@ F: doc/guides/mempool/cnxk.rst
 
 Bus Drivers
 -----------
+T: git://dpdk.org/dpdk
 
 Auxiliary bus driver - EXPERIMENTAL
 M: Parav Pandit <parav@nvidia.com>
@@ -936,6 +938,7 @@ F: doc/guides/sample_app_ug/vhost_blk.rst
 F: examples/vhost_crypto/
 F: examples/vdpa/
 F: doc/guides/sample_app_ug/vdpa.rst
+F: doc/guides/vdpadevs/features/default.ini
 
 Vhost PMD
 M: Maxime Coquelin <maxime.coquelin@redhat.com>
@@ -1173,6 +1176,7 @@ F: doc/guides/compressdevs/features/zlib.ini
 
 DMAdev Drivers
 --------------
+T: git://dpdk.org/dpdk
 
 Intel IDXD - EXPERIMENTAL
 M: Bruce Richardson <bruce.richardson@intel.com>
@@ -1206,6 +1210,7 @@ F: doc/guides/dmadevs/dpaa.rst
 
 RegEx Drivers
 -------------
+T: git://dpdk.org/dpdk
 
 Marvell OCTEON CN9K regex
 M: Liron Himi <lironh@marvell.com>
@@ -1302,6 +1307,32 @@ F: doc/guides/eventdevs/opdl.rst
 
 Baseband Drivers
 ----------------
+T: git://dpdk.org/next/dpdk-next-crypto
+
+Intel ACC100
+M: Nicolas Chautru <nicolas.chautru@intel.com>
+F: drivers/baseband/acc100/
+F: doc/guides/bbdevs/acc100.rst
+
+Intel FPGA 5GNR FEC
+M: Nicolas Chautru <nicolas.chautru@intel.com>
+F: drivers/baseband/fpga_5gnr_fec/
+F: doc/guides/bbdevs/fpga_5gnr_fec.rst
+
+Intel FPGA LTE FEC
+M: Nicolas Chautru <nicolas.chautru@intel.com>
+F: drivers/baseband/fpga_lte_fec/
+F: doc/guides/bbdevs/fpga_lte_fec.rst
+
+Intel Software Turbo
+M: Nicolas Chautru <nicolas.chautru@intel.com>
+F: drivers/baseband/turbo_sw/
+F: doc/guides/bbdevs/turbo_sw.rst
+
+Null Baseband
+M: Nicolas Chautru <nicolas.chautru@intel.com>
+F: drivers/baseband/null/
+F: doc/guides/bbdevs/null.rst
 
 NXP LA12xx
 M: Nipun Gupta <nipun.gupta@nxp.com>
@@ -1312,6 +1343,7 @@ F: doc/guides/bbdevs/la12xx.rst
 
 GPU Drivers
 -----------
+T: git://dpdk.org/dpdk
 
 NVIDIA CUDA
 M: Elena Agostini <eagostini@nvidia.com>
@@ -1321,6 +1353,7 @@ F: doc/guides/gpus/cuda.rst
 
 Rawdev Drivers
 --------------
+T: git://dpdk.org/dpdk
 
 Intel FPGA
 M: Rosen Xu <rosen.xu@intel.com>
