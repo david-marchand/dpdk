@@ -3,6 +3,7 @@
  * Copyright(c) 2016 6WIND S.A.
  */
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,11 +14,96 @@
 
 #include "rte_mempool_trace.h"
 
+#include "mempool_ops.h"
+
+static int
+dummy_alloc(struct rte_mempool *mp __rte_unused)
+{
+	rte_errno = ENOMEM;
+	return -rte_errno;
+}
+
+static void
+dummy_free(struct rte_mempool *mp __rte_unused)
+{
+}
+
+static int
+dummy_enqueue(struct rte_mempool *mp __rte_unused,
+	void * const *obj_table __rte_unused, unsigned int n __rte_unused)
+{
+	return -ENOBUFS;
+}
+
+static int
+dummy_dequeue(struct rte_mempool *mp __rte_unused,
+	void **obj_table __rte_unused, unsigned int n __rte_unused)
+{
+	return -ENOBUFS;
+}
+
+static unsigned int
+dummy_get_count(const struct rte_mempool *mp __rte_unused)
+{
+	return 0;
+}
+
+static ssize_t
+dummy_calc_mem_size(const struct rte_mempool *mp __rte_unused,
+	uint32_t obj_num __rte_unused,  uint32_t pg_shift __rte_unused,
+	size_t *min_chunk_size __rte_unused, size_t *align __rte_unused)
+{
+	return SSIZE_MAX;
+}
+
+static int
+dummy_populate(struct rte_mempool *mp __rte_unused,
+	unsigned int max_objs __rte_unused, void *vaddr __rte_unused,
+	rte_iova_t iova __rte_unused, size_t len __rte_unused,
+	rte_mempool_populate_obj_cb_t *obj_cb __rte_unused,
+	void *obj_cb_arg __rte_unused)
+{
+	rte_errno = ENOMEM;
+	return -rte_errno;
+}
+
+static int
+dummy_get_info(const struct rte_mempool *mp __rte_unused,
+	struct rte_mempool_info *info __rte_unused)
+{
+	rte_errno = ENOTSUP;
+	return -rte_errno;
+}
+
+static int
+dummy_dequeue_contig_blocks(struct rte_mempool *mp __rte_unused,
+	 void **first_obj_table __rte_unused, unsigned int n __rte_unused)
+{
+	rte_errno = ENOBUFS;
+	return -rte_errno;
+}
+
 /* indirect jump table to support external memory pools. */
 struct rte_mempool_ops_table rte_mempool_ops_table = {
 	.sl =  RTE_SPINLOCK_INITIALIZER,
-	.num_ops = 0
+	.num_ops = 0,
+	.ops = {
+		[RTE_MEMPOOL_MAX_OPS_IDX - 1] = {
+			.name = "dummy",
+			.alloc = dummy_alloc,
+			.free = dummy_free,
+			.enqueue = dummy_enqueue,
+			.dequeue = dummy_dequeue,
+			.get_count = dummy_get_count,
+			.calc_mem_size = dummy_calc_mem_size,
+			.populate = dummy_populate,
+			.get_info = dummy_get_info,
+			.dequeue_contig_blocks = dummy_dequeue_contig_blocks,
+		},
+	},
 };
+/* protected by rte_mempool_ops_table.sl */
+static bool mempool_ops_init;
 
 /* add a new ops struct in rte_mempool_ops_table, return its index. */
 int
@@ -28,8 +114,7 @@ rte_mempool_register_ops(const struct rte_mempool_ops *h)
 
 	rte_spinlock_lock(&rte_mempool_ops_table.sl);
 
-	if (rte_mempool_ops_table.num_ops >=
-			RTE_MEMPOOL_MAX_OPS_IDX) {
+	if (rte_mempool_ops_table.num_ops >= RTE_MEMPOOL_MAX_OPS_IDX - 1) {
 		rte_spinlock_unlock(&rte_mempool_ops_table.sl);
 		RTE_LOG(ERR, MEMPOOL,
 			"Maximum number of mempool ops structs exceeded\n");
@@ -65,6 +150,12 @@ rte_mempool_register_ops(const struct rte_mempool_ops *h)
 	ops->get_info = h->get_info;
 	ops->dequeue_contig_blocks = h->dequeue_contig_blocks;
 
+	/* Until rte_mempool_ops_init() is called, we return a fake ops index
+	 * to catch code that will use mempool before mempools index have
+	 * been agreed between primary / secondary processes.
+	 */
+	if (!mempool_ops_init)
+		ops_index = RTE_MEMPOOL_MAX_OPS_IDX - 1;
 	rte_spinlock_unlock(&rte_mempool_ops_table.sl);
 
 	return ops_index;
@@ -186,4 +277,17 @@ rte_mempool_set_ops_byname(struct rte_mempool *mp, const char *name,
 	mp->pool_config = pool_config;
 	rte_mempool_trace_set_ops_byname(mp, name, pool_config);
 	return 0;
+}
+
+void
+rte_mempool_ops_init(void)
+{
+	rte_spinlock_lock(&rte_mempool_ops_table.sl);
+
+	if (!mempool_ops_init) {
+		/* TAMBOUILLE */
+		mempool_ops_init = true;
+	}
+
+	rte_spinlock_unlock(&rte_mempool_ops_table.sl);
 }

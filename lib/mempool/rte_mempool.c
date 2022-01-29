@@ -36,6 +36,8 @@
 #include "rte_mempool.h"
 #include "rte_mempool_trace.h"
 
+#include "mempool_ops.h"
+
 TAILQ_HEAD(rte_mempool_list, rte_tailq_entry);
 
 static struct rte_tailq_elem rte_mempool_tailq = {
@@ -829,6 +831,8 @@ rte_mempool_create_empty(const char *name, unsigned n, unsigned elt_size,
 #endif
 
 	mempool_list = RTE_TAILQ_CAST(rte_mempool_tailq.head, rte_mempool_list);
+
+	rte_mempool_ops_init();
 
 	/* asked for zero items */
 	if (n == 0) {
