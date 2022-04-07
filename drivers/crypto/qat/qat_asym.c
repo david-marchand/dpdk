@@ -1166,6 +1166,7 @@ qat_asym_process_response(void **out_op, uint8_t *resp,
 		QAT_DP_LOG(ERR,
 			"Invalid session/xform settings in response ring!");
 		op->status = RTE_CRYPTO_OP_STATUS_ERROR;
+		xform = NULL;
 	}
 	if (op->status == RTE_CRYPTO_OP_STATUS_NOT_PROCESSED)
 		op->status = qat_asym_collect_response(op, cookie, xform);
