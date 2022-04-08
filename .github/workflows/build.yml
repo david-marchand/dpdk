@@ -30,6 +30,7 @@ jobs:
       REF_GIT_TAG: none
       RISCV64: ${{ matrix.config.cross == 'riscv64' }}
       RUN_TESTS: ${{ contains(matrix.config.checks, 'tests') }}
+      UBSAN: ${{ contains(matrix.config.checks, 'ubsan') }}
 
     strategy:
       fail-fast: false
@@ -44,6 +45,10 @@ jobs:
           - os: ubuntu-20.04
             compiler: clang
             checks: asan+doc+tests
+          - os: ubuntu-20.04
+            compiler: clang
+            library: shared
+            checks: tests+ubsan
           - os: ubuntu-20.04
             compiler: gcc
             library: static

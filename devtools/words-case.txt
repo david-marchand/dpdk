@@ -97,6 +97,7 @@ TPID
 TSO
 TTL
 Tx
+UBSan
 UDM
 UDP
 ULP
