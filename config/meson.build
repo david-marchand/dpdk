@@ -509,6 +509,22 @@ if get_option('b_sanitize') == 'address' or get_option('b_sanitize') == 'address
     endif
 endif
 
+if get_option('b_sanitize') == 'undefined' or get_option('b_sanitize') == 'address,undefined'
+    if is_windows
+        error('UBSan is not supported on windows')
+    endif
+
+    if cc.get_id() == 'gcc'
+        ubsan_dep = cc.find_library('ubsan', required: true)
+        if (not cc.links('int main(int argc, char *argv[]) { return 0; }',
+                dependencies: ubsan_dep))
+            error('broken dependency, "libubsan"')
+        endif
+        add_project_link_arguments('-lubsan', language: 'c')
+        dpdk_extra_ldflags += '-lubsan'
+    endif
+endif
+
 if get_option('default_library') == 'both'
     error( '''
  Unsupported value "both" for "default_library" option.

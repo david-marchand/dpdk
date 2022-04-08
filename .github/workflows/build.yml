@@ -31,6 +31,7 @@ jobs:
       RISCV64: ${{ matrix.config.cross == 'riscv64' }}
       RUN_TESTS: ${{ contains(matrix.config.checks, 'tests') }}
       STDATOMIC: ${{ contains(matrix.config.checks, 'stdatomic') }}
+      UBSAN: ${{ contains(matrix.config.checks, 'ubsan') }}
 
     strategy:
       fail-fast: false
@@ -52,6 +53,10 @@ jobs:
             compiler: clang
             checks: asan+doc+tests
           - os: ubuntu-22.04
+            compiler: clang
+            library: shared
+            checks: tests+ubsan
+          - os: ubuntu-20.04
             compiler: gcc
             library: static
             cross: i386

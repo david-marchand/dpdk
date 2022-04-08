@@ -42,10 +42,16 @@ typedef RTE_ATOMIC(uint64_t) rte_trace_point_t;
  */
 #define RTE_TRACE_POINT_ARGS
 
+#ifdef _RTE_TRACE_POINT_REGISTER_H_
+#define __rte_trace_point_no_ubsan __rte_no_ubsan
+#else
+#define __rte_trace_point_no_ubsan
+#endif
+
 /** @internal Helper macro to support RTE_TRACE_POINT and RTE_TRACE_POINT_FP */
 #define __RTE_TRACE_POINT(_mode, _tp, _args, ...) \
 extern rte_trace_point_t __##_tp; \
-static __rte_always_inline void \
+static __rte_trace_point_no_ubsan __rte_always_inline void \
 _tp _args \
 { \
 	__rte_trace_point_emit_header_##_mode(&__##_tp); \

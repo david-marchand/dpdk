@@ -402,6 +402,15 @@ static void __attribute__((destructor(RTE_PRIO(prio)), used)) func(void)
 #define __rte_no_asan
 #endif
 
+/**
+ * Disable UndefinedBehaviorSanitizer on some code
+ */
+#ifdef RTE_CC_CLANG
+#define __rte_no_ubsan __attribute__((no_sanitize("undefined")))
+#else
+#define __rte_no_ubsan
+#endif
+
 /*********** Macros for pointer arithmetic ********/
 
 /**
