@@ -181,7 +181,7 @@ rte_bpf_exec(const struct rte_bpf *bpf, void *ctx);
  *   number of successfully processed inputs.
  */
 uint32_t
-rte_bpf_exec_burst(const struct rte_bpf *bpf, void *ctx[], uint64_t rc[],
+rte_bpf_exec_burst(const struct rte_bpf *bpf, void **ctx, uint64_t *rc,
 		uint32_t num);
 
 /**
