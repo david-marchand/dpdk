@@ -441,9 +441,9 @@ static int
 vfio_get_group_fd(struct vfio_config *vfio_cfg,
 		int iommu_group_num)
 {
-	int i;
+	struct vfio_group *cur_grp = NULL;
 	int vfio_group_fd;
-	struct vfio_group *cur_grp;
+	int i;
 
 	/* check if we already have the group descriptor open */
 	for (i = 0; i < VFIO_MAX_GROUPS; i++)
@@ -464,7 +464,7 @@ vfio_get_group_fd(struct vfio_config *vfio_cfg,
 		}
 
 	/* This should not happen */
-	if (i == VFIO_MAX_GROUPS) {
+	if (cur_grp == NULL) {
 		EAL_LOG(ERR, "No VFIO group free slot found");
 		return -1;
 	}
