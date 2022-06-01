@@ -27,6 +27,9 @@
 ; Ignore changes to rte_crypto_asym_op, asymmetric crypto API is experimental
 [suppress_type]
         name = rte_crypto_asym_op
+; Ignore changes to rte_crypto_asym_xform_type, asymmetric crypto API is experimental
+[suppress_type]
+        name = rte_crypto_asym_xform_type
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Temporary exceptions till next major ABI version ;
