@@ -26,10 +26,17 @@
 
 #define MAX_BATCH_LEN 256
 
+/* DMA related information */
+struct async_dma_context {
+	struct async_dma_vchan_info *dma_info;
+	int16_t dma_id;
+	uint16_t vchan_id;
+};
+
 static __rte_always_inline uint16_t
 async_poll_dequeue_completed(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id, bool legacy_ol_flags);
+	struct rte_mbuf **pkts, uint16_t count, struct async_dma_context *dma_ctx,
+	bool legacy_ol_flags);
 
 /* DMA device copy operation tracking array. */
 struct async_dma_info dma_copy_track[RTE_DMADEV_DEFAULT_MAX];
@@ -53,12 +60,19 @@ is_valid_virt_queue_idx(uint32_t idx, int is_tx, uint32_t nr_vring)
 }
 
 static bool
-is_valid_dma_channel(int16_t dma_id, uint16_t vchan_id)
+init_dma_context(struct async_dma_context *dma_ctx, int16_t dma_id, uint16_t vchan_id)
 {
-	return dma_id >= 0 &&
+	bool is_valid = dma_id >= 0 &&
 		(size_t)dma_id < RTE_DIM(dma_copy_track) &&
 		dma_copy_track[dma_id].vchans != NULL &&
 		dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr != NULL;
+
+	if (is_valid) {
+		dma_ctx->dma_info = &dma_copy_track[dma_id].vchans[vchan_id];
+		dma_ctx->dma_id = dma_id;
+		dma_ctx->vchan_id = vchan_id;
+	}
+	return is_valid;
 }
 
 /*
@@ -111,25 +125,24 @@ vhost_queue_stats_update(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 static __rte_always_inline int64_t
 vhost_async_dma_transfer_one(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		int16_t dma_id, uint16_t vchan_id, uint16_t flag_idx,
-		struct vhost_iov_iter *pkt)
+	struct async_dma_context *dma_ctx, uint16_t flag_idx,
+	struct vhost_iov_iter *pkt)
 {
-	struct async_dma_vchan_info *dma_info = &dma_copy_track[dma_id].vchans[vchan_id];
+	struct async_dma_vchan_info *dma_info = dma_ctx->dma_info;
 	uint16_t ring_mask = dma_info->ring_mask;
 	static bool vhost_async_dma_copy_log;
-
-
 	struct vhost_iovec *iov = pkt->iov;
 	int copy_idx = 0;
 	uint32_t nr_segs = pkt->nr_segs;
 	uint16_t i;
 
-	if (rte_dma_burst_capacity(dma_id, vchan_id) < nr_segs)
+	if (rte_dma_burst_capacity(dma_ctx->dma_id, dma_ctx->vchan_id) < nr_segs)
 		return -1;
 
 	for (i = 0; i < nr_segs; i++) {
-		copy_idx = rte_dma_copy(dma_id, vchan_id, (rte_iova_t)iov[i].src_addr,
-				(rte_iova_t)iov[i].dst_addr, iov[i].len, RTE_DMA_OP_FLAG_LLC);
+		copy_idx = rte_dma_copy(dma_ctx->dma_id, dma_ctx->vchan_id,
+			(rte_iova_t)iov[i].src_addr, (rte_iova_t)iov[i].dst_addr,
+			iov[i].len, RTE_DMA_OP_FLAG_LLC);
 		/**
 		 * Since all memory is pinned and DMA vChannel
 		 * ring has enough space, failure should be a
@@ -141,7 +154,7 @@ vhost_async_dma_transfer_one(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		if (unlikely(copy_idx < 0)) {
 			if (!vhost_async_dma_copy_log) {
 				VHOST_LOG_DATA(ERR, "(%s) DMA copy failed for channel %d:%u\n",
-						dev->ifname, dma_id, vchan_id);
+					dev->ifname, dma_ctx->dma_id, dma_ctx->vchan_id);
 				vhost_async_dma_copy_log = true;
 			}
 			return -1;
@@ -159,18 +172,17 @@ vhost_async_dma_transfer_one(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 static __rte_always_inline uint16_t
 vhost_async_dma_transfer(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		int16_t dma_id, uint16_t vchan_id, uint16_t head_idx,
-		struct vhost_iov_iter *pkts, uint16_t nr_pkts)
+	struct async_dma_context *dma_ctx, uint16_t head_idx,
+	struct vhost_iov_iter *pkts, uint16_t nr_pkts)
 {
-	struct async_dma_vchan_info *dma_info = &dma_copy_track[dma_id].vchans[vchan_id];
+	struct async_dma_vchan_info *dma_info = dma_ctx->dma_info;
 	int64_t ret, nr_copies = 0;
 	uint16_t pkt_idx;
 
 	rte_spinlock_lock(&dma_info->dma_lock);
 
 	for (pkt_idx = 0; pkt_idx < nr_pkts; pkt_idx++) {
-		ret = vhost_async_dma_transfer_one(dev, vq, dma_id, vchan_id, head_idx,
-				&pkts[pkt_idx]);
+		ret = vhost_async_dma_transfer_one(dev, vq, dma_ctx, head_idx, &pkts[pkt_idx]);
 		if (unlikely(ret < 0))
 			break;
 
@@ -181,7 +193,7 @@ vhost_async_dma_transfer(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	}
 
 	if (likely(nr_copies > 0))
-		rte_dma_submit(dma_id, vchan_id);
+		rte_dma_submit(dma_ctx->dma_id, dma_ctx->vchan_id);
 
 	rte_spinlock_unlock(&dma_info->dma_lock);
 
@@ -189,10 +201,10 @@ vhost_async_dma_transfer(struct virtio_net *dev, struct vhost_virtqueue *vq,
 }
 
 static __rte_always_inline uint16_t
-vhost_async_dma_check_completed(struct virtio_net *dev, int16_t dma_id, uint16_t vchan_id,
-		uint16_t max_pkts)
+vhost_async_dma_check_completed(struct virtio_net *dev, struct async_dma_context *dma_ctx,
+	uint16_t max_pkts)
 {
-	struct async_dma_vchan_info *dma_info = &dma_copy_track[dma_id].vchans[vchan_id];
+	struct async_dma_vchan_info *dma_info = dma_ctx->dma_info;
 	uint16_t ring_mask = dma_info->ring_mask;
 	uint16_t last_idx = 0;
 	uint16_t nr_copies;
@@ -207,10 +219,10 @@ vhost_async_dma_check_completed(struct virtio_net *dev, int16_t dma_id, uint16_t
 	 * Print error log for debugging, if DMA reports error during
 	 * DMA transfer. We do not handle error in vhost level.
 	 */
-	nr_copies = rte_dma_completed(dma_id, vchan_id, max_pkts, &last_idx, &has_error);
+	nr_copies = rte_dma_completed(dma_ctx->dma_id, dma_ctx->vchan_id, max_pkts, &last_idx, &has_error);
 	if (unlikely(!vhost_async_dma_complete_log && has_error)) {
-		VHOST_LOG_DATA(ERR, "(%s) DMA completion failure on channel %d:%u\n", dev->ifname,
-				dma_id, vchan_id);
+		VHOST_LOG_DATA(ERR, "(%s) DMA completion failure on channel %d:%u\n",
+			dev->ifname, dma_ctx->dma_id, dma_ctx->vchan_id);
 		vhost_async_dma_complete_log = true;
 	} else if (nr_copies == 0) {
 		goto out;
@@ -1677,7 +1689,7 @@ store_dma_desc_info_packed(struct vring_used_elem_packed *s_ring,
 static __rte_noinline uint32_t
 virtio_dev_rx_async_submit_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		uint16_t queue_id, struct rte_mbuf **pkts, uint32_t count,
-		int16_t dma_id, uint16_t vchan_id)
+		struct async_dma_context *dma_ctx)
 {
 	struct buf_vector buf_vec[BUF_VECTOR_MAX];
 	uint32_t pkt_idx = 0;
@@ -1729,8 +1741,8 @@ virtio_dev_rx_async_submit_split(struct virtio_net *dev, struct vhost_virtqueue 
 	if (unlikely(pkt_idx == 0))
 		return 0;
 
-	n_xfer = vhost_async_dma_transfer(dev, vq, dma_id, vchan_id, async->pkts_idx,
-			async->iov_iter, pkt_idx);
+	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
+		async->iov_iter, pkt_idx);
 
 	pkt_err = pkt_idx - n_xfer;
 	if (unlikely(pkt_err)) {
@@ -1883,7 +1895,7 @@ dma_error_handler_packed(struct vhost_virtqueue *vq, uint16_t slot_idx,
 static __rte_noinline uint32_t
 virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		uint16_t queue_id, struct rte_mbuf **pkts, uint32_t count,
-		int16_t dma_id, uint16_t vchan_id)
+		struct async_dma_context *dma_ctx)
 {
 	uint32_t pkt_idx = 0;
 	uint32_t remained = count;
@@ -1919,8 +1931,8 @@ virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue
 	if (unlikely(pkt_idx == 0))
 		return 0;
 
-	n_xfer = vhost_async_dma_transfer(dev, vq, dma_id, vchan_id, async->pkts_idx,
-			async->iov_iter, pkt_idx);
+	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
+		async->iov_iter, pkt_idx);
 
 	async_iter_reset(async);
 
@@ -2049,8 +2061,7 @@ write_back_completed_descs_packed(struct vhost_virtqueue *vq,
 
 static __rte_always_inline uint16_t
 vhost_poll_enqueue_completed(struct virtio_net *dev, uint16_t queue_id,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id)
+	struct rte_mbuf **pkts, uint16_t count, struct async_dma_context *dma_ctx)
 {
 	struct vhost_virtqueue *vq = dev->virtqueue[queue_id];
 	struct vhost_async *async = vq->async;
@@ -2060,7 +2071,7 @@ vhost_poll_enqueue_completed(struct virtio_net *dev, uint16_t queue_id,
 	uint16_t start_idx, from, i;
 
 	/* Check completed copies for the given DMA vChannel */
-	vhost_async_dma_check_completed(dev, dma_id, vchan_id, VHOST_DMA_MAX_COPY_COMPLETE);
+	vhost_async_dma_check_completed(dev, dma_ctx, VHOST_DMA_MAX_COPY_COMPLETE);
 
 	start_idx = async_get_first_inflight_pkt_idx(vq);
 	/**
@@ -2117,10 +2128,11 @@ vhost_poll_enqueue_completed(struct virtio_net *dev, uint16_t queue_id,
 
 uint16_t
 rte_vhost_poll_enqueue_completed(int vid, uint16_t queue_id,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id)
+	struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
+	uint16_t vchan_id)
 {
 	struct virtio_net *dev = get_device(vid);
+	struct async_dma_context dma_ctx;
 	struct vhost_virtqueue *vq;
 	uint16_t n_pkts_cpl = 0;
 
@@ -2134,7 +2146,7 @@ rte_vhost_poll_enqueue_completed(int vid, uint16_t queue_id,
 		return 0;
 	}
 
-	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
 		VHOST_LOG_DATA(ERR, "(%s) %s: invalid dma id %d or channel %u\n",
 			dev->ifname, __func__, dma_id, vchan_id);
 		return 0;
@@ -2154,7 +2166,7 @@ rte_vhost_poll_enqueue_completed(int vid, uint16_t queue_id,
 		goto out;
 	}
 
-	n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id, pkts, count, dma_id, vchan_id);
+	n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id, pkts, count, &dma_ctx);
 
 	vhost_queue_stats_update(dev, vq, pkts, n_pkts_cpl);
 	vq->stats.inflight_completed += n_pkts_cpl;
@@ -2171,6 +2183,7 @@ rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
 		uint16_t vchan_id)
 {
 	struct virtio_net *dev = get_device(vid);
+	struct async_dma_context dma_ctx;
 	struct vhost_virtqueue *vq;
 	uint16_t n_pkts_cpl = 0;
 
@@ -2184,7 +2197,7 @@ rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
 		return 0;
 	}
 
-	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
 		VHOST_LOG_DATA(ERR, "(%s) %s: invalid dma id %d or channel %u\n",
 			dev->ifname, __func__, dma_id, vchan_id);
 		return 0;
@@ -2205,12 +2218,10 @@ rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
 	}
 
 	if ((queue_id & 1) == 0)
-		n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id,
-					pkts, count, dma_id, vchan_id);
-	else {
-		n_pkts_cpl = async_poll_dequeue_completed(dev, vq, pkts, count,
-					dma_id, vchan_id, dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS);
-	}
+		n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id, pkts, count, &dma_ctx);
+	else
+		n_pkts_cpl = async_poll_dequeue_completed(dev, vq, pkts, count, &dma_ctx,
+			dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS);
 
 	vhost_queue_stats_update(dev, vq, pkts, n_pkts_cpl);
 	vq->stats.inflight_completed += n_pkts_cpl;
@@ -2223,6 +2234,7 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 		uint16_t count, int16_t dma_id, uint16_t vchan_id)
 {
 	struct virtio_net *dev = get_device(vid);
+	struct async_dma_context dma_ctx;
 	struct vhost_virtqueue *vq;
 	uint16_t n_pkts_cpl = 0;
 
@@ -2236,7 +2248,7 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 		return 0;
 	}
 
-	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
 		VHOST_LOG_DATA(ERR, "(%s) %s: invalid dma id %d or channel %u\n",
 			dev->ifname, __func__, dma_id, vchan_id);
 		return 0;
@@ -2257,12 +2269,10 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 	}
 
 	if ((queue_id & 1) == 0)
-		n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id,
-				pkts, count, dma_id, vchan_id);
-	else {
-		n_pkts_cpl = async_poll_dequeue_completed(dev, vq, pkts, count,
-					dma_id, vchan_id, dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS);
-	}
+		n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id, pkts, count, &dma_ctx);
+	else
+		n_pkts_cpl = async_poll_dequeue_completed(dev, vq, pkts, count, &dma_ctx,
+			dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS);
 
 	vhost_queue_stats_update(dev, vq, pkts, n_pkts_cpl);
 	vq->stats.inflight_completed += n_pkts_cpl;
@@ -2275,7 +2285,7 @@ out_access_unlock:
 
 static __rte_always_inline uint32_t
 virtio_dev_rx_async_submit(struct virtio_net *dev, uint16_t queue_id,
-	struct rte_mbuf **pkts, uint32_t count, int16_t dma_id, uint16_t vchan_id)
+	struct rte_mbuf **pkts, uint32_t count, struct async_dma_context *dma_ctx)
 {
 	struct vhost_virtqueue *vq;
 	uint32_t nb_tx = 0;
@@ -2284,12 +2294,6 @@ virtio_dev_rx_async_submit(struct virtio_net *dev, uint16_t queue_id,
 	if (unlikely(!is_valid_virt_queue_idx(queue_id, 0, dev->nr_vring))) {
 		VHOST_LOG_DATA(ERR, "(%s) %s: invalid virtqueue idx %d.\n",
 			dev->ifname, __func__, queue_id);
-		return 0;
-	}
-
-	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
-		VHOST_LOG_DATA(ERR, "(%s) %s: invalid dma id %d or channel %u\n",
-			dev->ifname, __func__, dma_id, vchan_id);
 		return 0;
 	}
 
@@ -2313,10 +2317,10 @@ virtio_dev_rx_async_submit(struct virtio_net *dev, uint16_t queue_id,
 
 	if (vq_is_packed(dev))
 		nb_tx = virtio_dev_rx_async_submit_packed(dev, vq, queue_id,
-				pkts, count, dma_id, vchan_id);
+				pkts, count, dma_ctx);
 	else
 		nb_tx = virtio_dev_rx_async_submit_split(dev, vq, queue_id,
-				pkts, count, dma_id, vchan_id);
+				pkts, count, dma_ctx);
 
 	vq->stats.inflight_submitted += nb_tx;
 
@@ -2336,6 +2340,7 @@ rte_vhost_submit_enqueue_burst(int vid, uint16_t queue_id,
 		uint16_t vchan_id)
 {
 	struct virtio_net *dev = get_device(vid);
+	struct async_dma_context dma_ctx;
 
 	if (!dev)
 		return 0;
@@ -2346,7 +2351,13 @@ rte_vhost_submit_enqueue_burst(int vid, uint16_t queue_id,
 		return 0;
 	}
 
-	return virtio_dev_rx_async_submit(dev, queue_id, pkts, count, dma_id, vchan_id);
+	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
+		VHOST_LOG_DATA(ERR, "(%s) %s: invalid channel %d:%u.\n",
+			dev->ifname, __func__, dma_id, vchan_id);
+		return 0;
+	}
+
+	return virtio_dev_rx_async_submit(dev, queue_id, pkts, count, &dma_ctx);
 }
 
 static inline bool
@@ -3323,14 +3334,14 @@ out_access_unlock:
 
 static __rte_always_inline uint16_t
 async_poll_dequeue_completed(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id, bool legacy_ol_flags)
+	struct rte_mbuf **pkts, uint16_t count, struct async_dma_context *dma_ctx,
+	bool legacy_ol_flags)
 {
 	uint16_t start_idx, from, i;
 	uint16_t nr_cpl_pkts = 0;
 	struct async_inflight_info *pkts_info = vq->async->pkts_info;
 
-	vhost_async_dma_check_completed(dev, dma_id, vchan_id, VHOST_DMA_MAX_COPY_COMPLETE);
+	vhost_async_dma_check_completed(dev, dma_ctx, VHOST_DMA_MAX_COPY_COMPLETE);
 
 	start_idx = async_get_first_inflight_pkt_idx(vq);
 
@@ -3369,8 +3380,8 @@ async_poll_dequeue_completed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 static __rte_always_inline uint16_t
 virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
-		int16_t dma_id, uint16_t vchan_id, bool legacy_ol_flags)
+	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+	struct async_dma_context *dma_ctx, bool legacy_ol_flags)
 {
 	static bool allocerr_warned;
 	bool dropped = false;
@@ -3467,8 +3478,8 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	if (unlikely(dropped))
 		rte_pktmbuf_free_bulk(&pkts_prealloc[pkt_idx], count - pkt_idx);
 
-	n_xfer = vhost_async_dma_transfer(dev, vq, dma_id, vchan_id, async->pkts_idx,
-					  async->iov_iter, pkt_idx);
+	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
+		async->iov_iter, pkt_idx);
 
 	async->pkts_inflight_n += n_xfer;
 
@@ -3498,32 +3509,28 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 out:
 	/* DMA device may serve other queues, unconditionally check completed. */
-	nr_done_pkts = async_poll_dequeue_completed(dev, vq, pkts, pkts_size,
-							dma_id, vchan_id, legacy_ol_flags);
+	nr_done_pkts = async_poll_dequeue_completed(dev, vq, pkts, pkts_size, dma_ctx,
+		legacy_ol_flags);
 
 	return nr_done_pkts;
 }
 
 __rte_noinline
 static uint16_t
-virtio_dev_tx_async_split_legacy(struct virtio_net *dev,
-		struct vhost_virtqueue *vq, struct rte_mempool *mbuf_pool,
-		struct rte_mbuf **pkts, uint16_t count,
-		int16_t dma_id, uint16_t vchan_id)
+virtio_dev_tx_async_split_legacy(struct virtio_net *dev, struct vhost_virtqueue *vq,
+	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+	struct async_dma_context *dma_ctx)
 {
-	return virtio_dev_tx_async_split(dev, vq, mbuf_pool,
-				pkts, count, dma_id, vchan_id, true);
+	return virtio_dev_tx_async_split(dev, vq, mbuf_pool, pkts, count, dma_ctx, true);
 }
 
 __rte_noinline
 static uint16_t
-virtio_dev_tx_async_split_compliant(struct virtio_net *dev,
-		struct vhost_virtqueue *vq, struct rte_mempool *mbuf_pool,
-		struct rte_mbuf **pkts, uint16_t count,
-		int16_t dma_id, uint16_t vchan_id)
+virtio_dev_tx_async_split_compliant(struct virtio_net *dev, struct vhost_virtqueue *vq,
+	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+	struct async_dma_context *dma_ctx)
 {
-	return virtio_dev_tx_async_split(dev, vq, mbuf_pool,
-				pkts, count, dma_id, vchan_id, false);
+	return virtio_dev_tx_async_split(dev, vq, mbuf_pool, pkts, count, dma_ctx, false);
 }
 
 static __rte_always_inline void
@@ -3591,8 +3598,8 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev,
 
 static __rte_always_inline uint16_t
 virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts,
-		uint16_t count, uint16_t dma_id, uint16_t vchan_id, bool legacy_ol_flags)
+	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+	struct async_dma_context *dma_ctx, bool legacy_ol_flags)
 {
 	uint16_t pkt_idx;
 	uint16_t slot_idx = 0;
@@ -3628,8 +3635,8 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 	}
 
-	n_xfer = vhost_async_dma_transfer(dev, vq, dma_id, vchan_id, async->pkts_idx,
-					async->iov_iter, pkt_idx);
+	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
+		async->iov_iter, pkt_idx);
 
 	async->pkts_inflight_n += n_xfer;
 
@@ -3665,8 +3672,8 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		async->pkts_idx -= vq->size;
 
 out:
-	nr_done_pkts = async_poll_dequeue_completed(dev, vq, pkts, count,
-					dma_id, vchan_id, legacy_ol_flags);
+	nr_done_pkts = async_poll_dequeue_completed(dev, vq, pkts, count, dma_ctx,
+		legacy_ol_flags);
 
 	return nr_done_pkts;
 }
@@ -3674,21 +3681,19 @@ out:
 __rte_noinline
 static uint16_t
 virtio_dev_tx_async_packed_legacy(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts,
-		uint16_t count, uint16_t dma_id, uint16_t vchan_id)
+	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+	struct async_dma_context *dma_ctx)
 {
-	return virtio_dev_tx_async_packed(dev, vq, mbuf_pool,
-				pkts, count, dma_id, vchan_id, true);
+	return virtio_dev_tx_async_packed(dev, vq, mbuf_pool, pkts, count, dma_ctx, true);
 }
 
 __rte_noinline
 static uint16_t
 virtio_dev_tx_async_packed_compliant(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts,
-		uint16_t count, uint16_t dma_id, uint16_t vchan_id)
+	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+	struct async_dma_context *dma_ctx)
 {
-	return virtio_dev_tx_async_packed(dev, vq, mbuf_pool,
-				pkts, count, dma_id, vchan_id, false);
+	return virtio_dev_tx_async_packed(dev, vq, mbuf_pool, pkts, count, dma_ctx, false);
 }
 
 uint16_t
@@ -3696,12 +3701,12 @@ rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
 	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
 	int *nr_inflight, int16_t dma_id, uint16_t vchan_id)
 {
-	struct virtio_net *dev;
+	struct virtio_net *dev = get_device(vid);
 	struct rte_mbuf *rarp_mbuf = NULL;
+	struct async_dma_context dma_ctx;
 	struct vhost_virtqueue *vq;
 	int16_t success = 1;
 
-	dev = get_device(vid);
 	if (!dev || !nr_inflight)
 		return 0;
 
@@ -3719,7 +3724,7 @@ rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
 		return 0;
 	}
 
-	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
 		VHOST_LOG_DATA(ERR, "(%s) %s: invalid dma id %d or channel %u\n",
 			dev->ifname, __func__, dma_id, vchan_id);
 		return 0;
@@ -3790,17 +3795,17 @@ rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
 	if (vq_is_packed(dev)) {
 		if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
 			count = virtio_dev_tx_async_packed_legacy(dev, vq, mbuf_pool,
-					pkts, count, dma_id, vchan_id);
+				pkts, count, &dma_ctx);
 		else
 			count = virtio_dev_tx_async_packed_compliant(dev, vq, mbuf_pool,
-					pkts, count, dma_id, vchan_id);
+				pkts, count, &dma_ctx);
 	} else {
 		if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
 			count = virtio_dev_tx_async_split_legacy(dev, vq, mbuf_pool,
-					pkts, count, dma_id, vchan_id);
+				pkts, count, &dma_ctx);
 		else
 			count = virtio_dev_tx_async_split_compliant(dev, vq, mbuf_pool,
-					pkts, count, dma_id, vchan_id);
+				pkts, count, &dma_ctx);
 	}
 
 	*nr_inflight = vq->async->pkts_inflight_n;
