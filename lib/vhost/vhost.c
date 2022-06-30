@@ -1868,6 +1868,12 @@ rte_vhost_async_dma_configure(int16_t dma_id, uint16_t vchan_id)
 		return -1;
 	}
 
+	if ((size_t)dma_id >= RTE_DIM(dma_copy_track)) {
+		VHOST_LOG_CONFIG(ERR, "DMA %d can not be used as the library only supports %zu DMA\n",
+			dma_id, RTE_DIM(dma_copy_track));
+		return -1;
+	}
+
 	rte_dma_info_get(dma_id, &info);
 	if (vchan_id >= info.max_vchans) {
 		VHOST_LOG_CONFIG(ERR, "Invalid DMA %d vChannel %u.\n", dma_id, vchan_id);
