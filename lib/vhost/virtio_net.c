@@ -53,6 +53,15 @@ is_valid_virt_queue_idx(uint32_t idx, int is_tx, uint32_t nr_vring)
 	return (is_tx ^ (idx & 1)) == 0 && idx < nr_vring;
 }
 
+static bool
+is_valid_dma_channel(int16_t dma_id, uint16_t vchan_id)
+{
+	return dma_id >= 0 &&
+		(size_t)dma_id < RTE_DIM(dma_copy_track) &&
+		dma_copy_track[dma_id].vchans != NULL &&
+		dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr != NULL;
+}
+
 static inline void
 vhost_queue_stats_update(const struct virtio_net *dev, struct vhost_virtqueue *vq,
 		struct rte_mbuf **pkts, uint16_t count)
@@ -2362,9 +2371,9 @@ rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
 		return 0;
 	}
 
-	if (unlikely(dma_id < 0 || dma_id >= RTE_DMADEV_DEFAULT_MAX)) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid dma id %d.",
-			__func__, dma_id);
+	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid dma id %d or channel %u.",
+			__func__, dma_id, vchan_id);
 		return 0;
 	}
 
@@ -2376,14 +2385,6 @@ rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
 		VHOST_DATA_LOG(dev->ifname, ERR,
 			"%s: async not registered for virtqueue %d.",
 			__func__, queue_id);
-		return 0;
-	}
-
-	if (unlikely(!dma_copy_track[dma_id].vchans ||
-				!dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr)) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid channel %d:%u.",
-			__func__, dma_id, vchan_id);
 		return 0;
 	}
 
@@ -2419,9 +2420,9 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 		return 0;
 	}
 
-	if (unlikely(dma_id < 0 || dma_id >= RTE_DMADEV_DEFAULT_MAX)) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid dma id %d.",
-			__func__, dma_id);
+	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid dma id %d or channel %u.",
+			__func__, dma_id, vchan_id);
 		return 0;
 	}
 
@@ -2436,13 +2437,6 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 	if (unlikely(!vq->async)) {
 		VHOST_DATA_LOG(dev->ifname, ERR, "%s: async not registered for queue id %u.",
 			__func__, queue_id);
-		goto out_access_unlock;
-	}
-
-	if (unlikely(!dma_copy_track[dma_id].vchans ||
-				!dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr)) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid channel %d:%u.",
-			__func__, dma_id, vchan_id);
 		goto out_access_unlock;
 	}
 
@@ -2470,11 +2464,10 @@ virtio_dev_rx_async_submit(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 	VHOST_DATA_LOG(dev->ifname, DEBUG, "%s", __func__);
 
-	if (unlikely(!dma_copy_track[dma_id].vchans ||
-				!dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr)) {
+	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
 		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid channel %d:%u.",
-			 __func__, dma_id, vchan_id);
+			"%s: invalid dma id %d or channel %u.",
+			__func__, dma_id, vchan_id);
 		return 0;
 	}
 
@@ -4177,15 +4170,9 @@ rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
 		goto out_no_unlock;
 	}
 
-	if (unlikely(dma_id < 0 || dma_id >= RTE_DMADEV_DEFAULT_MAX)) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid dma id %d.",
-			__func__, dma_id);
-		goto out_no_unlock;
-	}
-
-	if (unlikely(!dma_copy_track[dma_id].vchans ||
-				!dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr)) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid channel %d:%u.",
+	if (unlikely(!is_valid_dma_channel(dma_id, vchan_id))) {
+		VHOST_DATA_LOG(dev->ifname, ERR,
+			"%s: invalid dma id %d or channel %u.",
 			__func__, dma_id, vchan_id);
 		goto out_no_unlock;
 	}

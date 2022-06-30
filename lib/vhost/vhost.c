@@ -2028,6 +2028,13 @@ rte_vhost_async_dma_configure(int16_t dma_id, uint16_t vchan_id)
 		goto error;
 	}
 
+	if ((size_t)dma_id >= RTE_DIM(dma_copy_track)) {
+		VHOST_CONFIG_LOG("dma", ERR,
+			"DMA %d can not be used as the library only supports %zu DMA.",
+			dma_id, RTE_DIM(dma_copy_track));
+		return -1;
+	}
+
 	if (rte_dma_info_get(dma_id, &info) != 0) {
 		VHOST_CONFIG_LOG("dma", ERR, "Fail to get DMA %d information.", dma_id);
 		goto error;
