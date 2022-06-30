@@ -2018,61 +2018,9 @@ vhost_poll_enqueue_completed(struct virtio_net *dev, uint16_t queue_id,
 	return nr_cpl_pkts;
 }
 
-uint16_t
-rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id)
-{
-	struct virtio_net *dev = get_device(vid);
-	struct async_dma_context dma_ctx;
-	struct vhost_virtqueue *vq;
-	uint16_t n_pkts_cpl = 0;
-
-	if (!dev)
-		return 0;
-
-	VHOST_LOG_DATA(DEBUG, "(%s) %s\n", dev->ifname, __func__);
-	if (unlikely(queue_id >= dev->nr_vring)) {
-		VHOST_LOG_DATA(ERR, "(%s) %s: invalid virtqueue idx %d.\n",
-			dev->ifname, __func__, queue_id);
-		return 0;
-	}
-
-	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
-		VHOST_LOG_DATA(ERR, "(%s) %s: invalid dma id %d or channel %u\n",
-			dev->ifname, __func__, dma_id, vchan_id);
-		return 0;
-	}
-
-	vq = dev->virtqueue[queue_id];
-
-	if (unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
-		VHOST_LOG_DATA(ERR, "(%s) %s() called without access lock taken.\n",
-				dev->ifname, __func__);
-		return -1;
-	}
-
-	if (unlikely(!vq->async)) {
-		VHOST_LOG_DATA(ERR, "(%s) %s: async not registered for queue id %d.\n",
-			dev->ifname, __func__, queue_id);
-		return 0;
-	}
-
-	if ((queue_id & 1) == 0)
-		n_pkts_cpl = vhost_poll_enqueue_completed(dev, queue_id, pkts, count, &dma_ctx);
-	else
-		n_pkts_cpl = async_poll_dequeue_completed(dev, vq, pkts, count, &dma_ctx,
-			dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS);
-
-	vhost_queue_stats_update(dev, vq, pkts, n_pkts_cpl);
-	vq->stats.inflight_completed += n_pkts_cpl;
-
-	return n_pkts_cpl;
-}
-
-uint16_t
-rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
-		uint16_t count, int16_t dma_id, uint16_t vchan_id)
+static __rte_always_inline uint16_t
+vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
+	uint16_t count, int16_t dma_id, uint16_t vchan_id, bool must_lock)
 {
 	struct virtio_net *dev = get_device(vid);
 	struct async_dma_context dma_ctx;
@@ -2097,10 +2045,14 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 
 	vq = dev->virtqueue[queue_id];
 
-	if (!rte_spinlock_trylock(&vq->access_lock)) {
+	if (must_lock && !rte_spinlock_trylock(&vq->access_lock)) {
 		VHOST_LOG_DATA(DEBUG, "(%s) %s: virtqueue %u is busy.\n",
 				dev->ifname, __func__, queue_id);
 		return 0;
+	} else if (!must_lock && unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
+		VHOST_LOG_DATA(ERR, "(%s) %s() called without access lock taken.\n",
+				dev->ifname, __func__);
+		return -1;
 	}
 
 	if (unlikely(!vq->async)) {
@@ -2119,7 +2071,8 @@ rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
 	vq->stats.inflight_completed += n_pkts_cpl;
 
 out_access_unlock:
-	rte_spinlock_unlock(&vq->access_lock);
+	if (must_lock)
+		rte_spinlock_unlock(&vq->access_lock);
 
 	return n_pkts_cpl;
 }
@@ -2196,6 +2149,21 @@ rte_vhost_enqueue_burst(int vid, uint16_t queue_id,
 	}
 
 	return virtio_dev_rx(dev, queue_id, pkts, count, NULL);
+}
+
+uint16_t
+rte_vhost_clear_queue(int vid, uint16_t queue_id, struct rte_mbuf **pkts,
+		uint16_t count, int16_t dma_id, uint16_t vchan_id)
+{
+	return vhost_clear_queue(vid, queue_id, pkts, count, dma_id, vchan_id, true);
+}
+
+uint16_t
+rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
+	struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
+	uint16_t vchan_id)
+{
+	return vhost_clear_queue(vid, queue_id, pkts, count, dma_id, vchan_id, false);
 }
 
 uint16_t

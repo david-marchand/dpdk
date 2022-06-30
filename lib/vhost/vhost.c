@@ -1727,8 +1727,8 @@ out_free_async:
 	return -1;
 }
 
-int
-rte_vhost_async_channel_register(int vid, uint16_t queue_id)
+static __rte_always_inline int
+vhost_async_channel_register(int vid, uint16_t queue_id, bool must_lock)
 {
 	struct vhost_virtqueue *vq;
 	struct virtio_net *dev = get_device(vid);
@@ -1745,41 +1745,34 @@ rte_vhost_async_channel_register(int vid, uint16_t queue_id)
 	if (unlikely(vq == NULL || !dev->async_copy))
 		return -1;
 
-	rte_spinlock_lock(&vq->access_lock);
+	if (must_lock) {
+		rte_spinlock_lock(&vq->access_lock);
+	} else if (unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
+		VHOST_LOG_CONFIG(ERR, "(%s) %s() called without access lock taken.\n",
+				dev->ifname, __func__);
+		return -1;
+	}
 	ret = async_channel_register(vid, queue_id);
-	rte_spinlock_unlock(&vq->access_lock);
+	if (must_lock)
+		rte_spinlock_unlock(&vq->access_lock);
 
 	return ret;
 }
 
 int
-rte_vhost_async_channel_register_thread_unsafe(int vid, uint16_t queue_id)
+rte_vhost_async_channel_register(int vid, uint16_t queue_id)
 {
-	struct vhost_virtqueue *vq;
-	struct virtio_net *dev = get_device(vid);
-
-	if (dev == NULL)
-		return -1;
-
-	if (queue_id >= VHOST_MAX_VRING)
-		return -1;
-
-	vq = dev->virtqueue[queue_id];
-
-	if (unlikely(vq == NULL || !dev->async_copy))
-		return -1;
-
-	if (unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
-		VHOST_LOG_CONFIG(ERR, "(%s) %s() called without access lock taken.\n",
-				dev->ifname, __func__);
-		return -1;
-	}
-
-	return async_channel_register(vid, queue_id);
+	return vhost_async_channel_register(vid, queue_id, true);
 }
 
 int
-rte_vhost_async_channel_unregister(int vid, uint16_t queue_id)
+rte_vhost_async_channel_register_thread_unsafe(int vid, uint16_t queue_id)
+{
+	return vhost_async_channel_register(vid, queue_id, false);
+}
+
+static __rte_always_inline int
+vhost_async_channel_unregister(int vid, uint16_t queue_id, bool must_lock)
 {
 	struct vhost_virtqueue *vq;
 	struct virtio_net *dev = get_device(vid);
@@ -1796,9 +1789,13 @@ rte_vhost_async_channel_unregister(int vid, uint16_t queue_id)
 	if (vq == NULL)
 		return ret;
 
-	if (!rte_spinlock_trylock(&vq->access_lock)) {
+	if (must_lock && !rte_spinlock_trylock(&vq->access_lock)) {
 		VHOST_LOG_CONFIG(ERR, "(%s) failed to unregister async channel, virtqueue busy.\n",
 				dev->ifname);
+		return ret;
+	} else if (!must_lock && unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
+		VHOST_LOG_CONFIG(ERR, "(%s) %s() called without access lock taken.\n",
+				dev->ifname, __func__);
 		return ret;
 	}
 
@@ -1813,47 +1810,22 @@ rte_vhost_async_channel_unregister(int vid, uint16_t queue_id)
 		ret = 0;
 	}
 
-	rte_spinlock_unlock(&vq->access_lock);
+	if (must_lock)
+		rte_spinlock_unlock(&vq->access_lock);
 
 	return ret;
 }
 
 int
+rte_vhost_async_channel_unregister(int vid, uint16_t queue_id)
+{
+	return vhost_async_channel_unregister(vid, queue_id, true);
+}
+
+int
 rte_vhost_async_channel_unregister_thread_unsafe(int vid, uint16_t queue_id)
 {
-	struct vhost_virtqueue *vq;
-	struct virtio_net *dev = get_device(vid);
-
-	if (dev == NULL)
-		return -1;
-
-	if (queue_id >= VHOST_MAX_VRING)
-		return -1;
-
-	vq = dev->virtqueue[queue_id];
-
-	if (vq == NULL)
-		return -1;
-
-	if (unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
-		VHOST_LOG_CONFIG(ERR, "(%s) %s() called without access lock taken.\n",
-				dev->ifname, __func__);
-		return -1;
-	}
-
-	if (!vq->async)
-		return 0;
-
-	if (vq->async->pkts_inflight_n) {
-		VHOST_LOG_CONFIG(ERR, "(%s) failed to unregister async channel.\n", dev->ifname);
-		VHOST_LOG_CONFIG(ERR, "(%s) inflight packets must be completed before unregistration.\n",
-			dev->ifname);
-		return -1;
-	}
-
-	vhost_free_async_mem(vq);
-
-	return 0;
+	return vhost_async_channel_unregister(vid, queue_id, false);
 }
 
 int
@@ -1924,8 +1896,8 @@ rte_vhost_async_dma_configure(int16_t dma_id, uint16_t vchan_id)
 	return 0;
 }
 
-int
-rte_vhost_async_get_inflight(int vid, uint16_t queue_id)
+static __rte_always_inline int
+vhost_async_get_inflight(int vid, uint16_t queue_id, bool must_lock)
 {
 	struct vhost_virtqueue *vq;
 	struct virtio_net *dev = get_device(vid);
@@ -1942,51 +1914,36 @@ rte_vhost_async_get_inflight(int vid, uint16_t queue_id)
 	if (vq == NULL)
 		return ret;
 
-	if (!rte_spinlock_trylock(&vq->access_lock)) {
+	if (must_lock && !rte_spinlock_trylock(&vq->access_lock)) {
 		VHOST_LOG_CONFIG(DEBUG,
 			"(%s) failed to check in-flight packets. virtqueue busy.\n",
 			dev->ifname);
+		return ret;
+	} else if (!must_lock && unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
+		VHOST_LOG_CONFIG(ERR, "(%s) %s() called without access lock taken.\n",
+				dev->ifname, __func__);
 		return ret;
 	}
 
 	if (vq->async)
 		ret = vq->async->pkts_inflight_n;
 
-	rte_spinlock_unlock(&vq->access_lock);
+	if (must_lock)
+		rte_spinlock_unlock(&vq->access_lock);
 
 	return ret;
 }
 
 int
+rte_vhost_async_get_inflight(int vid, uint16_t queue_id)
+{
+	return vhost_async_get_inflight(vid, queue_id, true);
+}
+
+int
 rte_vhost_async_get_inflight_thread_unsafe(int vid, uint16_t queue_id)
 {
-	struct vhost_virtqueue *vq;
-	struct virtio_net *dev = get_device(vid);
-	int ret = -1;
-
-	if (dev == NULL)
-		return ret;
-
-	if (queue_id >= VHOST_MAX_VRING)
-		return ret;
-
-	vq = dev->virtqueue[queue_id];
-
-	if (vq == NULL)
-		return ret;
-
-	if (unlikely(!rte_spinlock_is_locked(&vq->access_lock))) {
-		VHOST_LOG_CONFIG(ERR, "(%s) %s() called without access lock taken.\n",
-				dev->ifname, __func__);
-		return -1;
-	}
-
-	if (!vq->async)
-		return ret;
-
-	ret = vq->async->pkts_inflight_n;
-
-	return ret;
+	return vhost_async_get_inflight(vid, queue_id, false);
 }
 
 int
