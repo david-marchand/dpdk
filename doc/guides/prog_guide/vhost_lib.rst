@@ -270,11 +270,6 @@ The following is an overview of some key Vhost API functions:
   by async data path. Applications must not free the packets submitted for
   enqueue until the packets are completed.
 
-* ``rte_vhost_poll_enqueue_completed(vid, queue_id, pkts, count, dma_id, vchan_id)``
-
-  Poll enqueue completion status from async data path. Completed packets
-  are returned to applications through ``pkts``.
-
 * ``rte_vhost_async_get_inflight(vid, queue_id)``
 
   This function returns the amount of in-flight packets for the vhost
