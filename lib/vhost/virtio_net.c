@@ -2341,61 +2341,6 @@ vhost_poll_enqueue_completed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 }
 
 uint16_t
-rte_vhost_poll_enqueue_completed(int vid, uint16_t queue_id,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id)
-{
-	struct virtio_net *dev = get_device(vid);
-	struct vhost_virtqueue *vq;
-	uint16_t n_pkts_cpl = 0;
-
-	if (unlikely(!dev))
-		return 0;
-
-	VHOST_DATA_LOG(dev->ifname, DEBUG, "%s", __func__);
-	if (unlikely(!is_valid_virt_queue_idx(queue_id, 0, dev->nr_vring))) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid virtqueue idx %d.",
-			__func__, queue_id);
-		return 0;
-	}
-
-	if (unlikely(!dma_copy_track[dma_id].vchans ||
-				!dma_copy_track[dma_id].vchans[vchan_id].pkts_cmpl_flag_addr)) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid channel %d:%u.",
-			__func__, dma_id, vchan_id);
-		return 0;
-	}
-
-	vq = dev->virtqueue[queue_id];
-
-	if (rte_rwlock_read_trylock(&vq->access_lock)) {
-		VHOST_DATA_LOG(dev->ifname, DEBUG,
-			"%s: virtqueue %u is busy.",
-			__func__, queue_id);
-		return 0;
-	}
-
-	if (unlikely(!vq->async)) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: async not registered for virtqueue %d.",
-			__func__, queue_id);
-		goto out;
-	}
-
-	n_pkts_cpl = vhost_poll_enqueue_completed(dev, vq, pkts, count, dma_id, vchan_id);
-
-	vhost_queue_stats_update(dev, vq, pkts, n_pkts_cpl);
-	vq->stats.inflight_completed += n_pkts_cpl;
-
-out:
-	rte_rwlock_read_unlock(&vq->access_lock);
-
-	return n_pkts_cpl;
-}
-
-uint16_t
 rte_vhost_clear_queue_thread_unsafe(int vid, uint16_t queue_id,
 		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
 		uint16_t vchan_id)
