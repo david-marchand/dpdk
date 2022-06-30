@@ -1715,76 +1715,6 @@ virtio_dev_vring_translate(struct virtio_net *dev, struct vhost_virtqueue *vq)
 	rte_rwlock_write_unlock(&vq->access_lock);
 }
 
-static __rte_always_inline uint32_t
-virtio_dev_rx(struct virtio_net *dev, struct vhost_virtqueue *vq,
-	struct rte_mbuf **pkts, uint32_t count)
-{
-	uint32_t nb_tx = 0;
-
-	VHOST_DATA_LOG(dev->ifname, DEBUG, "%s", __func__);
-	rte_rwlock_read_lock(&vq->access_lock);
-
-	if (unlikely(!vq->enabled))
-		goto out_access_unlock;
-
-	vhost_user_iotlb_rd_lock(vq);
-
-	if (unlikely(!vq->access_ok)) {
-		vhost_user_iotlb_rd_unlock(vq);
-		rte_rwlock_read_unlock(&vq->access_lock);
-
-		virtio_dev_vring_translate(dev, vq);
-		goto out_no_unlock;
-	}
-
-	count = RTE_MIN((uint32_t)MAX_PKT_BURST, count);
-	if (count == 0)
-		goto out;
-
-	if (vq_is_packed(dev))
-		nb_tx = virtio_dev_rx_packed(dev, vq, pkts, count);
-	else
-		nb_tx = virtio_dev_rx_split(dev, vq, pkts, count);
-
-	vhost_queue_stats_update(dev, vq, pkts, nb_tx);
-
-out:
-	vhost_user_iotlb_rd_unlock(vq);
-
-out_access_unlock:
-	rte_rwlock_read_unlock(&vq->access_lock);
-
-out_no_unlock:
-	return nb_tx;
-}
-
-RTE_EXPORT_SYMBOL(rte_vhost_enqueue_burst)
-uint16_t
-rte_vhost_enqueue_burst(int vid, uint16_t queue_id,
-	struct rte_mbuf **__rte_restrict pkts, uint16_t count)
-{
-	struct virtio_net *dev = get_device(vid);
-
-	if (!dev)
-		return 0;
-
-	if (unlikely(!(dev->flags & VIRTIO_DEV_BUILTIN_VIRTIO_NET))) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: built-in vhost net backend is disabled.",
-			__func__);
-		return 0;
-	}
-
-	if (unlikely(!is_valid_virt_queue_idx(queue_id, 0, dev->nr_vring))) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid virtqueue idx %d.",
-			__func__, queue_id);
-		return 0;
-	}
-
-	return virtio_dev_rx(dev, dev->virtqueue[queue_id], pkts, count);
-}
-
 static __rte_always_inline uint16_t
 async_get_first_inflight_pkt_idx(struct vhost_virtqueue *vq)
 	__rte_requires_shared_capability(&vq->access_lock)
@@ -2449,7 +2379,7 @@ out_access_unlock:
 }
 
 static __rte_always_inline uint32_t
-virtio_dev_rx_async_submit(struct virtio_net *dev, struct vhost_virtqueue *vq,
+virtio_dev_rx(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		struct rte_mbuf **pkts, uint32_t count, struct async_dma_context *dma_ctx)
 {
 	uint32_t nb_tx = 0;
@@ -2475,12 +2405,21 @@ virtio_dev_rx_async_submit(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	if (count == 0)
 		goto out;
 
-	if (vq_is_packed(dev))
-		nb_tx = virtio_dev_rx_async_submit_packed(dev, vq, pkts, count, dma_ctx);
-	else
-		nb_tx = virtio_dev_rx_async_submit_split(dev, vq, pkts, count, dma_ctx);
+	if (dma_ctx == NULL) {
+		if (vq_is_packed(dev))
+			nb_tx = virtio_dev_rx_packed(dev, vq, pkts, count);
+		else
+			nb_tx = virtio_dev_rx_split(dev, vq, pkts, count);
 
-	vq->stats.inflight_submitted += nb_tx;
+		vhost_queue_stats_update(dev, vq, pkts, nb_tx);
+	} else {
+		if (vq_is_packed(dev))
+			nb_tx = virtio_dev_rx_async_submit_packed(dev, vq, pkts, count, dma_ctx);
+		else
+			nb_tx = virtio_dev_rx_async_submit_split(dev, vq, pkts, count, dma_ctx);
+
+		vq->stats.inflight_submitted += nb_tx;
+	}
 
 out:
 	vhost_user_iotlb_rd_unlock(vq);
@@ -2490,6 +2429,33 @@ out_access_unlock:
 
 out_no_unlock:
 	return nb_tx;
+}
+
+RTE_EXPORT_SYMBOL(rte_vhost_enqueue_burst)
+uint16_t
+rte_vhost_enqueue_burst(int vid, uint16_t queue_id,
+		struct rte_mbuf **__rte_restrict pkts, uint16_t count)
+{
+	struct virtio_net *dev = get_device(vid);
+
+	if (!dev)
+		return 0;
+
+	if (unlikely(!(dev->flags & VIRTIO_DEV_BUILTIN_VIRTIO_NET))) {
+		VHOST_DATA_LOG(dev->ifname, ERR,
+			"%s: built-in vhost net backend is disabled.",
+			__func__);
+		return 0;
+	}
+
+	if (unlikely(!is_valid_virt_queue_idx(queue_id, 0, dev->nr_vring))) {
+		VHOST_DATA_LOG(dev->ifname, ERR,
+			"%s: invalid virtqueue idx %d.",
+			__func__, queue_id);
+		return 0;
+	}
+
+	return virtio_dev_rx(dev, dev->virtqueue[queue_id], pkts, count, NULL);
 }
 
 RTE_EXPORT_EXPERIMENTAL_SYMBOL(rte_vhost_submit_enqueue_burst, 20.08)
@@ -2525,8 +2491,7 @@ rte_vhost_submit_enqueue_burst(int vid, uint16_t queue_id,
 		return 0;
 	}
 
-	return virtio_dev_rx_async_submit(dev, dev->virtqueue[queue_id], pkts, count,
-		&dma_ctx);
+	return virtio_dev_rx(dev, dev->virtqueue[queue_id], pkts, count, &dma_ctx);
 }
 
 static inline bool
