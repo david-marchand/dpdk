@@ -1032,8 +1032,8 @@ complete_async_pkts(struct vhost_dev *vdev)
 	uint16_t complete_count;
 	int16_t dma_id = dma_bind[vid2socketid[vdev->vid]].dmas[VIRTIO_RXQ].dev_id;
 
-	complete_count = rte_vhost_poll_enqueue_completed(vdev->vid,
-					VIRTIO_RXQ, p_cpl, MAX_PKT_BURST, dma_id, 0);
+	complete_count = rte_vhost_clear_queue(vdev->vid, VIRTIO_RXQ, p_cpl,
+			MAX_PKT_BURST, dma_id, 0);
 	if (complete_count)
 		free_pkts(p_cpl, complete_count);
 

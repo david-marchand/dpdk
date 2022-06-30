@@ -77,8 +77,8 @@ int rte_vhost_async_channel_unregister_thread_unsafe(int vid,
 
 /**
  * This function submits enqueue packets to async copy engine. Users
- * need to poll transfer status by rte_vhost_poll_enqueue_completed()
- * for successfully enqueued packets.
+ * need to poll transfer status by rte_vhost_clear_queue() for successfully
+ * enqueued packets.
  *
  * @param vid
  *  id of vhost device to enqueue data
@@ -97,31 +97,6 @@ int rte_vhost_async_channel_unregister_thread_unsafe(int vid,
  */
 __rte_experimental
 uint16_t rte_vhost_submit_enqueue_burst(int vid, uint16_t queue_id,
-		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
-		uint16_t vchan_id);
-
-/**
- * This function checks async completion status for a specific vhost
- * device queue. Packets which finish copying (enqueue) operation
- * will be returned in an array.
- *
- * @param vid
- *  id of vhost device to enqueue data
- * @param queue_id
- *  queue id to enqueue data
- * @param pkts
- *  blank array to get return packet pointer
- * @param count
- *  size of the packet array
- * @param dma_id
- *  the identifier of DMA device
- * @param vchan_id
- *  the identifier of virtual DMA channel
- * @return
- *  num of packets returned
- */
-__rte_experimental
-uint16_t rte_vhost_poll_enqueue_completed(int vid, uint16_t queue_id,
 		struct rte_mbuf **pkts, uint16_t count, int16_t dma_id,
 		uint16_t vchan_id);
 
