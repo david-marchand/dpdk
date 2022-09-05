@@ -21,6 +21,7 @@ jobs:
       BUILD_DEBUG: ${{ contains(matrix.config.checks, 'debug') }}
       BUILD_DOCS: ${{ contains(matrix.config.checks, 'doc') }}
       BUILD_EXAMPLES: ${{ contains(matrix.config.checks, 'examples') }}
+      CODE_SCANNING: ${{ contains(matrix.config.checks, 'scan') }}
       CC: ccache ${{ matrix.config.compiler }}
       DEF_LIB: ${{ matrix.config.library }}
       LIBABIGAIL_VERSION: libabigail-2.4
@@ -48,7 +49,7 @@ jobs:
             checks: stdatomic
           - os: ubuntu-22.04
             compiler: gcc
-            checks: abi+debug+doc+examples+tests
+            checks: abi+debug+doc+examples+scan+tests
           - os: ubuntu-22.04
             compiler: clang
             checks: asan+doc+tests
@@ -139,6 +140,11 @@ jobs:
       if: env.BUILD_DOCS == 'true'
       run: sudo apt install -y doxygen graphviz man-db python3-sphinx
         python3-sphinx-rtd-theme
+    - name: Initialize CodeQL
+      if: env.CODE_SCANNING == 'true'
+      uses: github/codeql-action/init@v2
+      with:
+        languages: cpp
     - name: Run setup
       run: |
         .ci/linux-setup.sh
@@ -153,6 +159,9 @@ jobs:
       run: sudo sysctl -w vm.mmap_rnd_bits=28
     - name: Build and test
       run: .ci/linux-build.sh
+    - name: Perform CodeQL Analysis
+      if: env.CODE_SCANNING == 'true'
+      uses: github/codeql-action/analyze@v2
     - name: Upload logs on failure
       if: failure()
       uses: actions/upload-artifact@v4
