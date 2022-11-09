@@ -15,6 +15,7 @@
 
 #include <rte_bbdev.h>
 #include <rte_bbdev_pmd.h>
+#include <bbdev_vdev.h>
 
 #include <rte_hexdump.h>
 #include <rte_log.h>
@@ -1942,24 +1943,12 @@ turbo_sw_bbdev_create(struct rte_vdev_device *vdev,
 		struct turbo_sw_params *init_params)
 {
 	struct rte_bbdev *bbdev;
-	const char *name = rte_vdev_device_name(vdev);
 
-	bbdev = rte_bbdev_allocate(name);
+	bbdev = bbdev_vdev_allocate(vdev, sizeof(struct bbdev_private));
 	if (bbdev == NULL)
 		return -ENODEV;
 
-	bbdev->data->dev_private = rte_zmalloc_socket(name,
-			sizeof(struct bbdev_private), RTE_CACHE_LINE_SIZE,
-			init_params->socket_id);
-	if (bbdev->data->dev_private == NULL) {
-		rte_bbdev_release(bbdev);
-		return -ENOMEM;
-	}
-
 	bbdev->dev_ops = &pmd_ops;
-	bbdev->device = &vdev->device;
-	bbdev->data->socket_id = init_params->socket_id;
-	bbdev->intr_handle = NULL;
 
 	/* register rx/tx burst functions for data path */
 	bbdev->dequeue_enc_ops = dequeue_enc_ops;
@@ -1996,10 +1985,10 @@ turbo_sw_bbdev_probe(struct rte_vdev_device *vdev)
 	input_args = rte_vdev_device_args(vdev);
 	parse_turbo_sw_params(&init_params, input_args);
 
-	rte_bbdev_log_debug(
-			"Initialising %s on NUMA node %d with max queues: %d\n",
-			name, init_params.socket_id, init_params.queues_num);
+	rte_bbdev_log_debug("Initialising %s on NUMA node %d with max queues: %d\n",
+		name, init_params.socket_id, init_params.queues_num);
 
+	vdev->device.numa_node = init_params.socket_id;
 	return turbo_sw_bbdev_create(vdev, &init_params);
 }
 

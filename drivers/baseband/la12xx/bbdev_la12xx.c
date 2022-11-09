@@ -18,6 +18,7 @@
 
 #include <rte_bbdev.h>
 #include <rte_bbdev_pmd.h>
+#include <bbdev_vdev.h>
 
 #include <bbdev_la12xx_pmd_logs.h>
 #include <bbdev_la12xx_ipc.h>
@@ -993,24 +994,16 @@ static int
 la12xx_bbdev_create(struct rte_vdev_device *vdev,
 		struct bbdev_la12xx_params *init_params)
 {
-	struct rte_bbdev *bbdev;
 	const char *name = rte_vdev_device_name(vdev);
 	struct bbdev_la12xx_private *priv;
+	struct rte_bbdev *bbdev;
 	int ret;
 
 	PMD_INIT_FUNC_TRACE();
 
-	bbdev = rte_bbdev_allocate(name);
+	bbdev = bbdev_vdev_allocate(vdev, sizeof(struct bbdev_la12xx_private));
 	if (bbdev == NULL)
 		return -ENODEV;
-
-	bbdev->data->dev_private = rte_zmalloc(name,
-			sizeof(struct bbdev_la12xx_private),
-			RTE_CACHE_LINE_SIZE);
-	if (bbdev->data->dev_private == NULL) {
-		rte_bbdev_release(bbdev);
-		return -ENOMEM;
-	}
 
 	priv = bbdev->data->dev_private;
 	priv->modem_id = init_params->modem_id;
@@ -1033,9 +1026,6 @@ la12xx_bbdev_create(struct rte_vdev_device *vdev,
 		return ret;
 	}
 	bbdev->dev_ops = &pmd_ops;
-	bbdev->device = &vdev->device;
-	bbdev->data->socket_id = 0;
-	bbdev->intr_handle = NULL;
 
 	/* register rx/tx burst functions for data path */
 	bbdev->dequeue_enc_ops = NULL;

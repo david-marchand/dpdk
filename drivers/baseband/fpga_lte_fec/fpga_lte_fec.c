@@ -19,6 +19,7 @@
 
 #include <rte_bbdev.h>
 #include <rte_bbdev_pmd.h>
+#include <bbdev_pci.h>
 
 #include "fpga_lte_fec.h"
 
@@ -2321,10 +2322,12 @@ fpga_dequeue_dec(struct rte_bbdev_queue_data *q_data,
 }
 
 /* Initialization Function */
-static void
-fpga_lte_fec_init(struct rte_bbdev *dev, struct rte_pci_driver *drv)
+static int
+fpga_lte_fec_init(struct rte_bbdev *dev)
 {
 	struct rte_pci_device *pci_dev = RTE_DEV_TO_PCI(dev->device);
+	struct fpga_lte_fec_device *d = dev->data->dev_private;
+	uint32_t version_id;
 
 	dev->dev_ops = &fpga_ops;
 	dev->enqueue_enc_ops = fpga_enqueue_enc;
@@ -2332,74 +2335,35 @@ fpga_lte_fec_init(struct rte_bbdev *dev, struct rte_pci_driver *drv)
 	dev->dequeue_enc_ops = fpga_dequeue_enc;
 	dev->dequeue_dec_ops = fpga_dequeue_dec;
 
-	((struct fpga_lte_fec_device *) dev->data->dev_private)->pf_device =
-			!strcmp(drv->driver.name,
-					RTE_STR(FPGA_LTE_FEC_PF_DRIVER_NAME));
-	((struct fpga_lte_fec_device *) dev->data->dev_private)->mmio_base =
-			pci_dev->mem_resource[0].addr;
+	d->pf_device = pci_dev->id.device_id == FPGA_LTE_FEC_PF_DEVICE_ID;
+	d->mmio_base = pci_dev->mem_resource[0].addr;
 
-	rte_bbdev_log_debug(
-			"Init device %s [%s] @ virtaddr %p phyaddr %#"PRIx64,
-			drv->driver.name, dev->data->name,
-			(void *)pci_dev->mem_resource[0].addr,
-			pci_dev->mem_resource[0].phys_addr);
-}
+	rte_bbdev_log_debug("Init device %s [%s] @ virtaddr %p phyaddr %#"PRIx64,
+		pci_dev->device.driver.name, dev->data->name,
+		(void *)pci_dev->mem_resource[0].addr,
+		pci_dev->mem_resource[0].phys_addr);
 
-static int
-fpga_lte_fec_probe(struct rte_pci_driver *pci_drv,
-	struct rte_pci_device *pci_dev)
-{
-	struct rte_bbdev *bbdev = NULL;
-	char dev_name[RTE_BBDEV_NAME_MAX_LEN];
+	rte_bbdev_log_debug("bbdev id = %u [%s]", bbdev->data->dev_id,
+		pci_dev->device.name);
 
-	if (pci_dev == NULL) {
-		rte_bbdev_log(ERR, "NULL PCI device");
-		return -EINVAL;
-	}
-
-	rte_pci_device_name(&pci_dev->addr, dev_name, sizeof(dev_name));
-
-	/* Allocate memory to be used privately by drivers */
-	bbdev = rte_bbdev_allocate(pci_dev->device.name);
-	if (bbdev == NULL)
-		return -ENODEV;
-
-	/* allocate device private memory */
-	bbdev->data->dev_private = rte_zmalloc_socket(dev_name,
-			sizeof(struct fpga_lte_fec_device), RTE_CACHE_LINE_SIZE,
-			pci_dev->device.numa_node);
-
-	if (bbdev->data->dev_private == NULL) {
-		rte_bbdev_log(CRIT,
-				"Allocate of %zu bytes for device \"%s\" failed",
-				sizeof(struct fpga_lte_fec_device), dev_name);
-				rte_bbdev_release(bbdev);
-			return -ENOMEM;
-	}
-
-	/* Fill HW specific part of device structure */
-	bbdev->device = &pci_dev->device;
-	bbdev->intr_handle = pci_dev->intr_handle;
-	bbdev->data->socket_id = pci_dev->device.numa_node;
-
-	/* Invoke FEC FPGA device initialization function */
-	fpga_lte_fec_init(bbdev, pci_drv);
-
-	rte_bbdev_log_debug("bbdev id = %u [%s]",
-			bbdev->data->dev_id, dev_name);
-
-	struct fpga_lte_fec_device *d = bbdev->data->dev_private;
-	uint32_t version_id = fpga_reg_read_32(d->mmio_base,
-			FPGA_LTE_FEC_VERSION_ID);
+	version_id = fpga_reg_read_32(d->mmio_base, FPGA_LTE_FEC_VERSION_ID);
 	rte_bbdev_log(INFO, "FEC FPGA RTL v%u.%u",
 		((uint16_t)(version_id >> 16)), ((uint16_t)version_id));
 
 #ifdef RTE_LIBRTE_BBDEV_DEBUG
-	if (!strcmp(pci_drv->driver.name,
-			RTE_STR(FPGA_LTE_FEC_PF_DRIVER_NAME)))
+	if (d->pf_device)
 		print_static_reg_debug_info(d->mmio_base);
 #endif
+
 	return 0;
+}
+
+static int
+fpga_lte_fec_probe(struct rte_pci_driver *pci_drv __rte_unused,
+	struct rte_pci_device *pci_dev)
+{
+	return bbdev_pci_generic_probe(pci_dev, sizeof(struct fpga_lte_fec_device),
+		fpga_lte_fec_init);
 }
 
 static int
