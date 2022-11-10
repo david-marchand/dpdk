@@ -752,10 +752,6 @@ acc200_queue_setup(struct rte_bbdev *dev, uint16_t queue_id,
 	int16_t q_idx;
 	int ret;
 
-	if (d == NULL) {
-		rte_bbdev_log(ERR, "Undefined device");
-		return -ENODEV;
-	}
 	/* Allocate the queue data structure. */
 	q = rte_zmalloc_socket(dev->device->driver->name, sizeof(*q),
 			RTE_CACHE_LINE_SIZE, conf->socket);
