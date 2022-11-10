@@ -788,6 +788,11 @@ rte_bbdev_dequeue_ldpc_dec_ops(uint16_t dev_id, uint16_t queue_id,
 {
 	struct rte_bbdev *dev = &rte_bbdev_devices[dev_id];
 	struct rte_bbdev_queue_data *q_data = &dev->data->queues[queue_id];
+
+#ifdef RTE_LIBRTE_BBDEV_DEBUG
+	if (unlikely(ops == NULL))
+		return 0;
+#endif
 	return dev->dequeue_ldpc_dec_ops(q_data, ops, num_ops);
 }
 
