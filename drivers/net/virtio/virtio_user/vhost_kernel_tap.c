@@ -41,21 +41,66 @@ tap_support_features(unsigned int *tap_features)
 	return 0;
 }
 
-int
-tap_open(const char *ifname, unsigned int r_flags, bool multi_queue)
+struct tap_open_ctx {
+	const char *ifname;
+	const char *netns;
+	unsigned int r_flags;
+	bool multi_queue;
+	int fd;
+};
+
+static void *
+tap_open__(void *args)
 {
+	struct tap_open_ctx *ctx;
+	unsigned int r_flags;
+	const char *ifname;
+	const char *netns;
+	bool multi_queue;
 	struct ifreq ifr;
 	int tapfd;
+
+	ctx = args;
+	ifname = ctx->ifname;
+	netns = ctx->netns;
+	r_flags = ctx->r_flags;
+	multi_queue = ctx->multi_queue;
+
+	if (netns != NULL) {
+		char netns_path[PATH_MAX];
+		int netns_fd;
+		int ret;
+
+		if (netns[0] != '/') {
+			snprintf(netns_path, sizeof(netns_path) - 1,
+				"/var/run/netns/%s", netns);
+			netns_path[sizeof(netns_path) - 1] = '\0';
+			netns = netns_path;
+		}
+
+		netns_fd = open(netns, O_RDONLY | O_CLOEXEC);
+		if (netns_fd == -1) {
+			PMD_DRV_LOG(ERR, "fail to open netns %s: %s", netns, strerror(errno));
+			return NULL;
+		}
+
+		ret = setns(netns_fd, 0);
+		close(netns_fd);
+		if (ret == -1) {
+			PMD_DRV_LOG(ERR, "fail to jump to netns %s: %s", netns, strerror(errno));
+			return NULL;
+		}
+	}
 
 	tapfd = open(PATH_NET_TUN, O_RDWR);
 	if (tapfd < 0) {
 		PMD_DRV_LOG(ERR, "fail to open %s: %s", PATH_NET_TUN, strerror(errno));
-		return -1;
+		return NULL;
 	}
 	if (fcntl(tapfd, F_SETFL, O_NONBLOCK) < 0) {
 		PMD_DRV_LOG(ERR, "fcntl tapfd failed: %s", strerror(errno));
 		close(tapfd);
-		return -1;
+		return NULL;
 	}
 
 retry_mono_q:
@@ -77,7 +122,35 @@ retry_mono_q:
 		close(tapfd);
 		tapfd = -1;
 	}
-	return tapfd;
+	ctx->fd = tapfd;
+	return NULL;
+}
+
+int
+tap_open(const char *ifname, const char *netns, unsigned int r_flags, bool multi_queue)
+{
+	struct tap_open_ctx ctx;
+
+	ctx.ifname = ifname;
+	ctx.netns = netns;
+	ctx.r_flags = r_flags;
+	ctx.multi_queue = multi_queue;
+	ctx.fd = -1;
+
+	if (netns != NULL ) {
+		pthread_t tap_open_thread;
+
+		if (rte_ctrl_thread_create(&tap_open_thread, ifname, NULL,
+				tap_open__, &ctx) != 0) {
+			PMD_DRV_LOG(ERR, "fail to create tap thread for %s", ifname);
+			return -1;
+		}
+		pthread_join(tap_open_thread, NULL);
+	} else {
+		tap_open__(&ctx);
+	}
+
+	return ctx.fd;
 }
 
 int

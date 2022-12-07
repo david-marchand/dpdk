@@ -46,6 +46,7 @@ struct virtio_user_dev {
 	uint8_t		mac_addr[RTE_ETHER_ADDR_LEN];
 	char		path[PATH_MAX];
 	char		*ifname;
+	const char	*netns;
 
 	union {
 		struct vring		vrings[VIRTIO_MAX_VIRTQUEUES];
@@ -64,11 +65,9 @@ struct virtio_user_dev {
 int virtio_user_dev_set_features(struct virtio_user_dev *dev);
 int virtio_user_start_device(struct virtio_user_dev *dev);
 int virtio_user_stop_device(struct virtio_user_dev *dev);
-int virtio_user_dev_init(struct virtio_user_dev *dev, char *path, int queues,
-			 int cq, int queue_size, const char *mac, char **ifname,
-			 int server, int mrg_rxbuf, int in_order,
-			 int packed_vq,
-			 enum virtio_user_backend_type backend_type);
+int virtio_user_dev_init(struct virtio_user_dev *dev, char *path, int queues, int cq,
+	int queue_size, const char *mac, char **ifname, const char *netns, int server,
+	int mrg_rxbuf, int in_order, int packed_vq, enum virtio_user_backend_type backend_type);
 void virtio_user_dev_uninit(struct virtio_user_dev *dev);
 void virtio_user_handle_cq(struct virtio_user_dev *dev, uint16_t queue_idx);
 void virtio_user_handle_cq_packed(struct virtio_user_dev *dev,

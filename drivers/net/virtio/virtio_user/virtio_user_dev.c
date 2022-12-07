@@ -561,10 +561,9 @@ destroy:
 	 1ULL << VIRTIO_F_RING_PACKED)
 
 int
-virtio_user_dev_init(struct virtio_user_dev *dev, char *path, int queues,
-		     int cq, int queue_size, const char *mac, char **ifname,
-		     int server, int mrg_rxbuf, int in_order, int packed_vq,
-		     enum virtio_user_backend_type backend_type)
+virtio_user_dev_init(struct virtio_user_dev *dev, char *path, int queues, int cq, int queue_size,
+	const char *mac, char **ifname, const char *netns, int server, int mrg_rxbuf,
+	int in_order, int packed_vq, enum virtio_user_backend_type backend_type)
 {
 	uint64_t backend_features;
 	int i;
@@ -591,6 +590,7 @@ virtio_user_dev_init(struct virtio_user_dev *dev, char *path, int queues,
 		dev->ifname = *ifname;
 		*ifname = NULL;
 	}
+	dev->netns = netns;
 
 	if (virtio_user_dev_setup(dev) < 0) {
 		PMD_INIT_LOG(ERR, "(%s) backend set up fails", dev->path);

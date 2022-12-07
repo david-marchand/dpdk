@@ -308,6 +308,8 @@ static const char *valid_args[] = {
 	VIRTIO_USER_ARG_QUEUE_SIZE,
 #define VIRTIO_USER_ARG_INTERFACE_NAME "iface"
 	VIRTIO_USER_ARG_INTERFACE_NAME,
+#define VIRTIO_USER_ARG_NETNS          "netns"
+	VIRTIO_USER_ARG_NETNS,
 #define VIRTIO_USER_ARG_SERVER_MODE    "server"
 	VIRTIO_USER_ARG_SERVER_MODE,
 #define VIRTIO_USER_ARG_MRG_RXBUF      "mrg_rxbuf"
@@ -473,6 +475,7 @@ virtio_user_pmd_probe(struct rte_vdev_device *vdev)
 	uint64_t vectorized = 0;
 	char *path = NULL;
 	char *ifname = NULL;
+	char *netns = NULL;
 	char *mac_addr = NULL;
 	int ret = -1;
 
@@ -543,6 +546,22 @@ virtio_user_pmd_probe(struct rte_vdev_device *vdev)
 				       &get_string_arg, &ifname) < 0) {
 			PMD_INIT_LOG(ERR, "error to parse %s",
 				     VIRTIO_USER_ARG_INTERFACE_NAME);
+			goto end;
+		}
+	}
+
+	if (rte_kvargs_count(kvlist, VIRTIO_USER_ARG_NETNS) == 1) {
+		if (backend_type != VIRTIO_USER_BACKEND_VHOST_KERNEL) {
+			PMD_INIT_LOG(ERR,
+				"arg %s applies only to vhost-kernel backend",
+				VIRTIO_USER_ARG_NETNS);
+			goto end;
+		}
+
+		if (rte_kvargs_process(kvlist, VIRTIO_USER_ARG_NETNS,
+				       &get_string_arg, &netns) < 0) {
+			PMD_INIT_LOG(ERR, "error to parse %s",
+				     VIRTIO_USER_ARG_NETNS);
 			goto end;
 		}
 	}
@@ -651,7 +670,7 @@ virtio_user_pmd_probe(struct rte_vdev_device *vdev)
 	dev = eth_dev->data->dev_private;
 	hw = &dev->hw;
 	if (virtio_user_dev_init(dev, path, queues, cq,
-			 queue_size, mac_addr, &ifname, server_mode,
+			 queue_size, mac_addr, &ifname, netns, server_mode,
 			 mrg_rxbuf, in_order, packed_vq, backend_type) < 0) {
 		PMD_INIT_LOG(ERR, "virtio_user_dev_init fails");
 		virtio_user_eth_dev_free(eth_dev);

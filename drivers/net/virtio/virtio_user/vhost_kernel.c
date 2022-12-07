@@ -435,7 +435,8 @@ vhost_kernel_setup(struct virtio_user_dev *dev)
 	}
 
 	ifname = dev->ifname != NULL ? dev->ifname : "tap%d";
-	data->tapfds[0] = tap_open(ifname, r_flags, (tap_features & IFF_MULTI_QUEUE) != 0);
+	data->tapfds[0] = tap_open(ifname, dev->netns, r_flags,
+		(tap_features & IFF_MULTI_QUEUE) != 0);
 	if (data->tapfds[0] < 0)
 		goto err_tapfds;
 	if (dev->ifname == NULL && tap_get_name(data->tapfds[0], &dev->ifname) < 0) {
@@ -452,7 +453,7 @@ vhost_kernel_setup(struct virtio_user_dev *dev)
 	}
 
 	for (i = 1; i < dev->max_queue_pairs; i++) {
-		data->tapfds[i] = tap_open(dev->ifname, r_flags, true);
+		data->tapfds[i] = tap_open(dev->ifname, dev->netns, r_flags, true);
 		if (data->tapfds[i] < 0)
 			goto err_tapfds;
 	}
