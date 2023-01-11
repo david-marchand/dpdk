@@ -6,48 +6,6 @@
 #include "base/gve_adminq.h"
 
 static inline void
-gve_free_bulk_mbuf(struct rte_mbuf **txep, int num)
-{
-	struct rte_mbuf *m, *free[GVE_TX_MAX_FREE_SZ];
-	int nb_free = 0;
-	int i, s;
-
-	if (unlikely(num == 0))
-		return;
-
-	/* Find the 1st mbuf which needs to be free */
-	for (s = 0; s < num; s++) {
-		if (txep[s] != NULL) {
-			m = rte_pktmbuf_prefree_seg(txep[s]);
-			if (m != NULL)
-				break;
-		}
-	}
-
-	if (s == num)
-		return;
-
-	free[0] = m;
-	nb_free = 1;
-	for (i = s + 1; i < num; i++) {
-		if (likely(txep[i] != NULL)) {
-			m = rte_pktmbuf_prefree_seg(txep[i]);
-			if (likely(m != NULL)) {
-				if (likely(m->pool == free[0]->pool)) {
-					free[nb_free++] = m;
-				} else {
-					rte_mempool_put_bulk(free[0]->pool, (void *)free, nb_free);
-					free[0] = m;
-					nb_free = 1;
-				}
-			}
-			txep[i] = NULL;
-		}
-	}
-	rte_mempool_put_bulk(free[0]->pool, (void **)free, nb_free);
-}
-
-static inline void
 gve_tx_clean(struct gve_tx_queue *txq)
 {
 	uint16_t mask = txq->nb_tx_desc - 1;
@@ -74,7 +32,7 @@ gve_tx_clean(struct gve_tx_queue *txq)
 				iov->iov_len = 0;
 			}
 		} else {
-			gve_free_bulk_mbuf(&txq->sw_ring[start], nb_clean);
+			rte_pktmbuf_free_bulk(&txq->sw_ring[start], nb_clean);
 		}
 		txq->nb_free += nb_clean;
 		start += nb_clean;
@@ -95,7 +53,7 @@ gve_tx_clean(struct gve_tx_queue *txq)
 				iov->iov_len = 0;
 			}
 		} else {
-			gve_free_bulk_mbuf(&txq->sw_ring[start], nb_clean);
+			rte_pktmbuf_free_bulk(&txq->sw_ring[start], nb_clean);
 		}
 		txq->nb_free += nb_clean;
 		txq->next_to_clean += nb_clean;
@@ -118,7 +76,7 @@ gve_tx_clean_swr_qpl(struct gve_tx_queue *txq)
 		nb_clean = txq->nb_tx_desc - start;
 		if (nb_clean > GVE_TX_MAX_FREE_SZ)
 			nb_clean = GVE_TX_MAX_FREE_SZ;
-		gve_free_bulk_mbuf(&txq->sw_ring[start], nb_clean);
+		rte_pktmbuf_free_bulk(&txq->sw_ring[start], nb_clean);
 
 		txq->sw_nb_free += nb_clean;
 		start += nb_clean;
@@ -131,7 +89,7 @@ gve_tx_clean_swr_qpl(struct gve_tx_queue *txq)
 		nb_clean = ntc - start;
 		if (nb_clean > GVE_TX_MAX_FREE_SZ)
 			nb_clean = GVE_TX_MAX_FREE_SZ;
-		gve_free_bulk_mbuf(&txq->sw_ring[start], nb_clean);
+		rte_pktmbuf_free_bulk(&txq->sw_ring[start], nb_clean);
 		txq->sw_nb_free += nb_clean;
 		start += nb_clean;
 		txq->sw_ntc = start;
