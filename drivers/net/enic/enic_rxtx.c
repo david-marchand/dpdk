@@ -358,10 +358,8 @@ enic_noscatter_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 static inline void enic_free_wq_bufs(struct vnic_wq *wq,
 				     uint16_t completed_index)
 {
-	struct rte_mbuf *buf;
-	struct rte_mbuf *m, *free[ENIC_LEGACY_MAX_WQ_DESCS];
-	unsigned int nb_to_free, nb_free = 0, i;
-	struct rte_mempool *pool;
+	struct rte_mbuf *free[ENIC_LEGACY_MAX_WQ_DESCS];
+	unsigned int nb_to_free, i;
 	unsigned int tail_idx;
 	unsigned int desc_count = wq->ring.desc_count;
 
@@ -373,29 +371,14 @@ static inline void enic_free_wq_bufs(struct vnic_wq *wq,
 			     completed_index) + 1,
 			     (uint32_t)ENIC_LEGACY_MAX_WQ_DESCS);
 	tail_idx = wq->tail_idx;
-	pool = wq->bufs[tail_idx]->pool;
+	RTE_ASSERT(nb_to_free < ENIC_LEGACY_MAX_WQ_DESCS);
 	for (i = 0; i < nb_to_free; i++) {
-		buf = wq->bufs[tail_idx];
-		m = rte_pktmbuf_prefree_seg(buf);
-		if (unlikely(m == NULL)) {
-			tail_idx = enic_ring_incr(desc_count, tail_idx);
-			continue;
-		}
-
-		if (likely(m->pool == pool)) {
-			RTE_ASSERT(nb_free < ENIC_LEGACY_MAX_WQ_DESCS);
-			free[nb_free++] = m;
-		} else {
-			rte_mempool_put_bulk(pool, (void *)free, nb_free);
-			free[0] = m;
-			nb_free = 1;
-			pool = m->pool;
-		}
+		free[i] = wq->bufs[tail_idx];
 		tail_idx = enic_ring_incr(desc_count, tail_idx);
 	}
 
-	if (nb_free > 0)
-		rte_mempool_put_bulk(pool, (void **)free, nb_free);
+	if (nb_to_free > 0)
+		rte_pktmbuf_free_bulk(free, nb_to_free);
 
 	wq->tail_idx = tail_idx;
 	wq->ring.desc_avail += nb_to_free;
