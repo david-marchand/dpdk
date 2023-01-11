@@ -470,51 +470,6 @@ fm10k_dev_tx_descriptor_status(void *tx_queue, uint16_t offset)
 	return RTE_ETH_TX_DESC_FULL;
 }
 
-/*
- * Free multiple TX mbuf at a time if they are in the same pool
- *
- * @txep: software desc ring index that starts to free
- * @num: number of descs to free
- *
- */
-static inline void tx_free_bulk_mbuf(struct rte_mbuf **txep, int num)
-{
-	struct rte_mbuf *m, *free[RTE_FM10K_TX_MAX_FREE_BUF_SZ];
-	int i;
-	int nb_free = 0;
-
-	if (unlikely(num == 0))
-		return;
-
-	m = rte_pktmbuf_prefree_seg(txep[0]);
-	if (likely(m != NULL)) {
-		free[0] = m;
-		nb_free = 1;
-		for (i = 1; i < num; i++) {
-			m = rte_pktmbuf_prefree_seg(txep[i]);
-			if (likely(m != NULL)) {
-				if (likely(m->pool == free[0]->pool))
-					free[nb_free++] = m;
-				else {
-					rte_mempool_put_bulk(free[0]->pool,
-							(void *)free, nb_free);
-					free[0] = m;
-					nb_free = 1;
-				}
-			}
-			txep[i] = NULL;
-		}
-		rte_mempool_put_bulk(free[0]->pool, (void **)free, nb_free);
-	} else {
-		for (i = 1; i < num; i++) {
-			m = rte_pktmbuf_prefree_seg(txep[i]);
-			if (m != NULL)
-				rte_mempool_put(m->pool, m);
-			txep[i] = NULL;
-		}
-	}
-}
-
 static inline void tx_free_descriptors(struct fm10k_tx_queue *q)
 {
 	uint16_t next_rs, count = 0;
@@ -531,7 +486,7 @@ static inline void tx_free_descriptors(struct fm10k_tx_queue *q)
 	 * including nb_desc */
 	if (q->last_free > next_rs) {
 		count = q->nb_desc - q->last_free;
-		tx_free_bulk_mbuf(&q->sw_ring[q->last_free], count);
+		rte_pktmbuf_free_bulk(&q->sw_ring[q->last_free], count);
 		q->last_free = 0;
 	}
 
@@ -541,7 +496,7 @@ static inline void tx_free_descriptors(struct fm10k_tx_queue *q)
 	/* free buffers from last_free, up to and including next_rs */
 	if (q->last_free <= next_rs) {
 		count = next_rs - q->last_free + 1;
-		tx_free_bulk_mbuf(&q->sw_ring[q->last_free], count);
+		rte_pktmbuf_free_bulk(&q->sw_ring[q->last_free], count);
 		q->last_free += count;
 	}
 

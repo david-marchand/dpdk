@@ -752,12 +752,8 @@ vtx(volatile struct fm10k_tx_desc *txdp,
 static __rte_always_inline int
 fm10k_tx_free_bufs(struct fm10k_tx_queue *txq)
 {
-	struct rte_mbuf **txep;
 	uint8_t flags;
 	uint32_t n;
-	uint32_t i;
-	int nb_free = 0;
-	struct rte_mbuf *m, *free[RTE_FM10K_TX_MAX_FREE_BUF_SZ];
 
 	/* check DD bit on threshold descriptor */
 	flags = txq->hw_ring[txq->next_dd].flags;
@@ -769,32 +765,7 @@ fm10k_tx_free_bufs(struct fm10k_tx_queue *txq)
 	/* First buffer to free from S/W ring is at index
 	 * next_dd - (rs_thresh-1)
 	 */
-	txep = &txq->sw_ring[txq->next_dd - (n - 1)];
-	m = rte_pktmbuf_prefree_seg(txep[0]);
-	if (likely(m != NULL)) {
-		free[0] = m;
-		nb_free = 1;
-		for (i = 1; i < n; i++) {
-			m = rte_pktmbuf_prefree_seg(txep[i]);
-			if (likely(m != NULL)) {
-				if (likely(m->pool == free[0]->pool))
-					free[nb_free++] = m;
-				else {
-					rte_mempool_put_bulk(free[0]->pool,
-							(void *)free, nb_free);
-					free[0] = m;
-					nb_free = 1;
-				}
-			}
-		}
-		rte_mempool_put_bulk(free[0]->pool, (void **)free, nb_free);
-	} else {
-		for (i = 1; i < n; i++) {
-			m = rte_pktmbuf_prefree_seg(txep[i]);
-			if (m != NULL)
-				rte_mempool_put(m->pool, m);
-		}
-	}
+	rte_pktmbuf_free_bulk(&txq->sw_ring[txq->next_dd - (n - 1)], n);
 
 	/* buffers were freed, update counters */
 	txq->nb_free = (uint16_t)(txq->nb_free + txq->rs_thresh);
