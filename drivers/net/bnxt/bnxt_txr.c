@@ -415,14 +415,12 @@ static void bnxt_tx_cmp(struct bnxt_tx_queue *txq, int nr_pkts)
 {
 	struct bnxt_tx_ring_info *txr = txq->tx_ring;
 	struct bnxt_ring *ring = txr->tx_ring_struct;
-	struct rte_mempool *pool = NULL;
 	struct rte_mbuf **free = txq->free;
 	uint16_t raw_cons = txr->tx_raw_cons;
 	unsigned int blk = 0;
 	int i, j;
 
 	for (i = 0; i < nr_pkts; i++) {
-		struct rte_mbuf *mbuf;
 		struct rte_mbuf **tx_buf;
 		unsigned short nr_bds;
 
@@ -430,41 +428,16 @@ static void bnxt_tx_cmp(struct bnxt_tx_queue *txq, int nr_pkts)
 		nr_bds = (*tx_buf)->nb_segs +
 			 bnxt_xmit_need_long_bd(*tx_buf, txq);
 		for (j = 0; j < nr_bds; j++) {
-			mbuf = *tx_buf;
+			free[blk++] = *tx_buf;
 			*tx_buf = NULL;
 			raw_cons = RING_NEXT(raw_cons);
 			tx_buf = &txr->tx_buf_ring[RING_IDX(ring, raw_cons)];
-			if (!mbuf)	/* long_bd's tx_buf ? */
-				continue;
-
-			mbuf = rte_pktmbuf_prefree_seg(mbuf);
-			if (unlikely(!mbuf))
-				continue;
-
 			/* EW - no need to unmap DMA memory? */
-
-			if (likely(mbuf->pool == pool)) {
-				/* Add mbuf to the bulk free array */
-				free[blk++] = mbuf;
-			} else {
-				/* Found an mbuf from a different pool. Free
-				 * mbufs accumulated so far to the previous
-				 * pool
-				 */
-				if (likely(pool != NULL))
-					rte_mempool_put_bulk(pool,
-							     (void *)free,
-							     blk);
-
-				/* Start accumulating mbufs in a new pool */
-				free[0] = mbuf;
-				pool = mbuf->pool;
-				blk = 1;
-			}
 		}
 	}
+
 	if (blk)
-		rte_mempool_put_bulk(pool, (void *)free, blk);
+		rte_pktmbuf_free_bulk(free, blk);
 
 	txr->tx_raw_cons = raw_cons;
 }
