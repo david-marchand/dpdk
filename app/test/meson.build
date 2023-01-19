@@ -259,6 +259,11 @@ cflags += '-fno-strict-aliasing'
 # Enable using internal APIs in unit tests
 cflags += '-DALLOW_INTERNAL_API'
 
+if cc.has_argument('-Wthread-safety')
+    cflags += '-DRTE_ANNOTATE_LOCKS'
+    cflags += '-Wthread-safety'
+endif
+
 # create a symlink in the app/test directory for the binary, for backward compatibility
 if not is_windows
     custom_target('test_symlink',

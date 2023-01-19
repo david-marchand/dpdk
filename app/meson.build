@@ -56,6 +56,7 @@ foreach app:apps
     reason = '<unknown reason>' # set if build == false to explain
     sources = []
     includes = []
+    annotate_locks = true
     cflags = default_cflags
     ldflags = default_ldflags
     objs = [] # other object files to link against, used e.g. for
@@ -112,6 +113,11 @@ foreach app:apps
     link_libs = []
     if get_option('default_library') == 'static'
         link_libs = dpdk_static_libraries + dpdk_drivers
+    endif
+
+    if annotate_locks and cc.has_argument('-Wthread-safety')
+        cflags += '-DRTE_ANNOTATE_LOCKS'
+        cflags += '-Wthread-safety'
     endif
 
     exec = executable('dpdk-' + name,

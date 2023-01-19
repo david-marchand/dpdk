@@ -2,6 +2,8 @@
  * Copyright(c) 2010-2014 Intel Corporation
  */
 
+#undef RTE_ANNOTATE_LOCKS
+
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
