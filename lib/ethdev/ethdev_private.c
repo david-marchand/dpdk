@@ -2,6 +2,8 @@
  * Copyright(c) 2018 Gaëtan Rivet
  */
 
+#include <stdlib.h>
+
 #include <rte_debug.h>
 
 #include "rte_ethdev.h"
@@ -187,22 +189,13 @@ done:
 }
 
 struct dummy_queue {
+	uint16_t port_id;
 	bool rx_warn_once;
 	bool tx_warn_once;
 };
-static struct dummy_queue *dummy_queues_array[RTE_MAX_ETHPORTS][RTE_MAX_QUEUES_PER_PORT];
-static struct dummy_queue per_port_queues[RTE_MAX_ETHPORTS];
-RTE_INIT(dummy_queue_init)
-{
-	uint16_t port_id;
 
-	for (port_id = 0; port_id < RTE_DIM(per_port_queues); port_id++) {
-		unsigned int q;
-
-		for (q = 0; q < RTE_DIM(dummy_queues_array[port_id]); q++)
-			dummy_queues_array[port_id][q] = &per_port_queues[port_id];
-	}
-}
+static struct dummy_queue ***dummy_queues_array;
+static unsigned int dummy_queues_array_count;
 
 static uint16_t
 dummy_eth_rx_burst(void *rxq,
@@ -210,12 +203,10 @@ dummy_eth_rx_burst(void *rxq,
 		__rte_unused uint16_t nb_pkts)
 {
 	struct dummy_queue *queue = rxq;
-	uintptr_t port_id;
 
-	port_id = queue - per_port_queues;
-	if (port_id < RTE_DIM(per_port_queues) && !queue->rx_warn_once) {
-		RTE_ETHDEV_LOG_LINE(ERR, "lcore %u called rx_pkt_burst for not ready port %"PRIuPTR,
-			rte_lcore_id(), port_id);
+	if (!queue->rx_warn_once) {
+		RTE_ETHDEV_LOG_LINE(ERR, "lcore %u called rx_pkt_burst for not ready port %"PRIu16,
+			rte_lcore_id(), queue->port_id);
 		rte_dump_stack();
 		queue->rx_warn_once = true;
 	}
@@ -229,17 +220,73 @@ dummy_eth_tx_burst(void *txq,
 		__rte_unused uint16_t nb_pkts)
 {
 	struct dummy_queue *queue = txq;
-	uintptr_t port_id;
 
-	port_id = queue - per_port_queues;
-	if (port_id < RTE_DIM(per_port_queues) && !queue->tx_warn_once) {
-		RTE_ETHDEV_LOG_LINE(ERR, "lcore %u called tx_pkt_burst for not ready port %"PRIuPTR,
-			rte_lcore_id(), port_id);
+	if (!queue->tx_warn_once) {
+		RTE_ETHDEV_LOG_LINE(ERR, "lcore %u called tx_pkt_burst for not ready port %"PRIu16,
+			rte_lcore_id(), queue->port_id);
 		rte_dump_stack();
 		queue->tx_warn_once = true;
 	}
 	rte_errno = ENOTSUP;
 	return 0;
+}
+
+int
+eth_dev_fp_ops_init(struct rte_eth_fp_ops *fpo)
+{
+	uintptr_t port_id = fpo - rte_eth_fp_ops;
+
+	if (port_id >= dummy_queues_array_count) {
+		typeof(dummy_queues_array) new_array;
+		unsigned int p;
+
+		new_array = realloc(dummy_queues_array,
+			sizeof(*dummy_queues_array) * (port_id + 1));
+		if (new_array == NULL)
+			return -ENOMEM;
+		dummy_queues_array = new_array;
+		for (p = dummy_queues_array_count; p < port_id + 1; p++)
+			dummy_queues_array[p] = NULL;
+		dummy_queues_array_count = port_id + 1;
+	}
+
+	if (dummy_queues_array[port_id] == NULL) {
+		struct dummy_queue **queues;
+		struct dummy_queue *queue;
+		unsigned int q;
+
+		queue = malloc(sizeof(*queue));
+		queues = calloc(RTE_MAX_QUEUES_PER_PORT, sizeof(*queues));
+		if (queue == NULL || queues == NULL) {
+			free(queue);
+			free(queues);
+			return -ENOMEM;
+		}
+
+		queue->port_id = port_id;
+		/* All queue pointers refer to the same queue object */
+		for (q = 0; q < RTE_MAX_QUEUES_PER_PORT; q++)
+			queues[q] = queue;
+		dummy_queues_array[port_id] = queues;
+	}
+
+	eth_dev_fp_ops_reset(fpo);
+
+	return 0;
+}
+
+RTE_FINI(dummy_queue_cleanup)
+{
+	unsigned int port_id;
+
+	for (port_id = 0; port_id < dummy_queues_array_count; port_id++) {
+		if (dummy_queues_array[port_id][0] != NULL)
+			free(dummy_queues_array[port_id][0]);
+		free(dummy_queues_array[port_id]);
+	}
+	free(dummy_queues_array);
+	dummy_queues_array = NULL;
+	dummy_queues_array_count = 0;
 }
 
 void
@@ -248,17 +295,18 @@ eth_dev_fp_ops_reset(struct rte_eth_fp_ops *fpo)
 	static RTE_ATOMIC(void *) dummy_data[RTE_MAX_QUEUES_PER_PORT];
 	uintptr_t port_id = fpo - rte_eth_fp_ops;
 
-	per_port_queues[port_id].rx_warn_once = false;
-	per_port_queues[port_id].tx_warn_once = false;
+	/* All queue pointers refer to the same queue object */
+	dummy_queues_array[port_id][0]->rx_warn_once = false;
+	dummy_queues_array[port_id][0]->tx_warn_once = false;
 	*fpo = (struct rte_eth_fp_ops) {
 		.rx_pkt_burst = dummy_eth_rx_burst,
 		.tx_pkt_burst = dummy_eth_tx_burst,
 		.rxq = {
-			.data = (void **)&dummy_queues_array[port_id],
+			.data = (void **)dummy_queues_array[port_id],
 			.clbk = dummy_data,
 		},
 		.txq = {
-			.data = (void **)&dummy_queues_array[port_id],
+			.data = (void **)dummy_queues_array[port_id],
 			.clbk = dummy_data,
 		},
 	};

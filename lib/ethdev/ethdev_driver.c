@@ -113,6 +113,11 @@ rte_eth_dev_allocate(const char *name)
 	}
 
 	eth_dev = eth_dev_get(port_id);
+	if (eth_dev_fp_ops_init(rte_eth_fp_ops + port_id) != 0) {
+		RTE_ETHDEV_LOG_LINE(ERR, "Failed to initialise rte_eth_fp_ops");
+		eth_dev = NULL;
+		goto unlock;
+	}
 	eth_dev->flow_fp_ops = &rte_flow_fp_default_ops;
 	strlcpy(eth_dev->data->name, name, sizeof(eth_dev->data->name));
 	eth_dev->data->port_id = port_id;
@@ -173,6 +178,10 @@ rte_eth_dev_attach_secondary(const char *name)
 	} else {
 		eth_dev = eth_dev_get(i);
 		RTE_ASSERT(eth_dev->data->port_id == i);
+		if (eth_dev_fp_ops_init(rte_eth_fp_ops + i) != 0) {
+			RTE_ETHDEV_LOG_LINE(ERR, "Failed to initialise rte_eth_fp_ops");
+			eth_dev = NULL;
+		}
 	}
 
 unlock:

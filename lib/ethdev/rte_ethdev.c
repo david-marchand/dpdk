@@ -5502,14 +5502,6 @@ int rte_eth_rx_avail_thresh_query(uint16_t port_id, uint16_t *queue_id,
 	return ret;
 }
 
-RTE_INIT(eth_dev_init_fp_ops)
-{
-	uint32_t i;
-
-	for (i = 0; i != RTE_DIM(rte_eth_fp_ops); i++)
-		eth_dev_fp_ops_reset(rte_eth_fp_ops + i);
-}
-
 RTE_INIT(eth_dev_init_cb_lists)
 {
 	uint16_t i;

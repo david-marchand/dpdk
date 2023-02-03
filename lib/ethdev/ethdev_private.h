@@ -61,6 +61,9 @@ eth_find_device(const struct rte_eth_dev *_start, rte_eth_cmp_t cmp,
 /* Parse devargs value for representor parameter. */
 int rte_eth_devargs_parse_representor_ports(char *str, void *data);
 
+/* allocate and initialise rte_eth_fp_ops internals for one port */
+int eth_dev_fp_ops_init(struct rte_eth_fp_ops *fpo);
+
 /* reset eth fast-path API to dummy values */
 void eth_dev_fp_ops_reset(struct rte_eth_fp_ops *fpo);
 
