@@ -13,7 +13,6 @@ hns3_tx_bulk_free_buffers(struct hns3_tx_queue *txq)
 {
 	struct rte_mbuf **free = txq->free;
 	struct hns3_entry *tx_entry;
-	struct rte_mbuf *m;
 	int nb_free = 0;
 	uint16_t i;
 
@@ -27,22 +26,12 @@ hns3_tx_bulk_free_buffers(struct hns3_tx_queue *txq)
 	}
 
 	for (i = 0; i < txq->tx_rs_thresh; i++, tx_entry++) {
-		m = rte_pktmbuf_prefree_seg(tx_entry->mbuf);
+		free[nb_free++] = tx_entry->mbuf;
 		tx_entry->mbuf = NULL;
-
-		if (m == NULL)
-			continue;
-
-		if (nb_free && m->pool != free[0]->pool) {
-			rte_mempool_put_bulk(free[0]->pool, (void **)free,
-					     nb_free);
-			nb_free = 0;
-		}
-		free[nb_free++] = m;
 	}
 
 	if (nb_free)
-		rte_mempool_put_bulk(free[0]->pool, (void **)free, nb_free);
+		rte_pktmbuf_free_bulk(free, nb_free);
 
 update_field:
 	/* Update numbers of available descriptor due to buffer freed */
