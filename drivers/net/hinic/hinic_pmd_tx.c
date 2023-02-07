@@ -611,10 +611,10 @@ hinic_fill_tx_offload_info(struct rte_mbuf *mbuf,
 
 static inline void hinic_xmit_mbuf_cleanup(struct hinic_txq *txq)
 {
+	struct rte_mbuf *mbuf_free[HINIC_MAX_TX_FREE_BULK];
 	struct hinic_tx_info *tx_info;
-	struct rte_mbuf *mbuf, *m, *mbuf_free[HINIC_MAX_TX_FREE_BULK];
-	int i, nb_free = 0;
 	u16 hw_ci, sw_ci, sq_mask;
+	int i, nb_free = 0;
 	int wqebb_cnt = 0;
 
 	hw_ci = HINIC_GET_SQ_HW_CI(txq);
@@ -634,33 +634,12 @@ static inline void hinic_xmit_mbuf_cleanup(struct hinic_txq *txq)
 			tx_info->cpy_mbuf = NULL;
 		}
 
+		mbuf_free[nb_free++] = tx_info->mbuf;
 		wqebb_cnt += tx_info->wqebb_cnt;
-		mbuf = tx_info->mbuf;
-
-		if (likely(mbuf->nb_segs == 1)) {
-			m = rte_pktmbuf_prefree_seg(mbuf);
-			tx_info->mbuf = NULL;
-
-			if (unlikely(m == NULL))
-				continue;
-
-			mbuf_free[nb_free++] = m;
-			if (unlikely(m->pool != mbuf_free[0]->pool ||
-				nb_free >= HINIC_MAX_TX_FREE_BULK)) {
-				rte_mempool_put_bulk(mbuf_free[0]->pool,
-					(void **)mbuf_free, (nb_free - 1));
-				nb_free = 0;
-				mbuf_free[nb_free++] = m;
-			}
-		} else {
-			rte_pktmbuf_free(mbuf);
-			tx_info->mbuf = NULL;
-		}
 	}
 
 	if (nb_free > 0)
-		rte_mempool_put_bulk(mbuf_free[0]->pool, (void **)mbuf_free,
-				     nb_free);
+		rte_pktmbuf_free_bulk(mbuf_free, nb_free);
 
 	HINIC_UPDATE_SQ_LOCAL_CI(txq, wqebb_cnt);
 }
