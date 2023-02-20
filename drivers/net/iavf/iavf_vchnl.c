@@ -309,8 +309,8 @@ iavf_read_msg_from_pf(struct iavf_adapter *adapter, uint16_t buf_len,
 }
 
 static int
-iavf_execute_vf_cmd(struct iavf_adapter *adapter, struct iavf_cmd_info *args,
-	int async)
+iavf_execute_vf_cmd(struct iavf_adapter *adapter, struct iavf_cmd_info *args, int async)
+	__rte_exclusive_locks_required(&adapter->vf.aq_lock)
 {
 	struct iavf_hw *hw = IAVF_DEV_PRIVATE_TO_HW(adapter);
 	struct iavf_info *vf = IAVF_DEV_PRIVATE_TO_VF(adapter);
@@ -419,18 +419,16 @@ static int
 iavf_execute_vf_cmd_safe(struct iavf_adapter *adapter,
 	struct iavf_cmd_info *args, int async)
 {
-	struct iavf_info *vf = IAVF_DEV_PRIVATE_TO_VF(adapter);
 	int ret;
-	int is_intr_thread = rte_thread_is_intr();
 
-	if (is_intr_thread) {
-		if (!rte_spinlock_trylock(&vf->aq_lock))
+	if (rte_thread_is_intr()) {
+		if (!rte_spinlock_trylock(&adapter->vf.aq_lock))
 			return -EIO;
 	} else {
-		rte_spinlock_lock(&vf->aq_lock);
+		rte_spinlock_lock(&adapter->vf.aq_lock);
 	}
 	ret = iavf_execute_vf_cmd(adapter, args, async);
-	rte_spinlock_unlock(&vf->aq_lock);
+	rte_spinlock_unlock(&adapter->vf.aq_lock);
 
 	return ret;
 }
