@@ -32,6 +32,7 @@ struct virtnet_tx {
 	rte_iova_t hdr_mem;               /**< hdr for each xmit packet */
 
 	struct virtnet_stats stats;       /* Statistics */
+	rte_spinlock_t lock;
 };
 
 int virtio_rxq_vec_setup(struct virtnet_rx *rxvq);

@@ -32,11 +32,13 @@ virtio_xmit_pkts_packed_vec(void *tx_queue, struct rte_mbuf **tx_pkts,
 	uint16_t nb_tx = 0;
 	uint16_t remained;
 
-	if (unlikely(hw->started == 0 && tx_pkts != hw->inject_pkts))
+	if (unlikely(hw->started == 0))
 		return nb_tx;
 
 	if (unlikely(nb_pkts < 1))
 		return nb_pkts;
+
+	rte_spinlock_lock(&txvq->lock);
 
 	PMD_TX_LOG(DEBUG, "%d packets to xmit", nb_pkts);
 
@@ -71,6 +73,8 @@ virtio_xmit_pkts_packed_vec(void *tx_queue, struct rte_mbuf **tx_pkts,
 			PMD_TX_LOG(DEBUG, "Notified backend after xmit");
 		}
 	}
+
+	rte_spinlock_unlock(&txvq->lock);
 
 	return nb_tx;
 }

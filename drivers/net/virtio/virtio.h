@@ -213,7 +213,6 @@ struct virtio_hw {
 	 * such a contention.
 	 */
 	rte_spinlock_t state_lock;
-	struct rte_mbuf **inject_pkts;
 	uint16_t max_queue_pairs;
 	uint16_t rss_rx_queues;
 	uint32_t rss_hash_types;

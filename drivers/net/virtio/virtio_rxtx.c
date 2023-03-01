@@ -829,6 +829,7 @@ virtio_dev_tx_queue_setup(struct rte_eth_dev *dev,
 	vq->vq_free_cnt = RTE_MIN(vq->vq_free_cnt, nb_desc);
 
 	txvq = &vq->txq;
+	rte_spinlock_init(&txvq->lock);
 
 	tx_free_thresh = tx_conf->tx_free_thresh;
 	if (tx_free_thresh == 0)
@@ -1763,11 +1764,13 @@ virtio_xmit_pkts_packed(void *tx_queue, struct rte_mbuf **tx_pkts,
 	uint16_t nb_tx = 0;
 	bool in_order = virtio_with_feature(hw, VIRTIO_F_IN_ORDER);
 
-	if (unlikely(hw->started == 0 && tx_pkts != hw->inject_pkts))
+	if (unlikely(hw->started == 0))
 		return nb_tx;
 
 	if (unlikely(nb_pkts < 1))
 		return nb_pkts;
+
+	rte_spinlock_lock(&txvq->lock);
 
 	PMD_TX_LOG(DEBUG, "%d packets to xmit", nb_pkts);
 
@@ -1831,6 +1834,8 @@ virtio_xmit_pkts_packed(void *tx_queue, struct rte_mbuf **tx_pkts,
 		}
 	}
 
+	rte_spinlock_unlock(&txvq->lock);
+
 	return nb_tx;
 }
 
@@ -1843,11 +1848,13 @@ virtio_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 	uint16_t hdr_size = hw->vtnet_hdr_size;
 	uint16_t nb_used, nb_tx = 0;
 
-	if (unlikely(hw->started == 0 && tx_pkts != hw->inject_pkts))
+	if (unlikely(hw->started == 0))
 		return nb_tx;
 
 	if (unlikely(nb_pkts < 1))
 		return nb_pkts;
+
+	rte_spinlock_lock(&txvq->lock);
 
 	PMD_TX_LOG(DEBUG, "%d packets to xmit", nb_pkts);
 
@@ -1915,6 +1922,8 @@ virtio_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 		}
 	}
 
+	rte_spinlock_unlock(&txvq->lock);
+
 	return nb_tx;
 }
 
@@ -1945,11 +1954,13 @@ virtio_xmit_pkts_inorder(void *tx_queue,
 	struct rte_mbuf *inorder_pkts[nb_pkts];
 	int need;
 
-	if (unlikely(hw->started == 0 && tx_pkts != hw->inject_pkts))
+	if (unlikely(hw->started == 0))
 		return nb_tx;
 
 	if (unlikely(nb_pkts < 1))
 		return nb_pkts;
+
+	rte_spinlock_lock(&txvq->lock);
 
 	VIRTQUEUE_DUMP(vq);
 	PMD_TX_LOG(DEBUG, "%d packets to xmit", nb_pkts);
@@ -2041,6 +2052,8 @@ virtio_xmit_pkts_inorder(void *tx_queue,
 	}
 
 	VIRTQUEUE_DUMP(vq);
+
+	rte_spinlock_unlock(&txvq->lock);
 
 	return nb_tx;
 }

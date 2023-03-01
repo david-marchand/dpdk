@@ -1171,23 +1171,9 @@ virtio_notify_peers(struct rte_eth_dev *dev)
 	if (hw->started == 0) {
 		/* If virtio port just stopped, no need to send RARP */
 		rte_pktmbuf_free(rarp_mbuf);
-		goto out;
+	} else {
+		dev->tx_pkt_burst(dev->data->tx_queues[0], &rarp_mbuf, 1);
 	}
-	hw->started = 0;
-
-	/*
-	 * Prevent the worker threads from touching queues to avoid contention,
-	 * 1 ms should be enough for the ongoing Tx function to finish.
-	 */
-	rte_delay_ms(1);
-
-	hw->inject_pkts = &rarp_mbuf;
-	dev->tx_pkt_burst(dev->data->tx_queues[0], &rarp_mbuf, 1);
-	hw->inject_pkts = NULL;
-
-	hw->started = 1;
-
-out:
 	rte_spinlock_unlock(&hw->state_lock);
 }
 
