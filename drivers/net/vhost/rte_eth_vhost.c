@@ -559,8 +559,8 @@ eth_vhost_update_intr(struct rte_eth_dev *eth_dev, uint16_t rxq_idx)
 	if (rte_intr_efds_index_get(handle, rxq_idx) == elist->fd)
 		return 0;
 
-	VHOST_LOG(INFO, "kickfd for rxq-%d was changed, updating handler.\n",
-			rxq_idx);
+	VHOST_LOG(DEBUG, "kickfd for rxq-%d was changed, updating handler.\n",
+		rxq_idx);
 
 	if (elist->fd != -1)
 		VHOST_LOG(ERR, "Unexpected previous kickfd value (Got %d, expected -1).\n",
@@ -697,7 +697,7 @@ eth_vhost_install_intr(struct rte_eth_dev *dev)
 	}
 
 
-	VHOST_LOG(INFO, "Prepare intr vec\n");
+	VHOST_LOG(DEBUG, "Prepare intr vec\n");
 	for (i = 0; i < nb_rxq; i++) {
 		if (rte_intr_vec_list_index_set(dev->intr_handle, i, RTE_INTR_VEC_RXTX_OFFSET + i))
 			return -rte_errno;
@@ -705,26 +705,24 @@ eth_vhost_install_intr(struct rte_eth_dev *dev)
 			return -rte_errno;
 		vq = dev->data->rx_queues[i];
 		if (!vq) {
-			VHOST_LOG(INFO, "rxq-%d not setup yet, skip!\n", i);
+			VHOST_LOG(DEBUG, "rxq-%d not setup yet, skip!\n", i);
 			continue;
 		}
 
 		ret = rte_vhost_get_vhost_vring(vq->vid, (i << 1) + 1, &vring);
 		if (ret < 0) {
-			VHOST_LOG(INFO,
-				"Failed to get rxq-%d's vring, skip!\n", i);
+			VHOST_LOG(DEBUG, "Failed to get rxq-%d's vring, skip!\n", i);
 			continue;
 		}
 
 		if (vring.kickfd < 0) {
-			VHOST_LOG(INFO,
-				"rxq-%d's kickfd is invalid, skip!\n", i);
+			VHOST_LOG(DEBUG, "rxq-%d's kickfd is invalid, skip!\n", i);
 			continue;
 		}
 
 		if (rte_intr_efds_index_set(dev->intr_handle, i, vring.kickfd))
 			continue;
-		VHOST_LOG(INFO, "Installed intr vec for rxq-%d\n", i);
+		VHOST_LOG(DEBUG, "Installed intr vec for rxq-%d\n", i);
 	}
 
 	if (rte_intr_nb_efd_set(dev->intr_handle, nb_rxq))
@@ -823,7 +821,7 @@ new_device(int vid)
 	rte_vhost_get_ifname(vid, ifname, sizeof(ifname));
 	list = find_internal_resource(ifname);
 	if (list == NULL) {
-		VHOST_LOG(INFO, "Invalid device name: %s\n", ifname);
+		VHOST_LOG(ERR, "Invalid device name: %s\n", ifname);
 		return -1;
 	}
 
@@ -846,15 +844,11 @@ new_device(int vid)
 	if (rte_atomic32_read(&internal->started) == 1) {
 		queue_setup(eth_dev, internal);
 
-		if (dev_conf->intr_conf.rxq) {
-			if (eth_vhost_install_intr(eth_dev) < 0) {
-				VHOST_LOG(INFO,
-					"Failed to install interrupt handler.\n");
-					return -1;
-			}
+		if (dev_conf->intr_conf.rxq &&
+				eth_vhost_install_intr(eth_dev) < 0) {
+			VHOST_LOG(ERR, "Failed to install interrupt handler.\n");
+			return -1;
 		}
-	} else {
-		VHOST_LOG(INFO, "RX/TX queues not exist yet\n");
 	}
 
 	for (i = 0; i < rte_vhost_get_vring_num(vid); i++)
@@ -995,8 +989,7 @@ vring_state_changed(int vid, uint16_t vring, int enable)
 	state = vring_states[eth_dev->data->port_id];
 
 	if (enable && vring_conf_update(vid, eth_dev, vring))
-		VHOST_LOG(INFO, "Failed to update vring-%d configuration.\n",
-			  (int)vring);
+		VHOST_LOG(ERR, "Failed to update vring-%u configuration.\n", vring);
 
 	rte_spinlock_lock(&state->lock);
 	if (state->cur[vring] == enable) {
@@ -1009,8 +1002,7 @@ vring_state_changed(int vid, uint16_t vring, int enable)
 
 	update_queuing_status(eth_dev, false);
 
-	VHOST_LOG(INFO, "vring%u is %s\n",
-			vring, enable ? "enabled" : "disabled");
+	VHOST_LOG(DEBUG, "vring%u is %s\n", vring, enable ? "enabled" : "disabled");
 
 	rte_eth_dev_callback_process(eth_dev, RTE_ETH_EVENT_QUEUE_STATE, NULL);
 
@@ -1185,14 +1177,11 @@ eth_dev_start(struct rte_eth_dev *eth_dev)
 
 	queue_setup(eth_dev, internal);
 
-	if (rte_atomic32_read(&internal->dev_attached) == 1) {
-		if (dev_conf->intr_conf.rxq) {
-			if (eth_vhost_install_intr(eth_dev) < 0) {
-				VHOST_LOG(INFO,
-					"Failed to install interrupt handler.\n");
-					return -1;
-			}
-		}
+	if (rte_atomic32_read(&internal->dev_attached) == 1 &&
+			dev_conf->intr_conf.rxq &&
+			eth_vhost_install_intr(eth_dev) < 0) {
+		VHOST_LOG(ERR, "Failed to install interrupt handler.\n");
+		return -1;
 	}
 
 	rte_atomic32_set(&internal->started, 1);
