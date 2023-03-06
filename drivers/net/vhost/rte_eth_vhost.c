@@ -602,9 +602,9 @@ eth_rxq_intr_enable(struct rte_eth_dev *dev, uint16_t qid)
 	int old_intr_enable, ret = 0;
 
 	vq = dev->data->rx_queues[qid];
-	if (!vq) {
-		VHOST_LOG(ERR, "rxq%d is not setup yet\n", qid);
-		return -1;
+	if (!vq || vq->vid < 0) {
+		VHOST_LOG(DEBUG, "rxq%d is not setup yet\n", qid);
+		return 0;
 	}
 
 	rte_spinlock_lock(&vq->intr_lock);
@@ -624,7 +624,6 @@ eth_rxq_intr_enable(struct rte_eth_dev *dev, uint16_t qid)
 		VHOST_LOG(ERR, "Failed to get rxq%d's vring\n", qid);
 		return ret;
 	}
-	VHOST_LOG(INFO, "Enable interrupt for rxq%d\n", qid);
 	rte_vhost_enable_guest_notification(vq->vid, (qid << 1) + 1, 1);
 	rte_wmb();
 
@@ -639,9 +638,9 @@ eth_rxq_intr_disable(struct rte_eth_dev *dev, uint16_t qid)
 	int ret = 0;
 
 	vq = dev->data->rx_queues[qid];
-	if (!vq) {
-		VHOST_LOG(ERR, "rxq%d is not setup yet\n", qid);
-		return -1;
+	if (!vq || vq->vid < 0) {
+		VHOST_LOG(DEBUG, "rxq%d is not setup yet\n", qid);
+		return 0;
 	}
 
 	ret = rte_vhost_get_vhost_vring(vq->vid, (qid << 1) + 1, &vring);
@@ -649,7 +648,6 @@ eth_rxq_intr_disable(struct rte_eth_dev *dev, uint16_t qid)
 		VHOST_LOG(ERR, "Failed to get rxq%d's vring\n", qid);
 		return ret;
 	}
-	VHOST_LOG(INFO, "Disable interrupt for rxq%d\n", qid);
 	rte_vhost_enable_guest_notification(vq->vid, (qid << 1) + 1, 0);
 	rte_wmb();
 
