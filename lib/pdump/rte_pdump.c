@@ -61,9 +61,8 @@ static struct pdump_rxtx_cbs {
 	const struct rte_bpf *filter;
 	enum pdump_version ver;
 	uint32_t snaplen;
-} rx_cbs[RTE_MAX_ETHPORTS][RTE_MAX_QUEUES_PER_PORT],
-tx_cbs[RTE_MAX_ETHPORTS][RTE_MAX_QUEUES_PER_PORT];
-
+} **rx_cbs, **tx_cbs;
+static unsigned int rx_cbs_count, tx_cbs_count;
 
 /*
  * The packet capture statistics keep track of packets
@@ -174,6 +173,31 @@ pdump_register_rx_callbacks(enum pdump_version ver,
 {
 	uint16_t qid;
 
+	if (port >= rx_cbs_count) {
+		typeof(rx_cbs) new_rx_cbs;
+		uint16_t p;
+
+		new_rx_cbs = realloc(rx_cbs, sizeof(*rx_cbs) * (port + 1));
+		if (new_rx_cbs == NULL) {
+			PDUMP_LOG_LINE(ERR,
+				"failed to allocate object for rx callback on port=%d",
+				port);
+			return -ENOMEM;
+		}
+		rx_cbs = new_rx_cbs;
+		for (p = rx_cbs_count; p < port + 1; p++)
+			rx_cbs[p] = NULL;
+		rx_cbs_count = port + 1;
+	}
+	if (rx_cbs[port] == NULL)
+		rx_cbs[port] = calloc(RTE_MAX_QUEUES_PER_PORT, sizeof(rx_cbs[port][0]));
+	if (rx_cbs[port] == NULL) {
+		PDUMP_LOG_LINE(ERR,
+			"failed to allocate object for rx callback on port=%d",
+			port);
+		return -ENOMEM;
+	}
+
 	qid = (queue == RTE_PDUMP_ALL_QUEUES) ? 0 : queue;
 	for (; qid < end_q; qid++) {
 		struct pdump_rxtx_cbs *cbs = &rx_cbs[port][qid];
@@ -231,6 +255,31 @@ pdump_register_tx_callbacks(enum pdump_version ver,
 {
 
 	uint16_t qid;
+
+	if (port >= tx_cbs_count) {
+		typeof(tx_cbs) new_tx_cbs;
+		uint16_t p;
+
+		new_tx_cbs = realloc(tx_cbs, sizeof(*tx_cbs) * (port + 1));
+		if (new_tx_cbs == NULL) {
+			PDUMP_LOG_LINE(ERR,
+				"failed to allocate object for tx callback on port=%d",
+				port);
+			return -ENOMEM;
+		}
+		tx_cbs = new_tx_cbs;
+		for (p = tx_cbs_count; p < port + 1; p++)
+			tx_cbs[p] = NULL;
+		tx_cbs_count = port + 1;
+	}
+	if (tx_cbs[port] == NULL)
+		tx_cbs[port] = calloc(RTE_MAX_QUEUES_PER_PORT, sizeof(tx_cbs[port][0]));
+	if (tx_cbs[port] == NULL) {
+		PDUMP_LOG_LINE(ERR,
+			"failed to allocate object for tx callback on port=%d",
+			port);
+		return -ENOMEM;
+	}
 
 	qid = (queue == RTE_PDUMP_ALL_QUEUES) ? 0 : queue;
 	for (; qid < end_q; qid++) {
