@@ -8,7 +8,10 @@ ci_dir=$(dirname $(readlink -f $0))
 meson_ver=$(python3 $ci_dir/../buildtools/get-min-meson-version.py)
 
 # need to install as 'root' since some of the unit tests won't run without it
-sudo python3 -m pip install --upgrade "meson==$meson_ver"
+pip_opts='--upgrade --break-system-packages'
+python3 -m pip install --help | grep -q -- --break-system-packages ||
+    pip_opts='--upgrade'
+sudo python3 -m pip install $pip_opts "meson==$meson_ver"
 
 # setup hugepages. error ignored because having hugepage is not mandatory.
 cat /proc/meminfo
