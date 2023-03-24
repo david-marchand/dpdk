@@ -133,6 +133,7 @@ vduse_events_handler(int fd, void *arg, int *remove __rte_unused)
 	struct virtio_net *dev = arg;
 	struct vduse_dev_request req;
 	struct vduse_dev_response resp;
+	struct vhost_virtqueue *vq;
 	int ret;
 
 	memset(&resp, 0, sizeof(resp));
@@ -155,6 +156,13 @@ vduse_events_handler(int fd, void *arg, int *remove __rte_unused)
 			req.type);
 
 	switch (req.type) {
+	case VDUSE_GET_VQ_STATE:
+		vq = dev->virtqueue[req.vq_state.index];
+		VHOST_LOG_CONFIG(dev->ifname, INFO, "\tvq index: %u, avail_index: %u\n",
+				req.vq_state.index, vq->last_avail_idx);
+		resp.vq_state.split.avail_index = vq->last_avail_idx;
+		resp.result = VDUSE_REQ_RESULT_OK;
+		break;
 	default:
 		resp.result = VDUSE_REQ_RESULT_FAILED;
 		break;
