@@ -46,19 +46,19 @@ extern "C" {
  * header has been stripped from mbuf data, else it is still
  * present.
  */
-#define RTE_MBUF_F_RX_VLAN          (1ULL << 0)
+#define RTE_MBUF_F_RX_VLAN RTE_BIT64(0)
 
 /** RX packet with RSS hash result. */
-#define RTE_MBUF_F_RX_RSS_HASH      (1ULL << 1)
+#define RTE_MBUF_F_RX_RSS_HASH RTE_BIT64(1)
 
  /** RX packet with FDIR match indicate. */
-#define RTE_MBUF_F_RX_FDIR          (1ULL << 2)
+#define RTE_MBUF_F_RX_FDIR RTE_BIT64(2)
 
 /**
  * This flag is set when the outermost IP header checksum is detected as
  * wrong by the hardware.
  */
-#define RTE_MBUF_F_RX_OUTER_IP_CKSUM_BAD (1ULL << 5)
+#define RTE_MBUF_F_RX_OUTER_IP_CKSUM_BAD RTE_BIT64(5)
 
 /**
  * A vlan has been stripped by the hardware and its tci is saved in
@@ -66,7 +66,7 @@ extern "C" {
  * in the RX configuration of the PMD.
  * When RTE_MBUF_F_RX_VLAN_STRIPPED is set, RTE_MBUF_F_RX_VLAN must also be set.
  */
-#define RTE_MBUF_F_RX_VLAN_STRIPPED (1ULL << 6)
+#define RTE_MBUF_F_RX_VLAN_STRIPPED RTE_BIT64(6)
 
 /**
  * Mask of bits used to determine the status of RX IP checksum.
@@ -76,12 +76,12 @@ extern "C" {
  * - RTE_MBUF_F_RX_IP_CKSUM_NONE: the IP checksum is not correct in the packet
  *   data, but the integrity of the IP header is verified.
  */
-#define RTE_MBUF_F_RX_IP_CKSUM_MASK ((1ULL << 4) | (1ULL << 7))
+#define RTE_MBUF_F_RX_IP_CKSUM_MASK (RTE_BIT64(4) | RTE_BIT64(7))
 
 #define RTE_MBUF_F_RX_IP_CKSUM_UNKNOWN 0
-#define RTE_MBUF_F_RX_IP_CKSUM_BAD     (1ULL << 4)
-#define RTE_MBUF_F_RX_IP_CKSUM_GOOD    (1ULL << 7)
-#define RTE_MBUF_F_RX_IP_CKSUM_NONE    ((1ULL << 4) | (1ULL << 7))
+#define RTE_MBUF_F_RX_IP_CKSUM_BAD RTE_BIT64(4)
+#define RTE_MBUF_F_RX_IP_CKSUM_GOOD RTE_BIT64(7)
+#define RTE_MBUF_F_RX_IP_CKSUM_NONE (RTE_BIT64(4) | RTE_BIT64(7))
 
 /**
  * Mask of bits used to determine the status of RX L4 checksum.
@@ -91,24 +91,24 @@ extern "C" {
  * - RTE_MBUF_F_RX_L4_CKSUM_NONE: the L4 checksum is not correct in the packet
  *   data, but the integrity of the L4 data is verified.
  */
-#define RTE_MBUF_F_RX_L4_CKSUM_MASK ((1ULL << 3) | (1ULL << 8))
+#define RTE_MBUF_F_RX_L4_CKSUM_MASK (RTE_BIT64(3) | RTE_BIT64(8))
 
 #define RTE_MBUF_F_RX_L4_CKSUM_UNKNOWN 0
-#define RTE_MBUF_F_RX_L4_CKSUM_BAD     (1ULL << 3)
-#define RTE_MBUF_F_RX_L4_CKSUM_GOOD    (1ULL << 8)
-#define RTE_MBUF_F_RX_L4_CKSUM_NONE    ((1ULL << 3) | (1ULL << 8))
+#define RTE_MBUF_F_RX_L4_CKSUM_BAD RTE_BIT64(3)
+#define RTE_MBUF_F_RX_L4_CKSUM_GOOD RTE_BIT64(8)
+#define RTE_MBUF_F_RX_L4_CKSUM_NONE (RTE_BIT64(3) | RTE_BIT64(8))
 
 /** RX IEEE1588 L2 Ethernet PT Packet. */
-#define RTE_MBUF_F_RX_IEEE1588_PTP  (1ULL << 9)
+#define RTE_MBUF_F_RX_IEEE1588_PTP RTE_BIT64(9)
 
 /** RX IEEE1588 L2/L4 timestamped packet.*/
-#define RTE_MBUF_F_RX_IEEE1588_TMST (1ULL << 10)
+#define RTE_MBUF_F_RX_IEEE1588_TMST RTE_BIT64(10)
 
 /** FD id reported if FDIR match. */
-#define RTE_MBUF_F_RX_FDIR_ID       (1ULL << 13)
+#define RTE_MBUF_F_RX_FDIR_ID RTE_BIT64(13)
 
 /** Flexible bytes reported if FDIR match. */
-#define RTE_MBUF_F_RX_FDIR_FLX      (1ULL << 14)
+#define RTE_MBUF_F_RX_FDIR_FLX RTE_BIT64(14)
 
 /**
  * The outer VLAN has been stripped by the hardware and its TCI is
@@ -125,26 +125,26 @@ extern "C" {
  *   is unset, only the outer VLAN is removed from packet data, but both tci
  *   are saved in mbuf->vlan_tci (inner) and mbuf->vlan_tci_outer (outer).
  */
-#define RTE_MBUF_F_RX_QINQ_STRIPPED (1ULL << 15)
+#define RTE_MBUF_F_RX_QINQ_STRIPPED RTE_BIT64(15)
 
 /**
  * When packets are coalesced by a hardware or virtual driver, this flag
  * can be set in the RX mbuf, meaning that the m->tso_segsz field is
  * valid and is set to the segment size of original packets.
  */
-#define RTE_MBUF_F_RX_LRO           (1ULL << 16)
+#define RTE_MBUF_F_RX_LRO RTE_BIT64(16)
 
 /* There is no flag defined at offset 17. It is free for any future use. */
 
 /**
  * Indicate that security offload processing was applied on the RX packet.
  */
-#define RTE_MBUF_F_RX_SEC_OFFLOAD	(1ULL << 18)
+#define RTE_MBUF_F_RX_SEC_OFFLOAD RTE_BIT64(18)
 
 /**
  * Indicate that security offload processing failed on the RX packet.
  */
-#define RTE_MBUF_F_RX_SEC_OFFLOAD_FAILED	(1ULL << 19)
+#define RTE_MBUF_F_RX_SEC_OFFLOAD_FAILED RTE_BIT64(19)
 
 /**
  * The RX packet is a double VLAN, and the outer tci has been
@@ -154,7 +154,7 @@ extern "C" {
  * headers have been stripped from mbuf data, else they are still
  * present.
  */
-#define RTE_MBUF_F_RX_QINQ          (1ULL << 20)
+#define RTE_MBUF_F_RX_QINQ RTE_BIT64(20)
 
 /**
  * Mask of bits used to determine the status of outer RX L4 checksum.
@@ -171,17 +171,17 @@ extern "C" {
  * RTE_MBUF_F_RX_OUTER_L4_CKSUM_UNKNOWN and RTE_MBUF_F_RX_OUTER_L4_CKSUM_BAD
  * states if the RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM offload is available.
  */
-#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_MASK	((1ULL << 21) | (1ULL << 22))
+#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_MASK (RTE_BIT64(21) | RTE_BIT64(22))
 
-#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_UNKNOWN	0
-#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_BAD	(1ULL << 21)
-#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_GOOD	(1ULL << 22)
-#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_INVALID	((1ULL << 21) | (1ULL << 22))
+#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_UNKNOWN 0
+#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_BAD RTE_BIT64(21)
+#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_GOOD RTE_BIT64(22)
+#define RTE_MBUF_F_RX_OUTER_L4_CKSUM_INVALID (RTE_BIT64(21) | RTE_BIT64(22))
 
 /* add new RX flags here, don't forget to update RTE_MBUF_F_FIRST_FREE */
 
-#define RTE_MBUF_F_FIRST_FREE (1ULL << 23)
-#define RTE_MBUF_F_LAST_FREE (1ULL << 40)
+#define RTE_MBUF_F_FIRST_FREE RTE_BIT64(23)
+#define RTE_MBUF_F_LAST_FREE RTE_BIT64(40)
 
 /* add new TX flags here, don't forget to update RTE_MBUF_F_LAST_FREE  */
 
@@ -194,14 +194,14 @@ extern "C" {
  * c) Set the RTE_MBUF_F_TX_OUTER_IPV4 or RTE_MBUF_F_TX_OUTER_IPV6 flag.
  * 2) Configure RTE_ETH_TX_OFFLOAD_OUTER_UDP_CKSUM offload flag.
  */
-#define RTE_MBUF_F_TX_OUTER_UDP_CKSUM     (1ULL << 41)
+#define RTE_MBUF_F_TX_OUTER_UDP_CKSUM RTE_BIT64(41)
 
 /**
  * UDP Fragmentation Offload flag. This flag is used for enabling UDP
  * fragmentation in SW or in HW. When use UFO, mbuf->tso_segsz is used
  * to store the MSS of UDP fragments.
  */
-#define RTE_MBUF_F_TX_UDP_SEG	(1ULL << 42)
+#define RTE_MBUF_F_TX_UDP_SEG RTE_BIT64(42)
 
 /**
  * Request security offload processing on the TX packet.
@@ -209,13 +209,13 @@ extern "C" {
  * indicating L2 header size and where L3 header starts. Similarly,
  * l3_len should also be filled along with ol_flags reflecting current L3 type.
  */
-#define RTE_MBUF_F_TX_SEC_OFFLOAD	(1ULL << 43)
+#define RTE_MBUF_F_TX_SEC_OFFLOAD RTE_BIT64(43)
 
 /**
  * Offload the MACsec. This flag must be set by the application to enable
  * this offload feature for a packet to be transmitted.
  */
-#define RTE_MBUF_F_TX_MACSEC        (1ULL << 44)
+#define RTE_MBUF_F_TX_MACSEC RTE_BIT64(44)
 
 /**
  * Bits 45:48 used for the tunnel type.
@@ -226,15 +226,15 @@ extern "C" {
  * The mbuf fields for inner and outer header lengths are required:
  * outer_l2_len, outer_l3_len, l2_len, l3_len, l4_len and tso_segsz for TSO.
  */
-#define RTE_MBUF_F_TX_TUNNEL_VXLAN   (0x1ULL << 45)
-#define RTE_MBUF_F_TX_TUNNEL_GRE     (0x2ULL << 45)
-#define RTE_MBUF_F_TX_TUNNEL_IPIP    (0x3ULL << 45)
-#define RTE_MBUF_F_TX_TUNNEL_GENEVE  (0x4ULL << 45)
+#define RTE_MBUF_F_TX_TUNNEL_VXLAN (0x1 * RTE_BIT64(45))
+#define RTE_MBUF_F_TX_TUNNEL_GRE (0x2 * RTE_BIT64(45))
+#define RTE_MBUF_F_TX_TUNNEL_IPIP (0x3 * RTE_BIT64(45))
+#define RTE_MBUF_F_TX_TUNNEL_GENEVE (0x4 * RTE_BIT64(45))
 /** TX packet with MPLS-in-UDP RFC 7510 header. */
-#define RTE_MBUF_F_TX_TUNNEL_MPLSINUDP (0x5ULL << 45)
-#define RTE_MBUF_F_TX_TUNNEL_VXLAN_GPE (0x6ULL << 45)
-#define RTE_MBUF_F_TX_TUNNEL_GTP       (0x7ULL << 45)
-#define RTE_MBUF_F_TX_TUNNEL_ESP       (0x8ULL << 45)
+#define RTE_MBUF_F_TX_TUNNEL_MPLSINUDP (0x5 * RTE_BIT64(45))
+#define RTE_MBUF_F_TX_TUNNEL_VXLAN_GPE (0x6 * RTE_BIT64(45))
+#define RTE_MBUF_F_TX_TUNNEL_GTP (0x7 * RTE_BIT64(45))
+#define RTE_MBUF_F_TX_TUNNEL_ESP (0x8 * RTE_BIT64(45))
 /**
  * Generic IP encapsulated tunnel type, used for TSO and checksum offload.
  * It can be used for tunnels which are not standards or listed above.
@@ -246,7 +246,7 @@ extern "C" {
  * Specific tunnel headers that contain payload length, sequence id
  * or checksum are not expected to be updated.
  */
-#define RTE_MBUF_F_TX_TUNNEL_IP (0xDULL << 45)
+#define RTE_MBUF_F_TX_TUNNEL_IP (0xD * RTE_BIT64(45))
 /**
  * Generic UDP encapsulated tunnel type, used for TSO and checksum offload.
  * UDP tunnel type implies outer IP layer.
@@ -259,16 +259,16 @@ extern "C" {
  * Specific tunnel headers that contain payload length, sequence id
  * or checksum are not expected to be updated.
  */
-#define RTE_MBUF_F_TX_TUNNEL_UDP (0xEULL << 45)
+#define RTE_MBUF_F_TX_TUNNEL_UDP (0xE * RTE_BIT64(45))
 /* add new TX TUNNEL type here */
-#define RTE_MBUF_F_TX_TUNNEL_MASK    (0xFULL << 45)
+#define RTE_MBUF_F_TX_TUNNEL_MASK (0xF * RTE_BIT64(45))
 
 /**
  * Double VLAN insertion (QinQ) request to driver, driver may offload the
  * insertion based on device capability.
  * mbuf 'vlan_tci' & 'vlan_tci_outer' must be valid when this flag is set.
  */
-#define RTE_MBUF_F_TX_QINQ        (1ULL << 49)
+#define RTE_MBUF_F_TX_QINQ RTE_BIT64(49)
 
 /**
  * TCP segmentation offload. To enable this offload feature for a
@@ -279,10 +279,10 @@ extern "C" {
  *  - if it's IPv4, set the RTE_MBUF_F_TX_IP_CKSUM flag
  *  - fill the mbuf offload information: l2_len, l3_len, l4_len, tso_segsz
  */
-#define RTE_MBUF_F_TX_TCP_SEG       (1ULL << 50)
+#define RTE_MBUF_F_TX_TCP_SEG RTE_BIT64(50)
 
 /** TX IEEE1588 packet to timestamp. */
-#define RTE_MBUF_F_TX_IEEE1588_TMST (1ULL << 51)
+#define RTE_MBUF_F_TX_IEEE1588_TMST RTE_BIT64(51)
 
 /*
  * Bits 52+53 used for L4 packet type with checksum enabled: 00: Reserved,
@@ -295,19 +295,19 @@ extern "C" {
  */
 
 /** Disable L4 cksum of TX pkt. */
-#define RTE_MBUF_F_TX_L4_NO_CKSUM   (0ULL << 52)
+#define RTE_MBUF_F_TX_L4_NO_CKSUM 0
 
 /** TCP cksum of TX pkt. computed by NIC. */
-#define RTE_MBUF_F_TX_TCP_CKSUM     (1ULL << 52)
+#define RTE_MBUF_F_TX_TCP_CKSUM (0x1 * RTE_BIT64(52))
 
 /** SCTP cksum of TX pkt. computed by NIC. */
-#define RTE_MBUF_F_TX_SCTP_CKSUM    (2ULL << 52)
+#define RTE_MBUF_F_TX_SCTP_CKSUM (0x2 * RTE_BIT64(52))
 
 /** UDP cksum of TX pkt. computed by NIC. */
-#define RTE_MBUF_F_TX_UDP_CKSUM     (3ULL << 52)
+#define RTE_MBUF_F_TX_UDP_CKSUM (0x3 * RTE_BIT64(52))
 
 /** Mask for L4 cksum offload request. */
-#define RTE_MBUF_F_TX_L4_MASK       (3ULL << 52)
+#define RTE_MBUF_F_TX_L4_MASK (0x3 * RTE_BIT64(52))
 
 /**
  * Offload the IP checksum in the hardware. The flag RTE_MBUF_F_TX_IPV4 should
@@ -315,7 +315,7 @@ extern "C" {
  * RTE_MBUF_F_TX_IP_CKSUM.
  *  - fill the mbuf offload information: l2_len, l3_len
  */
-#define RTE_MBUF_F_TX_IP_CKSUM      (1ULL << 54)
+#define RTE_MBUF_F_TX_IP_CKSUM RTE_BIT64(54)
 
 /**
  * Packet is IPv4. This flag must be set when using any offload feature
@@ -323,7 +323,7 @@ extern "C" {
  * packet. If the packet is a tunneled packet, this flag is related to
  * the inner headers.
  */
-#define RTE_MBUF_F_TX_IPV4          (1ULL << 55)
+#define RTE_MBUF_F_TX_IPV4 RTE_BIT64(55)
 
 /**
  * Packet is IPv6. This flag must be set when using an offload feature
@@ -331,14 +331,14 @@ extern "C" {
  * packet. If the packet is a tunneled packet, this flag is related to
  * the inner headers.
  */
-#define RTE_MBUF_F_TX_IPV6          (1ULL << 56)
+#define RTE_MBUF_F_TX_IPV6 RTE_BIT64(56)
 
 /**
  * VLAN tag insertion request to driver, driver may offload the insertion
  * based on the device capability.
  * mbuf 'vlan_tci' field must be valid when this flag is set.
  */
-#define RTE_MBUF_F_TX_VLAN          (1ULL << 57)
+#define RTE_MBUF_F_TX_VLAN RTE_BIT64(57)
 
 /**
  * Offload the IP checksum of an external header in the hardware. The
@@ -346,21 +346,21 @@ extern "C" {
  * a PMD will only check RTE_MBUF_F_TX_OUTER_IP_CKSUM.
  *  - fill the mbuf offload information: outer_l2_len, outer_l3_len
  */
-#define RTE_MBUF_F_TX_OUTER_IP_CKSUM   (1ULL << 58)
+#define RTE_MBUF_F_TX_OUTER_IP_CKSUM RTE_BIT64(58)
 
 /**
  * Packet outer header is IPv4. This flag must be set when using any
  * outer offload feature (L3 or L4 checksum) to tell the NIC that the
  * outer header of the tunneled packet is an IPv4 packet.
  */
-#define RTE_MBUF_F_TX_OUTER_IPV4   (1ULL << 59)
+#define RTE_MBUF_F_TX_OUTER_IPV4 RTE_BIT64(59)
 
 /**
  * Packet outer header is IPv6. This flag must be set when using any
  * outer offload feature (L4 checksum) to tell the NIC that the outer
  * header of the tunneled packet is an IPv6 packet.
  */
-#define RTE_MBUF_F_TX_OUTER_IPV6    (1ULL << 60)
+#define RTE_MBUF_F_TX_OUTER_IPV6 RTE_BIT64(60)
 
 /**
  * Bitmask of all supported packet Tx offload features flags,
@@ -387,9 +387,9 @@ extern "C" {
 /**
  * Mbuf having an external buffer attached. shinfo in mbuf must be filled.
  */
-#define RTE_MBUF_F_EXTERNAL    (1ULL << 61)
+#define RTE_MBUF_F_EXTERNAL RTE_BIT64(61)
 
-#define RTE_MBUF_F_INDIRECT    (1ULL << 62) /**< Indirect attached mbuf */
+#define RTE_MBUF_F_INDIRECT RTE_BIT64(62) /**< Indirect attached mbuf */
 
 /** Alignment constraint of mbuf private area. */
 #define RTE_MBUF_PRIV_ALIGN 8
