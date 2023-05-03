@@ -88,6 +88,7 @@ dump_pkt_burst(uint16_t port_id, uint16_t queue, struct rte_mbuf *pkts[],
 	char print_buf[MAX_STRING_LEN];
 	size_t buf_size = MAX_STRING_LEN;
 	size_t cur_len = 0;
+	bool fdir;
 	uint64_t restore_info_dynflag;
 
 	if (!nb_pkts)
@@ -96,6 +97,7 @@ dump_pkt_burst(uint16_t port_id, uint16_t queue, struct rte_mbuf *pkts[],
 	MKDUMPSTR(print_buf, buf_size, cur_len,
 		  "port %u/queue %u: %s %u packets\n", port_id, queue,
 		  is_rx ? "received" : "sent", (unsigned int) nb_pkts);
+	fdir = port_has_fdir(port_id);
 	for (i = 0; i < nb_pkts; i++) {
 		struct rte_flow_error error;
 		struct rte_flow_restore_info info = { 0, };
@@ -162,7 +164,16 @@ dump_pkt_burst(uint16_t port_id, uint16_t queue, struct rte_mbuf *pkts[],
 			MKDUMPSTR(print_buf, buf_size, cur_len,
 				  " - RSS queue=0x%x", (unsigned int) queue);
 		}
-		if (ol_flags & RTE_MBUF_F_RX_FDIR) {
+		if (!fdir) {
+			if (ol_flags & RTE_MBUF_F_RX_FDIR) {
+				if (ol_flags & RTE_MBUF_F_RX_FDIR_ID)
+					MKDUMPSTR(print_buf, buf_size, cur_len,
+						" - mark=%"PRIu32" ", mb->hash.fdir.hi);
+				else
+					MKDUMPSTR(print_buf, buf_size, cur_len,
+						" - flagged");
+			}
+		} else if (ol_flags & RTE_MBUF_F_RX_FDIR) {
 			MKDUMPSTR(print_buf, buf_size, cur_len,
 				  " - FDIR matched ");
 			if (ol_flags & RTE_MBUF_F_RX_FDIR_ID)

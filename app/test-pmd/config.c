@@ -6223,6 +6223,24 @@ print_fdir_flow_type(uint32_t flow_types_mask)
 	printf("\n");
 }
 
+bool
+port_has_fdir(portid_t port_id)
+{
+	struct rte_eth_fdir_info fdir_info;
+	bool enabled = false;
+
+#ifdef RTE_NET_I40E
+	if (!enabled && rte_pmd_i40e_get_fdir_info(port_id, &fdir_info) == 0)
+		enabled = true;
+#endif
+#ifdef RTE_NET_IXGBE
+	if (!enabled && rte_pmd_ixgbe_get_fdir_info(port_id, &fdir_info) == 0)
+		enabled = true;
+#endif
+
+	return enabled;
+}
+
 static int
 get_fdir_info(portid_t port_id, struct rte_eth_fdir_info *fdir_info,
 		    struct rte_eth_fdir_stats *fdir_stat)
