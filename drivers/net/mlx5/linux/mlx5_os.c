@@ -575,11 +575,17 @@ mlx5_alloc_shared_dr(struct mlx5_priv *priv)
 		goto error;
 	}
 #endif
-	if (!sh->tunnel_hub && sh->config.dv_miss_info)
+	if (!sh->tunnel_hub && sh->config.dv_miss_info) {
+		err = mlx5_flow_restore_info_register();
+		if (err) {
+			DRV_LOG(ERR, "Could not register mbuf dynflag for rte_flow_get_restore_info");
+			goto error;
+		}
 		err = mlx5_alloc_tunnel_hub(sh);
-	if (err) {
-		DRV_LOG(ERR, "mlx5_alloc_tunnel_hub failed err=%d", err);
-		goto error;
+		if (err) {
+			DRV_LOG(ERR, "mlx5_alloc_tunnel_hub failed err=%d", err);
+			goto error;
+		}
 	}
 	if (sh->config.reclaim_mode == MLX5_RCM_AGGR) {
 		mlx5_glue->dr_reclaim_domain_memory(sh->rx_domain, 1);

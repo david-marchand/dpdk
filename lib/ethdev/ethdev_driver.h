@@ -1949,6 +1949,14 @@ __rte_internal
 int
 rte_eth_ip_reassembly_dynfield_register(int *field_offset, int *flag);
 
+/**
+ * @internal
+ * Register mbuf dynamic flag for rte_flow_get_restore_info.
+ */
+__rte_internal
+int
+rte_flow_restore_info_dynflag_register(uint64_t *flag);
+
 
 /*
  * Legacy ethdev API used internally by drivers.

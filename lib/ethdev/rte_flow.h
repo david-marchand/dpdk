@@ -4918,7 +4918,24 @@ rte_flow_tunnel_match(uint16_t port_id,
 		      struct rte_flow_error *error);
 
 /**
- * Populate the current packet processing state, if exists, for the given mbuf.
+ * On reception of a mbuf from HW, a call to rte_flow_get_restore_info() may be
+ * required to retrieve some metadata.
+ * This function returns the associated mbuf ol_flags.
+ *
+ * Note: the dynamic flag is registered during the probing of the first device
+ * that requires it. If this function returns a non 0 value, this value won't
+ * change for the rest of the life of the application.
+ *
+ * @return
+ *   The offload flag indicating rte_flow_get_restore_info() must be called.
+ */
+__rte_experimental
+uint64_t
+rte_flow_restore_info_dynflag(void);
+
+/**
+ * If a mbuf contains the rte_flow_restore_info_dynflag() flag in ol_flags,
+ * populate the current packet processing state.
  *
  * One should negotiate tunnel metadata delivery from the NIC to the HW.
  * @see rte_eth_rx_metadata_negotiate()

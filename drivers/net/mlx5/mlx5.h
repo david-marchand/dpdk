@@ -2116,7 +2116,8 @@ int mlx5_flow_query_counter(struct rte_eth_dev *dev, struct rte_flow *flow,
 int mlx5_flow_dev_dump_ipool(struct rte_eth_dev *dev, struct rte_flow *flow,
 		FILE *file, struct rte_flow_error *error);
 #endif
-void mlx5_flow_rxq_dynf_metadata_set(struct rte_eth_dev *dev);
+int mlx5_flow_restore_info_register(void);
+void mlx5_flow_rxq_dynf_set(struct rte_eth_dev *dev);
 int mlx5_flow_get_aged_flows(struct rte_eth_dev *dev, void **contexts,
 			uint32_t nb_contexts, struct rte_flow_error *error);
 int mlx5_validate_action_ct(struct rte_eth_dev *dev,
