@@ -2474,9 +2474,8 @@ hns3_recv_pkts_simple(void *rx_queue,
 		rxm->hash.rss = rte_le_to_cpu_32(rxd.rx.rss_hash);
 		rxm->ol_flags |= RTE_MBUF_F_RX_RSS_HASH;
 		if (unlikely(bd_base_info & BIT(HNS3_RXD_LUM_B))) {
-			rxm->hash.fdir.hi =
-				rte_le_to_cpu_16(rxd.rx.fd_id);
-			rxm->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+			rxm->hash.mark = rte_le_to_cpu_16(rxd.rx.fd_id);
+			rxm->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 		}
 		rxm->nb_segs = 1;
 		rxm->next = NULL;
@@ -2696,9 +2695,8 @@ hns3_recv_scattered_pkts(void *rx_queue,
 		first_seg->hash.rss = rte_le_to_cpu_32(rxd.rx.rss_hash);
 		first_seg->ol_flags = RTE_MBUF_F_RX_RSS_HASH;
 		if (unlikely(bd_base_info & BIT(HNS3_RXD_LUM_B))) {
-			first_seg->hash.fdir.hi =
-				rte_le_to_cpu_16(rxd.rx.fd_id);
-			first_seg->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+			first_seg->hash.mark = rte_le_to_cpu_16(rxd.rx.fd_id);
+			first_seg->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 		}
 
 		gro_size = hns3_get_field(bd_base_info, HNS3_RXD_GRO_SIZE_M,

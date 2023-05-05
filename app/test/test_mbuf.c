@@ -1633,6 +1633,8 @@ test_get_rx_ol_flag_name(void)
 		VAL_NAME(RTE_MBUF_F_RX_OUTER_L4_CKSUM_BAD),
 		VAL_NAME(RTE_MBUF_F_RX_OUTER_L4_CKSUM_GOOD),
 		VAL_NAME(RTE_MBUF_F_RX_OUTER_L4_CKSUM_INVALID),
+		VAL_NAME(RTE_MBUF_F_RX_FLAG),
+		VAL_NAME(RTE_MBUF_F_RX_MARK),
 	};
 
 	/* Test case to check with valid flag */

@@ -165,10 +165,10 @@ dump_pkt_burst(uint16_t port_id, uint16_t queue, struct rte_mbuf *pkts[],
 				  " - RSS queue=0x%x", (unsigned int) queue);
 		}
 		if (!fdir) {
-			if (ol_flags & RTE_MBUF_F_RX_FDIR) {
-				if (ol_flags & RTE_MBUF_F_RX_FDIR_ID)
+			if (ol_flags & RTE_MBUF_F_RX_FLAG) {
+				if (ol_flags & RTE_MBUF_F_RX_MARK)
 					MKDUMPSTR(print_buf, buf_size, cur_len,
-						" - mark=%"PRIu32" ", mb->hash.fdir.hi);
+						" - mark=%"PRIu32" ", mb->hash.mark);
 				else
 					MKDUMPSTR(print_buf, buf_size, cur_len,
 						" - flagged");

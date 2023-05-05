@@ -1823,7 +1823,7 @@ mlx5_flow_rxq_dynf_set(struct rte_eth_dev *dev)
 			data->flow_meta_offset = rte_flow_dynf_metadata_offs;
 			data->flow_meta_port_mask = priv->sh->dv_meta_mask;
 		}
-		data->mark_flag = RTE_MBUF_F_RX_FDIR_ID;
+		data->mark_flag = RTE_MBUF_F_RX_MARK;
 		if (is_tunnel_offload_active(dev))
 			data->mark_flag |= mlx5_restore_info_dynflag;
 	}
@@ -11468,16 +11468,16 @@ mlx5_flow_tunnel_get_restore_info(struct rte_eth_dev *dev,
 {
 	uint64_t ol_flags = m->ol_flags;
 	const struct mlx5_flow_tbl_data_entry *tble;
-	const uint64_t mask = RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+	const uint64_t mask = RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 
 	if ((ol_flags & mlx5_restore_info_dynflag) == 0)
 		goto err;
 	if ((ol_flags & mask) != mask)
 		goto err;
-	tble = tunnel_mark_decode(dev, m->hash.fdir.hi);
+	tble = tunnel_mark_decode(dev, m->hash.mark);
 	if (!tble) {
 		DRV_LOG(DEBUG, "port %u invalid miss tunnel mark %#x",
-			dev->data->port_id, m->hash.fdir.hi);
+			dev->data->port_id, m->hash.mark);
 		goto err;
 	}
 	MLX5_ASSERT(tble->tunnel);

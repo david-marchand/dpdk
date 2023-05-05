@@ -227,11 +227,11 @@ enic_cq_rx_to_pkt_flags(struct cq_desc *cqd, struct rte_mbuf *mbuf)
 		clsf_cqd = (struct cq_enet_rq_clsf_desc *)cqd;
 		filter_id = clsf_cqd->filter_id;
 		if (filter_id) {
-			pkt_flags |= RTE_MBUF_F_RX_FDIR;
+			pkt_flags |= RTE_MBUF_F_RX_FLAG;
 			if (filter_id != ENIC_MAGIC_FILTER_ID) {
 				/* filter_id = mark id + 1, so subtract 1 */
-				mbuf->hash.fdir.hi = filter_id - 1;
-				pkt_flags |= RTE_MBUF_F_RX_FDIR_ID;
+				mbuf->hash.mark = filter_id - 1;
+				pkt_flags |= RTE_MBUF_F_RX_MARK;
 			}
 		}
 	} else if (enic_cq_rx_desc_rss_type(cqrd)) {

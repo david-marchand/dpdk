@@ -269,7 +269,7 @@ static void bnxt_tpa_start(struct bnxt_rx_queue *rxq,
 		mbuf->ol_flags |= RTE_MBUF_F_RX_RSS_HASH;
 	} else if (tpa_info->cfa_code_valid) {
 		mbuf->hash.fdir.id = tpa_info->cfa_code;
-		mbuf->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+		mbuf->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 	}
 
 	if (tpa_info->vlan_valid && BNXT_RX_VLAN_STRIP_EN(rxq->bp)) {
@@ -800,15 +800,15 @@ bnxt_ulp_set_mark_in_mbuf(struct bnxt *bp, struct rx_pkt_cmpl_hi *rxcmp1,
 		if (vfr_flag && *vfr_flag)
 			return mark_id;
 		/* Got the mark, write it to the mbuf and return */
-		mbuf->hash.fdir.hi = mark_id;
+		mbuf->hash.mark = mark_id;
 		*bnxt_cfa_code_dynfield(mbuf) = cfa_code & 0xffffffffull;
 		mbuf->hash.fdir.id = rxcmp1->cfa_code;
-		mbuf->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+		mbuf->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 		return mark_id;
 	}
 
 skip_mark:
-	mbuf->hash.fdir.hi = 0;
+	mbuf->hash.mark = 0;
 
 	return 0;
 }
@@ -829,8 +829,8 @@ void bnxt_set_mark_in_mbuf(struct bnxt *bp,
 	if (cfa_code && !bp->mark_table[cfa_code].valid)
 		return;
 
-	mbuf->hash.fdir.hi = bp->mark_table[cfa_code].mark_id;
-	mbuf->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+	mbuf->hash.mark = bp->mark_table[cfa_code].mark_id;
+	mbuf->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 }
 
 static int bnxt_rx_pkt(struct rte_mbuf **rx_pkt,

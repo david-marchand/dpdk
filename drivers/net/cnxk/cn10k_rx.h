@@ -677,10 +677,10 @@ nix_update_match_id(const uint16_t match_id, uint64_t ol_flags,
 	 * 0 to CNXK_FLOW_ACTION_FLAG_DEFAULT - 2
 	 */
 	if (likely(match_id)) {
-		ol_flags |= RTE_MBUF_F_RX_FDIR;
+		ol_flags |= RTE_MBUF_F_RX_FLAG;
 		if (match_id != CNXK_FLOW_ACTION_FLAG_DEFAULT) {
-			ol_flags |= RTE_MBUF_F_RX_FDIR_ID;
-			mbuf->hash.fdir.hi = match_id - 1;
+			ol_flags |= RTE_MBUF_F_RX_MARK;
+			mbuf->hash.mark = match_id - 1;
 		}
 	}
 

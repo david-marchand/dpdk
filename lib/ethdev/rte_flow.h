@@ -2321,8 +2321,8 @@ enum rte_flow_action_type {
 	RTE_FLOW_ACTION_TYPE_JUMP,
 
 	/**
-	 * Attaches an integer value to packets and sets RTE_MBUF_F_RX_FDIR and
-	 * RTE_MBUF_F_RX_FDIR_ID mbuf flags.
+	 * Attaches an integer value to packets and sets RTE_MBUF_F_RX_FLAG and
+	 * RTE_MBUF_F_RX_MARK mbuf flags.
 	 *
 	 * See struct rte_flow_action_mark.
 	 *
@@ -2334,7 +2334,7 @@ enum rte_flow_action_type {
 
 	/**
 	 * Flags packets. Similar to MARK without a specific value; only
-	 * sets the RTE_MBUF_F_RX_FDIR mbuf flag.
+	 * sets the RTE_MBUF_F_RX_FLAG mbuf flag.
 	 *
 	 * No associated configuration structure.
 	 *
@@ -2983,12 +2983,12 @@ struct rte_flow_update_quota {
 /**
  * RTE_FLOW_ACTION_TYPE_MARK
  *
- * Attaches an integer value to packets and sets RTE_MBUF_F_RX_FDIR and
- * RTE_MBUF_F_RX_FDIR_ID mbuf flags.
+ * Attaches an integer value to packets and sets RTE_MBUF_F_RX_FLAG and
+ * RTE_MBUF_F_RX_MARK mbuf flags.
  *
  * This value is arbitrary and application-defined. Maximum allowed value
  * depends on the underlying implementation. It is returned in the
- * hash.fdir.hi mbuf field.
+ * hash.mark mbuf field.
  */
 struct rte_flow_action_mark {
 	uint32_t id; /**< Integer value to return with packets. */
@@ -3142,10 +3142,6 @@ enum rte_eth_hash_function {
  * requests safe unspecified "best-effort" settings from the underlying PMD,
  * which depending on the flow rule, may result in anything ranging from
  * empty (single queue) to all-inclusive RSS.
- *
- * Note: RSS hash result is stored in the hash.rss mbuf field which overlaps
- * hash.fdir.lo. Since the MARK action sets the hash.fdir.hi field only,
- * both can be requested simultaneously.
  */
 struct rte_flow_action_rss {
 	enum rte_eth_hash_function func; /**< RSS hash function to apply. */

@@ -855,10 +855,10 @@ rxq_cq_to_mbuf(struct mlx5_rxq_data *rxq, struct rte_mbuf *pkt,
 			mark = ((mcqe->byte_cnt_flow & 0xff) << 8) |
 				(mcqe->flow_tag_high << 16);
 		if (MLX5_FLOW_MARK_IS_VALID(mark)) {
-			pkt->ol_flags |= RTE_MBUF_F_RX_FDIR;
+			pkt->ol_flags |= RTE_MBUF_F_RX_FLAG;
 			if (mark != RTE_BE32(MLX5_FLOW_MARK_DEFAULT)) {
 				pkt->ol_flags |= rxq->mark_flag;
-				pkt->hash.fdir.hi = mlx5_flow_mark_get(mark);
+				pkt->hash.mark = mlx5_flow_mark_get(mark);
 			}
 		}
 	}

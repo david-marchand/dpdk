@@ -2076,8 +2076,8 @@ static __rte_always_inline void
 pkt_work_tag(struct rte_mbuf *mbuf,
 	struct tag_data *data)
 {
-	mbuf->hash.fdir.hi = data->tag;
-	mbuf->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+	mbuf->hash.mark = data->tag;
+	mbuf->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 }
 
 static __rte_always_inline void
@@ -2090,15 +2090,15 @@ pkt4_work_tag(struct rte_mbuf *mbuf0,
 	struct tag_data *data2,
 	struct tag_data *data3)
 {
-	mbuf0->hash.fdir.hi = data0->tag;
-	mbuf1->hash.fdir.hi = data1->tag;
-	mbuf2->hash.fdir.hi = data2->tag;
-	mbuf3->hash.fdir.hi = data3->tag;
+	mbuf0->hash.mark = data0->tag;
+	mbuf1->hash.mark = data1->tag;
+	mbuf2->hash.mark = data2->tag;
+	mbuf3->hash.mark = data3->tag;
 
-	mbuf0->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
-	mbuf1->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
-	mbuf2->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
-	mbuf3->ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
+	mbuf0->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
+	mbuf1->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
+	mbuf2->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
+	mbuf3->ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
 }
 
 /**

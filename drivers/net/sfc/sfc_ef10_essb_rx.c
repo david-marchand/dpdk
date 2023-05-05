@@ -377,10 +377,10 @@ sfc_ef10_essb_rx_get_pending(struct sfc_ef10_essb_rxq *rxq,
 				(RTE_MBUF_F_RX_RSS_HASH *
 				 !!EFX_TEST_QWORD_BIT(*qwordp,
 					ES_EZ_ESSB_RX_PREFIX_HASH_VALID_LBN)) |
-				(RTE_MBUF_F_RX_FDIR_ID *
+				(RTE_MBUF_F_RX_MARK *
 				 !!EFX_TEST_QWORD_BIT(*qwordp,
 					ES_EZ_ESSB_RX_PREFIX_MARK_VALID_LBN)) |
-				(RTE_MBUF_F_RX_FDIR *
+				(RTE_MBUF_F_RX_FLAG *
 				 !!EFX_TEST_QWORD_BIT(*qwordp,
 					ES_EZ_ESSB_RX_PREFIX_MATCH_FLAG_LBN));
 
@@ -388,7 +388,7 @@ sfc_ef10_essb_rx_get_pending(struct sfc_ef10_essb_rxq *rxq,
 			m->hash.rss =
 				EFX_QWORD_FIELD(*qwordp,
 						ES_EZ_ESSB_RX_PREFIX_HASH);
-			m->hash.fdir.hi =
+			m->hash.mark =
 				EFX_QWORD_FIELD(*qwordp,
 						ES_EZ_ESSB_RX_PREFIX_MARK);
 

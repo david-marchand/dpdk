@@ -1001,7 +1001,7 @@ where each options means:
 
  * Set RTE_FLOW_ACTION_TYPE_MARK action in the flow rule with the given mark
    value. This option can be used to set the given integer value(mark) to
-   packets and set RTE_MBUF_F_RX_FDIR and RTE_MBUF_F_RX_FDIR_ID mbuf flags.
+   packets and set RTE_MBUF_F_RX_FLAG and RTE_MBUF_F_RX_MARK mbuf flags.
 
  * Optional: yes, this action is not set by default.
 

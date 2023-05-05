@@ -1780,12 +1780,12 @@ flows to loop between groups.
 Action: ``MARK``
 ^^^^^^^^^^^^^^^^
 
-Attaches an integer value to packets and sets ``RTE_MBUF_F_RX_FDIR`` and
-``RTE_MBUF_F_RX_FDIR_ID`` mbuf flags.
+Attaches an integer value to packets and sets ``RTE_MBUF_F_RX_FLAG`` and
+``RTE_MBUF_F_RX_MARK`` mbuf flags.
 
 This value is arbitrary and application-defined. Maximum allowed value
 depends on the underlying implementation. It is returned in the
-``hash.fdir.hi`` mbuf field.
+``hash.mark`` mbuf field.
 
 .. _table_rte_flow_action_mark:
 
@@ -1801,7 +1801,7 @@ Action: ``FLAG``
 ^^^^^^^^^^^^^^^^
 
 Flags packets. Similar to `Action: MARK`_ without a specific value; only
-sets the ``RTE_MBUF_F_RX_FDIR`` mbuf flag.
+sets the ``RTE_MBUF_F_RX_FLAG`` mbuf flag.
 
 - No configurable properties.
 
@@ -1937,10 +1937,6 @@ these RSS types are simply ignored. For example, it happens if:
 If requested RSS hash types are not supported by the Ethernet device at all
 (not reported in ``dev_info.flow_type_rss_offloads``),
 the flow creation will fail.
-
-Note: RSS hash result is stored in the ``hash.rss`` mbuf field which
-overlaps ``hash.fdir.lo``. Since `Action: MARK`_ sets the ``hash.fdir.hi``
-field only, both can be requested simultaneously.
 
 Also, regarding packet encapsulation ``level``:
 

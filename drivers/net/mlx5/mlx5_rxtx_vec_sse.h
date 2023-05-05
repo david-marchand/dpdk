@@ -193,13 +193,13 @@ cycle:
 		if (rxq->mark) {
 			if (rxq->mcqe_format !=
 				MLX5_CQE_RESP_FORMAT_FTAG_STRIDX) {
-				const uint32_t flow_tag = t_pkt->hash.fdir.hi;
+				const uint32_t flow_tag = t_pkt->hash.mark;
 
 				/* E.1 store flow tag (rte_flow mark). */
-				elts[pos]->hash.fdir.hi = flow_tag;
-				elts[pos + 1]->hash.fdir.hi = flow_tag;
-				elts[pos + 2]->hash.fdir.hi = flow_tag;
-				elts[pos + 3]->hash.fdir.hi = flow_tag;
+				elts[pos]->hash.mark = flow_tag;
+				elts[pos + 1]->hash.mark = flow_tag;
+				elts[pos + 2]->hash.mark = flow_tag;
+				elts[pos + 3]->hash.mark = flow_tag;
 			} else {
 				const __m128i flow_mark_adj =
 					_mm_set_epi32(-1, -1, -1, -1);
@@ -210,13 +210,13 @@ cycle:
 						     -1, -1, -1, -1);
 				const __m128i ft_mask =
 					_mm_set1_epi32(0xffffff00);
-				const __m128i fdir_flags =
-					_mm_set1_epi32(RTE_MBUF_F_RX_FDIR);
-				const __m128i fdir_all_flags =
-					_mm_set1_epi32(RTE_MBUF_F_RX_FDIR |
-						       RTE_MBUF_F_RX_FDIR_ID);
-				__m128i fdir_id_flags =
-					_mm_set1_epi32(RTE_MBUF_F_RX_FDIR_ID);
+				const __m128i flag_flags =
+					_mm_set1_epi32(RTE_MBUF_F_RX_FLAG);
+				const __m128i mark_all_flags =
+					_mm_set1_epi32(RTE_MBUF_F_RX_FLAG |
+						       RTE_MBUF_F_RX_MARK);
+				__m128i mark_flags =
+					_mm_set1_epi32(RTE_MBUF_F_RX_MARK);
 
 				/* Extract flow_tag field. */
 				__m128i ftag0 =
@@ -229,27 +229,27 @@ cycle:
 					_mm_cmpeq_epi32(ftag, zero);
 
 				ol_flags_mask = _mm_or_si128(ol_flags_mask,
-							     fdir_all_flags);
-				/* Set RTE_MBUF_F_RX_FDIR if flow tag is non-zero. */
+							     mark_all_flags);
+				/* Set RTE_MBUF_F_RX_FLAG if flow tag is non-zero. */
 				ol_flags = _mm_or_si128(ol_flags,
 					_mm_andnot_si128(invalid_mask,
-							 fdir_flags));
+							 flag_flags));
 				/* Mask out invalid entries. */
-				fdir_id_flags = _mm_andnot_si128(invalid_mask,
-								 fdir_id_flags);
+				mark_flags = _mm_andnot_si128(invalid_mask,
+								 mark_flags);
 				/* Check if flow tag MLX5_FLOW_MARK_DEFAULT. */
 				ol_flags = _mm_or_si128(ol_flags,
 					_mm_andnot_si128(_mm_cmpeq_epi32(ftag,
 							 ft_mask),
-					fdir_id_flags));
+					mark_flags));
 				ftag = _mm_add_epi32(ftag, flow_mark_adj);
-				elts[pos]->hash.fdir.hi =
+				elts[pos]->hash.mark =
 						_mm_extract_epi32(ftag, 0);
-				elts[pos + 1]->hash.fdir.hi =
+				elts[pos + 1]->hash.mark =
 						_mm_extract_epi32(ftag, 1);
-				elts[pos + 2]->hash.fdir.hi =
+				elts[pos + 2]->hash.mark =
 						_mm_extract_epi32(ftag, 2);
-				elts[pos + 3]->hash.fdir.hi =
+				elts[pos + 3]->hash.mark =
 						_mm_extract_epi32(ftag, 3);
 			}
 		}
@@ -441,24 +441,24 @@ rxq_cq_to_ptype_oflags_v(struct mlx5_rxq_data *rxq, __m128i cqes[4],
 	ptype = _mm_unpacklo_epi64(pinfo0, pinfo1);
 	if (rxq->mark) {
 		const __m128i pinfo_ft_mask = _mm_set1_epi32(0xffffff00);
-		const __m128i fdir_flags = _mm_set1_epi32(RTE_MBUF_F_RX_FDIR);
-		__m128i fdir_id_flags = _mm_set1_epi32(RTE_MBUF_F_RX_FDIR_ID);
+		const __m128i flag_flags = _mm_set1_epi32(RTE_MBUF_F_RX_FLAG);
+		__m128i mark_flags = _mm_set1_epi32(RTE_MBUF_F_RX_MARK);
 		__m128i flow_tag, invalid_mask;
 
 		flow_tag = _mm_and_si128(pinfo, pinfo_ft_mask);
-		/* Check if flow tag is non-zero then set RTE_MBUF_F_RX_FDIR. */
+		/* Check if flow tag is non-zero then set RTE_MBUF_F_RX_FLAG. */
 		invalid_mask = _mm_cmpeq_epi32(flow_tag, zero);
 		ol_flags = _mm_or_si128(ol_flags,
 					_mm_andnot_si128(invalid_mask,
-							 fdir_flags));
+							 flag_flags));
 		/* Mask out invalid entries. */
-		fdir_id_flags = _mm_andnot_si128(invalid_mask, fdir_id_flags);
+		mark_flags = _mm_andnot_si128(invalid_mask, mark_flags);
 		/* Check if flow tag MLX5_FLOW_MARK_DEFAULT. */
 		ol_flags = _mm_or_si128(ol_flags,
 					_mm_andnot_si128(
 						_mm_cmpeq_epi32(flow_tag,
 								pinfo_ft_mask),
-						fdir_id_flags));
+						mark_flags));
 	}
 	/*
 	 * Merge the two fields to generate the following:
@@ -580,7 +580,7 @@ rxq_cq_process_v(struct mlx5_rxq_data *rxq, volatile struct mlx5_cqe *cq,
 			     own, 0, 0, 0);
 	/* Mask to shuffle from extracted CQE to mbuf. */
 	const __m128i shuf_mask =
-		_mm_set_epi8(-1,  3,  2,  1, /* fdir.hi */
+		_mm_set_epi8(-1,  3,  2,  1, /* mark */
 			     12, 13, 14, 15, /* rss, bswap32 */
 			     10, 11,         /* vlan_tci, bswap16 */
 			      4,  5,         /* data_len, bswap16 */

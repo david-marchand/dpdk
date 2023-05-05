@@ -433,7 +433,7 @@ sfc_ef100_rx_prefix_to_offloads(const struct sfc_ef100_rxq *rxq,
 		user_flag = EFX_XWORD_FIELD(rx_prefix[0],
 					    ESF_GZ_RX_PREFIX_USER_FLAG);
 		if (user_flag != 0)
-			ol_flags |= RTE_MBUF_F_RX_FDIR;
+			ol_flags |= RTE_MBUF_F_RX_FLAG;
 	}
 
 	if (rxq->flags & SFC_EF100_RXQ_USER_MARK) {
@@ -447,8 +447,8 @@ sfc_ef100_rx_prefix_to_offloads(const struct sfc_ef100_rxq *rxq,
 
 		user_mark = mark & rxq->user_mark_mask;
 		if (user_mark != SFC_EF100_USER_MARK_INVALID) {
-			ol_flags |= RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID;
-			m->hash.fdir.hi = user_mark;
+			ol_flags |= RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK;
+			m->hash.mark = user_mark;
 		}
 
 		ft_ctx_mark = SFC_FT_FLOW_MARK_TO_CTX_MARK(mark);

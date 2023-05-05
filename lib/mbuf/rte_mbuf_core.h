@@ -111,6 +111,15 @@ extern "C" {
 #define RTE_MBUF_F_RX_FDIR_FLX RTE_BIT64(14)
 
 /**
+ * This packet has been flagged by some SW or HW entity (a mark may be set in
+ * mbuf, depending on RTE_MBUF_F_RX_MARK presence).
+ */
+#define RTE_MBUF_F_RX_FLAG RTE_MBUF_F_RX_FDIR
+
+/** Rx packet with hash.mark set. */
+#define RTE_MBUF_F_RX_MARK RTE_MBUF_F_RX_FDIR_ID
+
+/**
  * The outer VLAN has been stripped by the hardware and its TCI is
  * saved in mbuf->vlan_tci_outer.
  * This can only happen if VLAN stripping is enabled in the Rx
@@ -558,7 +567,10 @@ struct rte_mbuf {
 	RTE_STD_C11
 	union {
 		union {
-			uint32_t rss;     /**< RSS hash result if RSS enabled */
+			struct {
+				uint32_t rss; /**< RSS hash result if RSS enabled */
+				uint32_t mark; /**< valid if RTE_MBUF_F_RX_MARK is set. */
+			};
 			struct {
 				union {
 					struct {

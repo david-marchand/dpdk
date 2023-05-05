@@ -209,13 +209,13 @@ cycle:
 		if (rxq->mark) {
 			if (rxq->mcqe_format !=
 			    MLX5_CQE_RESP_FORMAT_FTAG_STRIDX) {
-				const uint32_t flow_tag = t_pkt->hash.fdir.hi;
+				const uint32_t flow_tag = t_pkt->hash.mark;
 
 				/* E.1 store flow tag (rte_flow mark). */
-				elts[pos]->hash.fdir.hi = flow_tag;
-				elts[pos + 1]->hash.fdir.hi = flow_tag;
-				elts[pos + 2]->hash.fdir.hi = flow_tag;
-				elts[pos + 3]->hash.fdir.hi = flow_tag;
+				elts[pos]->hash.mark = flow_tag;
+				elts[pos + 1]->hash.mark = flow_tag;
+				elts[pos + 2]->hash.mark = flow_tag;
+				elts[pos + 3]->hash.mark = flow_tag;
 			}  else {
 				const uint32x4_t flow_mark_adj = {
 					-1, -1, -1, -1 };
@@ -227,13 +227,13 @@ cycle:
 				/* Extract flow_tag field. */
 				const uint32x4_t ft_mask =
 					vdupq_n_u32(MLX5_FLOW_MARK_DEFAULT);
-				const uint32x4_t fdir_flags =
-					vdupq_n_u32(RTE_MBUF_F_RX_FDIR);
-				const uint32x4_t fdir_all_flags =
-					vdupq_n_u32(RTE_MBUF_F_RX_FDIR |
-						    RTE_MBUF_F_RX_FDIR_ID);
-				uint32x4_t fdir_id_flags =
-					vdupq_n_u32(RTE_MBUF_F_RX_FDIR_ID);
+				const uint32x4_t flag_flags =
+					vdupq_n_u32(RTE_MBUF_F_RX_FLAG);
+				const uint32x4_t mark_all_flags =
+					vdupq_n_u32(RTE_MBUF_F_RX_FLAG |
+						    RTE_MBUF_F_RX_MARK);
+				uint32x4_t mark_flags =
+					vdupq_n_u32(RTE_MBUF_F_RX_MARK);
 				uint32x4_t invalid_mask, ftag;
 
 				__asm__ volatile
@@ -247,25 +247,25 @@ cycle:
 				: "memory", "v16", "v17");
 				invalid_mask = vceqzq_u32(ftag);
 				ol_flags_mask = vorrq_u32(ol_flags_mask,
-							  fdir_all_flags);
-				/* Set RTE_MBUF_F_RX_FDIR if flow tag is non-zero. */
+							  mark_all_flags);
+				/* Set RTE_MBUF_F_RX_FLAG if flow tag is non-zero. */
 				ol_flags = vorrq_u32(ol_flags,
-					vbicq_u32(fdir_flags, invalid_mask));
+					vbicq_u32(flag_flags, invalid_mask));
 				/* Mask out invalid entries. */
-				fdir_id_flags = vbicq_u32(fdir_id_flags,
+				mark_flags = vbicq_u32(mark_flags,
 							  invalid_mask);
 				/* Check if flow tag MLX5_FLOW_MARK_DEFAULT. */
 				ol_flags = vorrq_u32(ol_flags,
-					vbicq_u32(fdir_id_flags,
+					vbicq_u32(mark_flags,
 						  vceqq_u32(ftag, ft_mask)));
 				ftag = vaddq_u32(ftag, flow_mark_adj);
-				elts[pos]->hash.fdir.hi =
+				elts[pos]->hash.mark =
 					vgetq_lane_u32(ftag, 3);
-				elts[pos + 1]->hash.fdir.hi =
+				elts[pos + 1]->hash.mark =
 					vgetq_lane_u32(ftag, 2);
-				elts[pos + 2]->hash.fdir.hi =
+				elts[pos + 2]->hash.mark =
 					vgetq_lane_u32(ftag, 1);
-				elts[pos + 3]->hash.fdir.hi =
+				elts[pos + 3]->hash.mark =
 					vgetq_lane_u32(ftag, 0);
 				}
 		}
@@ -445,19 +445,19 @@ rxq_cq_to_ptype_oflags_v(struct mlx5_rxq_data *rxq,
 
 	if (rxq->mark) {
 		const uint32x4_t ft_def = vdupq_n_u32(MLX5_FLOW_MARK_DEFAULT);
-		const uint32x4_t fdir_flags = vdupq_n_u32(RTE_MBUF_F_RX_FDIR);
-		uint32x4_t fdir_id_flags = vdupq_n_u32(RTE_MBUF_F_RX_FDIR_ID);
+		const uint32x4_t flag_flags = vdupq_n_u32(RTE_MBUF_F_RX_FLAG);
+		uint32x4_t mark_flags = vdupq_n_u32(RTE_MBUF_F_RX_MARK);
 		uint32x4_t invalid_mask;
 
-		/* Check if flow tag is non-zero then set RTE_MBUF_F_RX_FDIR. */
+		/* Check if flow tag is non-zero then set RTE_MBUF_F_RX_FLAG. */
 		invalid_mask = vceqzq_u32(flow_tag);
 		ol_flags = vorrq_u32(ol_flags,
-				     vbicq_u32(fdir_flags, invalid_mask));
+				     vbicq_u32(flag_flags, invalid_mask));
 		/* Mask out invalid entries. */
-		fdir_id_flags = vbicq_u32(fdir_id_flags, invalid_mask);
+		mark_flags = vbicq_u32(mark_flags, invalid_mask);
 		/* Check if flow tag MLX5_FLOW_MARK_DEFAULT. */
 		ol_flags = vorrq_u32(ol_flags,
-				     vbicq_u32(fdir_id_flags,
+				     vbicq_u32(mark_flags,
 					       vceqq_u32(flow_tag, ft_def)));
 	}
 	/*
@@ -588,7 +588,7 @@ rxq_cq_process_v(struct mlx5_rxq_data *rxq, volatile struct mlx5_cqe *cq,
 		 4,  5,         /* data_len */
 		 6,  7,         /* vlan_tci */
 		 8,  9, 10, 11, /* hash.rss */
-		12, 13, 14, -1  /* hash.fdir.hi */
+		12, 13, 14, -1  /* hash.mark */
 	};
 	/* Mask to generate 16B owner vector. */
 	const uint8x8_t owner_shuf_m = {

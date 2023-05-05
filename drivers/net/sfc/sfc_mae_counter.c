@@ -279,10 +279,10 @@ sfc_mae_parse_counter_packet(struct sfc_adapter *sa,
 
 	/*
 	 * The generation count is located in the Rx prefix in the USER_MARK
-	 * field which is written into hash.fdir.hi field of an mbuf. See
+	 * field which is written into hash.mark field of an mbuf. See
 	 * SF-123581-TC SmartNIC Datapath Offloads section 4.7.5 Counters.
 	 */
-	generation_count = m->hash.fdir.hi;
+	generation_count = m->hash.mark;
 
 	hdr = rte_pktmbuf_mtod(m, const efx_xword_t *);
 

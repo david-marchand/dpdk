@@ -265,13 +265,13 @@ cycle:
 		if (rxq->mark) {
 			if (rxq->mcqe_format !=
 			    MLX5_CQE_RESP_FORMAT_FTAG_STRIDX) {
-				const uint32_t flow_tag = t_pkt->hash.fdir.hi;
+				const uint32_t flow_tag = t_pkt->hash.mark;
 
 				/* E.1 store flow tag (rte_flow mark). */
-				elts[pos]->hash.fdir.hi = flow_tag;
-				elts[pos + 1]->hash.fdir.hi = flow_tag;
-				elts[pos + 2]->hash.fdir.hi = flow_tag;
-				elts[pos + 3]->hash.fdir.hi = flow_tag;
+				elts[pos]->hash.mark = flow_tag;
+				elts[pos + 1]->hash.mark = flow_tag;
+				elts[pos + 2]->hash.mark = flow_tag;
+				elts[pos + 3]->hash.mark = flow_tag;
 			} else {
 				const __vector unsigned char flow_mark_adj =
 					(__vector unsigned char)
@@ -288,23 +288,23 @@ cycle:
 					(__vector unsigned int){
 					0xffffff00, 0xffffff00,
 					0xffffff00, 0xffffff00};
-				const __vector unsigned char fdir_flags =
+				const __vector unsigned char flag_flags =
 					(__vector unsigned char)
 					(__vector unsigned int){
-					RTE_MBUF_F_RX_FDIR, RTE_MBUF_F_RX_FDIR,
-					RTE_MBUF_F_RX_FDIR, RTE_MBUF_F_RX_FDIR};
-				const __vector unsigned char fdir_all_flags =
+					RTE_MBUF_F_RX_FLAG, RTE_MBUF_F_RX_FLAG,
+					RTE_MBUF_F_RX_FLAG, RTE_MBUF_F_RX_FLAG};
+				const __vector unsigned char mark_all_flags =
 					(__vector unsigned char)
 					(__vector unsigned int){
-					RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
-					RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
-					RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
-					RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID};
-				__vector unsigned char fdir_id_flags =
+					RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK,
+					RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK,
+					RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK,
+					RTE_MBUF_F_RX_FLAG | RTE_MBUF_F_RX_MARK};
+				__vector unsigned char mark_flags =
 					(__vector unsigned char)
 					(__vector unsigned int){
-					RTE_MBUF_F_RX_FDIR_ID, RTE_MBUF_F_RX_FDIR_ID,
-					RTE_MBUF_F_RX_FDIR_ID, RTE_MBUF_F_RX_FDIR_ID};
+					RTE_MBUF_F_RX_MARK, RTE_MBUF_F_RX_MARK,
+					RTE_MBUF_F_RX_MARK, RTE_MBUF_F_RX_MARK};
 				/* Extract flow_tag field. */
 				__vector unsigned char ftag0 = vec_perm(mcqe1,
 							zero, flow_mark_shuf);
@@ -322,9 +322,9 @@ cycle:
 				ol_flags_mask = (__vector unsigned char)
 					vec_or((__vector unsigned long)
 					ol_flags_mask,
-					(__vector unsigned long)fdir_all_flags);
+					(__vector unsigned long)mark_all_flags);
 
-				/* Set RTE_MBUF_F_RX_FDIR if flow tag is non-zero. */
+				/* Set RTE_MBUF_F_RX_FLAG if flow tag is non-zero. */
 				invalid_mask = (__vector unsigned char)
 					vec_cmpeq((__vector unsigned int)ftag,
 					(__vector unsigned int)zero);
@@ -332,17 +332,17 @@ cycle:
 					vec_or((__vector unsigned long)ol_flags,
 					(__vector unsigned long)
 					vec_andc((__vector unsigned long)
-					fdir_flags,
+					flag_flags,
 					(__vector unsigned long)invalid_mask));
 				ol_flags_mask = (__vector unsigned char)
 					vec_or((__vector unsigned long)
 					ol_flags_mask,
-					(__vector unsigned long)fdir_flags);
+					(__vector unsigned long)flag_flags);
 
 				/* Mask out invalid entries. */
-				fdir_id_flags = (__vector unsigned char)
+				mark_flags = (__vector unsigned char)
 					vec_andc((__vector unsigned long)
-					fdir_id_flags,
+					mark_flags,
 					(__vector unsigned long)invalid_mask);
 
 				/* Check if flow tag MLX5_FLOW_MARK_DEFAULT. */
@@ -350,7 +350,7 @@ cycle:
 					vec_or((__vector unsigned long)ol_flags,
 					(__vector unsigned long)
 					vec_andc((__vector unsigned long)
-					fdir_id_flags,
+					mark_flags,
 					(__vector unsigned long)
 					vec_cmpeq((__vector unsigned int)ftag,
 					(__vector unsigned int)ft_mask)));
@@ -358,13 +358,13 @@ cycle:
 				ftag = (__vector unsigned char)
 					((__vector unsigned int)ftag +
 					(__vector unsigned int)flow_mark_adj);
-				elts[pos]->hash.fdir.hi =
+				elts[pos]->hash.mark =
 					((__vector unsigned int)ftag)[0];
-				elts[pos + 1]->hash.fdir.hi =
+				elts[pos + 1]->hash.mark =
 					((__vector unsigned int)ftag)[1];
-				elts[pos + 2]->hash.fdir.hi =
+				elts[pos + 2]->hash.mark =
 					((__vector unsigned int)ftag)[2];
-				elts[pos + 3]->hash.fdir.hi =
+				elts[pos + 3]->hash.mark =
 					((__vector unsigned int)ftag)[3];
 			}
 		}
@@ -626,40 +626,40 @@ rxq_cq_to_ptype_oflags_v(struct mlx5_rxq_data *rxq,
 		const __vector unsigned char pinfo_ft_mask =
 			(__vector unsigned char)(__vector unsigned int){
 			0xffffff00, 0xffffff00, 0xffffff00, 0xffffff00};
-		const __vector unsigned char fdir_flags =
+		const __vector unsigned char flag_flags =
 			(__vector unsigned char)(__vector unsigned int){
-			RTE_MBUF_F_RX_FDIR, RTE_MBUF_F_RX_FDIR,
-			RTE_MBUF_F_RX_FDIR, RTE_MBUF_F_RX_FDIR};
-		__vector unsigned char fdir_id_flags =
+			RTE_MBUF_F_RX_FLAG, RTE_MBUF_F_RX_FLAG,
+			RTE_MBUF_F_RX_FLAG, RTE_MBUF_F_RX_FLAG};
+		__vector unsigned char mark_flags =
 			(__vector unsigned char)(__vector unsigned int){
-			RTE_MBUF_F_RX_FDIR_ID, RTE_MBUF_F_RX_FDIR_ID,
-			RTE_MBUF_F_RX_FDIR_ID, RTE_MBUF_F_RX_FDIR_ID};
+			RTE_MBUF_F_RX_MARK, RTE_MBUF_F_RX_MARK,
+			RTE_MBUF_F_RX_MARK, RTE_MBUF_F_RX_MARK};
 		__vector unsigned char flow_tag, invalid_mask;
 
 		flow_tag = (__vector unsigned char)
 			vec_and((__vector unsigned long)pinfo,
 			(__vector unsigned long)pinfo_ft_mask);
 
-		/* Check if flow tag is non-zero then set RTE_MBUF_F_RX_FDIR. */
+		/* Check if flow tag is non-zero then set RTE_MBUF_F_RX_FLAG. */
 		invalid_mask = (__vector unsigned char)
 			vec_cmpeq((__vector unsigned int)flow_tag,
 			(__vector unsigned int)zero);
 		ol_flags = (__vector unsigned char)
 			vec_or((__vector unsigned long)ol_flags,
 			(__vector unsigned long)
-			vec_andc((__vector unsigned long)fdir_flags,
+			vec_andc((__vector unsigned long)flag_flags,
 			(__vector unsigned long)invalid_mask));
 
 		/* Mask out invalid entries. */
-		fdir_id_flags = (__vector unsigned char)
-			vec_andc((__vector unsigned long)fdir_id_flags,
+		mark_flags = (__vector unsigned char)
+			vec_andc((__vector unsigned long)mark_flags,
 			(__vector unsigned long)invalid_mask);
 
 		/* Check if flow tag MLX5_FLOW_MARK_DEFAULT. */
 		ol_flags = (__vector unsigned char)
 			vec_or((__vector unsigned long)ol_flags,
 			(__vector unsigned long)
-			vec_andc((__vector unsigned long)fdir_id_flags,
+			vec_andc((__vector unsigned long)mark_flags,
 			(__vector unsigned long)
 			vec_cmpeq((__vector unsigned int)flow_tag,
 			(__vector unsigned int)pinfo_ft_mask)));
@@ -848,7 +848,7 @@ rxq_cq_process_v(struct mlx5_rxq_data *rxq, volatile struct mlx5_cqe *cq,
 		 5,  4,           /* bswap16, data_len */
 		11, 10,           /* bswap16, vlan+tci */
 		15, 14, 13, 12,   /* bswap32, rss */
-		 1,  2,  3, -1};  /* fdir.hi */
+		 1,  2,  3, -1};  /* mark */
 	/* Mask to blend from the last Qword to the first DQword. */
 	/* Mask to blend from the last Qword to the first DQword. */
 	const __vector unsigned char blend_mask = (__vector unsigned char){
