@@ -266,6 +266,8 @@ fast_tests = [
         ['service_autotest', true],
         ['thash_autotest', true],
         ['trace_autotest', true],
+        ['graph_autotest', true],
+        ['node_list_dump', true],
 ]
 
 perf_test_names = [
@@ -303,6 +305,7 @@ perf_test_names = [
         'hash_readwrite_lf_perf_autotest',
         'trace_perf_autotest',
 	'ipsec_perf_autotest',
+        'graph_perf_autotest',
 ]
 
 driver_test_names = [
