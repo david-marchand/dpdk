@@ -1850,8 +1850,7 @@ iavf_tx_free_bufs_avx512(struct iavf_tx_queue *txq)
 	struct iavf_tx_vec_entry *txep;
 	uint32_t n;
 	uint32_t i;
-	int nb_free = 0;
-	struct rte_mbuf *m, *free[IAVF_VPMD_TX_MAX_FREE_BUF];
+	struct rte_mbuf *free[IAVF_VPMD_TX_MAX_FREE_BUF];
 
 	/* check DD bits on threshold descriptor */
 	if ((txq->tx_ring[txq->next_dd].cmd_type_offset_bsz &
@@ -1915,32 +1914,9 @@ iavf_tx_free_bufs_avx512(struct iavf_tx_queue *txq)
 	}
 
 normal:
-	m = rte_pktmbuf_prefree_seg(txep[0].mbuf);
-	if (likely(m)) {
-		free[0] = m;
-		nb_free = 1;
-		for (i = 1; i < n; i++) {
-			m = rte_pktmbuf_prefree_seg(txep[i].mbuf);
-			if (likely(m)) {
-				if (likely(m->pool == free[0]->pool)) {
-					free[nb_free++] = m;
-				} else {
-					rte_mempool_put_bulk(free[0]->pool,
-							     (void *)free,
-							     nb_free);
-					free[0] = m;
-					nb_free = 1;
-				}
-			}
-		}
-		rte_mempool_put_bulk(free[0]->pool, (void **)free, nb_free);
-	} else {
-		for (i = 1; i < n; i++) {
-			m = rte_pktmbuf_prefree_seg(txep[i].mbuf);
-			if (m)
-				rte_mempool_put(m->pool, m);
-		}
-	}
+	for (i = 0; i < n; i++)
+		free[i] = txep[i].mbuf;
+	rte_pktmbuf_free_bulk(free, n);
 
 done:
 	/* buffers were freed, update counters */
