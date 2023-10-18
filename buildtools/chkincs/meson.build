@@ -12,7 +12,6 @@ gen_c_files = generator(gen_c_file_for_header,
         arguments: ['@INPUT@', '@OUTPUT@'])
 
 cflags = machine_args
-cflags += '-DALLOW_INTERNAL_API'
 
 sources = files('main.c')
 sources += gen_c_files.process(dpdk_chkinc_headers)
@@ -42,6 +41,19 @@ executable('chkincs-exp', sources,
         dependencies: deps,
         install: false)
 
+cflags += '-DALLOW_INTERNAL_API'
+
+if dpdk_chkinc_driver_headers.length() != 0
+    sources_driver = files('main.c')
+    sources_driver += gen_c_files.process(dpdk_chkinc_driver_headers)
+
+    executable('chkincs-driver', sources_driver,
+            c_args: cflags,
+            include_directories: includes,
+            dependencies: deps,
+            install: false)
+endif
+
 # run tests for c++ builds also
 if not add_languages('cpp', required: false)
     subdir_done()
@@ -62,7 +74,7 @@ gen_cpp_files = generator(gen_c_file_for_header,
         arguments: ['@INPUT@', '@OUTPUT@'])
 
 cpp_sources = files('main.cpp')
-cpp_sources += gen_cpp_files.process(dpdk_chkinc_headers)
+cpp_sources += gen_cpp_files.process(dpdk_chkinc_headers + dpdk_chkinc_driver_headers)
 
 executable('chkincs-cpp', cpp_sources,
         cpp_args: ['-include', 'rte_config.h', cflags],
