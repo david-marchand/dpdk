@@ -12,7 +12,6 @@ gen_c_files = generator(gen_c_file_for_header,
         arguments: ['@INPUT@', '@OUTPUT@'])
 
 cflags = machine_args
-cflags += '-DALLOW_EXPERIMENTAL_API'
 cflags += '-DALLOW_INTERNAL_API'
 
 sources = files('main.c')
@@ -30,6 +29,14 @@ foreach l:dpdk_libs_enabled
 endforeach
 
 executable('chkincs', sources,
+        c_args: cflags,
+        include_directories: includes,
+        dependencies: deps,
+        install: false)
+
+cflags += '-DALLOW_EXPERIMENTAL_API'
+
+executable('chkincs-exp', sources,
         c_args: cflags,
         include_directories: includes,
         dependencies: deps,
