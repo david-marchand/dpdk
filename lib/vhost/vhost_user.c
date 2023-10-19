@@ -934,6 +934,9 @@ vhost_user_set_vring_addr(struct virtio_net **pdev,
 	/* addr->index refers to the queue index. The txq 1, rxq is 0. */
 	vq = dev->virtqueue[ctx->msg.payload.addr.index];
 
+	/* vhost_user_lock_all_queue_pairs locked all qps */
+	VHOST_USER_ASSERT_LOCK(dev, vq, VHOST_USER_SET_VRING_ADDR);
+
 	access_ok = vq->access_ok;
 
 	/*
@@ -1446,11 +1449,15 @@ vhost_user_set_mem_table(struct virtio_net **pdev,
 			continue;
 
 		if (vq->desc || vq->avail || vq->used) {
+			/* vhost_user_lock_all_queue_pairs locked all qps */
+			VHOST_USER_ASSERT_LOCK(dev, vq, VHOST_USER_SET_MEM_TABLE);
+
 			/*
 			 * If the memory table got updated, the ring addresses
 			 * need to be translated again as virtual addresses have
 			 * changed.
 			 */
+
 			vring_invalidate(dev, vq);
 
 			translate_ring_addresses(&dev, &vq);
@@ -2208,7 +2215,9 @@ vhost_user_get_vring_base(struct virtio_net **pdev,
 
 	vhost_user_iotlb_flush_all(dev);
 
+	rte_rwlock_write_lock(&vq->access_lock);
 	vring_invalidate(dev, vq);
+	rte_rwlock_write_unlock(&vq->access_lock);
 
 	return RTE_VHOST_MSG_RESULT_REPLY;
 }
