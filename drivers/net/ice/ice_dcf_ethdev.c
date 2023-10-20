@@ -959,8 +959,7 @@ dcf_add_del_mc_addr_list(struct ice_dcf_hw *hw,
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR, "fail to execute command %s",
-			    add ? "OP_ADD_ETHER_ADDRESS" :
-			    "OP_DEL_ETHER_ADDRESS");
+			    virtchnl_op_str(args.v_op));
 	rte_free(list);
 	return err;
 }
@@ -1105,7 +1104,7 @@ dcf_add_del_vlan_v2(struct ice_dcf_hw *hw, uint16_t vlanid, bool add)
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR, "fail to execute command %s",
-			    add ? "OP_ADD_VLAN_V2" :  "OP_DEL_VLAN_V2");
+			    virtchnl_op_str(args.v_op));
 
 	return err;
 }
@@ -1131,7 +1130,7 @@ dcf_add_del_vlan(struct ice_dcf_hw *hw, uint16_t vlanid, bool add)
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR, "fail to execute command %s",
-			    add ? "OP_ADD_VLAN" :  "OP_DEL_VLAN");
+			    virtchnl_op_str(args.v_op));
 
 	return err;
 }
@@ -1257,7 +1256,8 @@ dcf_enable_vlan_strip(struct ice_dcf_hw *hw)
 	ret = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (ret)
 		PMD_DRV_LOG(ERR,
-			    "Failed to execute command of OP_ENABLE_VLAN_STRIPPING");
+			    "Failed to execute command of %s",
+			    virtchnl_op_str(args.v_op));
 
 	return ret;
 }
@@ -1273,7 +1273,8 @@ dcf_disable_vlan_strip(struct ice_dcf_hw *hw)
 	ret = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (ret)
 		PMD_DRV_LOG(ERR,
-			    "Failed to execute command of OP_DISABLE_VLAN_STRIPPING");
+			    "Failed to execute command of %s",
+			    virtchnl_op_str(args.v_op));
 
 	return ret;
 }

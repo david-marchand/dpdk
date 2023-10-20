@@ -313,7 +313,8 @@ ice_dcf_init_check_api_version(struct ice_dcf_hw *hw)
 	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_VERSION,
 					  (uint8_t *)&version, sizeof(version));
 	if (err) {
-		PMD_INIT_LOG(ERR, "Failed to send OP_VERSION");
+		PMD_INIT_LOG(ERR, "Failed to send %s",
+			     virtchnl_op_str(VIRTCHNL_OP_VERSION));
 		return err;
 	}
 
@@ -321,7 +322,8 @@ ice_dcf_init_check_api_version(struct ice_dcf_hw *hw)
 	err = ice_dcf_recv_cmd_rsp_no_irq(hw, VIRTCHNL_OP_VERSION,
 					  (uint8_t *)pver, sizeof(*pver), NULL);
 	if (err) {
-		PMD_INIT_LOG(ERR, "Failed to get response of OP_VERSION");
+		PMD_INIT_LOG(ERR, "Failed to get response of %s",
+			     virtchnl_op_str(VIRTCHNL_OP_VERSION));
 		return -1;
 	}
 
@@ -366,7 +368,8 @@ ice_dcf_get_vf_resource(struct ice_dcf_hw *hw)
 	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_GET_VF_RESOURCES,
 					  (uint8_t *)&caps, sizeof(caps));
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to send msg OP_GET_VF_RESOURCE");
+		PMD_DRV_LOG(ERR, "Failed to send msg %s",
+			    virtchnl_op_str(VIRTCHNL_OP_GET_VF_RESOURCES));
 		return err;
 	}
 
@@ -374,7 +377,8 @@ ice_dcf_get_vf_resource(struct ice_dcf_hw *hw)
 					  (uint8_t *)hw->vf_res,
 					  ICE_DCF_VF_RES_BUF_SZ, NULL);
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to get response of OP_GET_VF_RESOURCE");
+		PMD_DRV_LOG(ERR, "Failed to get response of %s",
+			    virtchnl_op_str(VIRTCHNL_OP_GET_VF_RESOURCES));
 		return -1;
 	}
 
@@ -408,7 +412,8 @@ ice_dcf_get_vf_vsi_map(struct ice_dcf_hw *hw)
 	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_DCF_GET_VSI_MAP,
 					  NULL, 0);
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to send msg OP_DCF_GET_VSI_MAP");
+		PMD_DRV_LOG(ERR, "Failed to send msg %s",
+			    virtchnl_op_str(VIRTCHNL_OP_DCF_GET_VSI_MAP));
 		return err;
 	}
 
@@ -416,7 +421,8 @@ ice_dcf_get_vf_vsi_map(struct ice_dcf_hw *hw)
 					  hw->arq_buf, ICE_DCF_AQ_BUF_SZ,
 					  &len);
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to get response of OP_DCF_GET_VSI_MAP");
+		PMD_DRV_LOG(ERR, "Failed to get response of %s",
+			    virtchnl_op_str(VIRTCHNL_OP_DCF_GET_VSI_MAP));
 		return err;
 	}
 
@@ -468,7 +474,8 @@ ice_dcf_mode_disable(struct ice_dcf_hw *hw)
 	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_DCF_DISABLE,
 					  NULL, 0);
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to send msg OP_DCF_DISABLE");
+		PMD_DRV_LOG(ERR, "Failed to send msg %s",
+			    virtchnl_op_str(VIRTCHNL_OP_DCF_DISABLE));
 		return err;
 	}
 
@@ -476,7 +483,8 @@ ice_dcf_mode_disable(struct ice_dcf_hw *hw)
 					  hw->arq_buf, ICE_DCF_AQ_BUF_SZ, NULL);
 	if (err) {
 		PMD_DRV_LOG(ERR,
-			    "Failed to get response of OP_DCF_DISABLE %d",
+			    "Failed to get response of %s %d",
+			    virtchnl_op_str(VIRTCHNL_OP_DCF_DISABLE),
 			    err);
 		return -1;
 	}
@@ -626,10 +634,15 @@ ice_dcf_send_aq_cmd(void *dcf_hw, struct ice_aq_desc *desc,
 	ice_dcf_vc_cmd_set(hw, &desc_cmd);
 	ice_dcf_vc_cmd_set(hw, &buff_cmd);
 
-	if (ice_dcf_vc_cmd_send(hw, &desc_cmd) ||
-	    ice_dcf_vc_cmd_send(hw, &buff_cmd)) {
+	if (ice_dcf_vc_cmd_send(hw, &desc_cmd)) {
 		err = -1;
-		PMD_DRV_LOG(ERR, "fail to send OP_DCF_CMD_DESC/BUFF");
+		PMD_DRV_LOG(ERR, "fail to send %s",
+			    virtchnl_op_str(desc_cmd.v_op));
+	}
+	if (ice_dcf_vc_cmd_send(hw, &buff_cmd)) {
+		err = -1;
+		PMD_DRV_LOG(ERR, "fail to send %s",
+			    virtchnl_op_str(buff_cmd.v_op));
 		goto ret;
 	}
 
@@ -697,7 +710,8 @@ ice_dcf_get_supported_rxdid(struct ice_dcf_hw *hw)
 					  VIRTCHNL_OP_GET_SUPPORTED_RXDIDS,
 					  NULL, 0);
 	if (err) {
-		PMD_INIT_LOG(ERR, "Failed to send OP_GET_SUPPORTED_RXDIDS");
+		PMD_INIT_LOG(ERR, "Failed to send %s",
+			     virtchnl_op_str(VIRTCHNL_OP_GET_SUPPORTED_RXDIDS));
 		return -1;
 	}
 
@@ -705,7 +719,8 @@ ice_dcf_get_supported_rxdid(struct ice_dcf_hw *hw)
 					  (uint8_t *)&hw->supported_rxdid,
 					  sizeof(uint64_t), NULL);
 	if (err) {
-		PMD_INIT_LOG(ERR, "Failed to get response of OP_GET_SUPPORTED_RXDIDS");
+		PMD_INIT_LOG(ERR, "Failed to get response of %s",
+			     virtchnl_op_str(VIRTCHNL_OP_GET_SUPPORTED_RXDIDS));
 		return -1;
 	}
 
@@ -943,7 +958,8 @@ ice_dcf_configure_rss_key(struct ice_dcf_hw *hw)
 
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
-		PMD_INIT_LOG(ERR, "Failed to execute OP_CONFIG_RSS_KEY");
+		PMD_INIT_LOG(ERR, "Failed to execute %s",
+			     virtchnl_op_str(args.v_op));
 
 	rte_free(rss_key);
 	return err;
@@ -975,7 +991,8 @@ ice_dcf_configure_rss_lut(struct ice_dcf_hw *hw)
 
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
-		PMD_INIT_LOG(ERR, "Failed to execute OP_CONFIG_RSS_LUT");
+		PMD_INIT_LOG(ERR, "Failed to execute %s",
+			     virtchnl_op_str(args.v_op));
 
 	rte_free(rss_lut);
 	return err;
@@ -1003,8 +1020,7 @@ ice_dcf_add_del_rss_cfg(struct ice_dcf_hw *hw,
 	if (err)
 		PMD_DRV_LOG(ERR,
 			    "Failed to execute command of %s",
-			    add ? "OP_ADD_RSS_CFG" :
-			    "OP_DEL_RSS_INPUT_CFG");
+			    virtchnl_op_str(args.v_op));
 
 	return err;
 }
@@ -1029,7 +1045,8 @@ ice_dcf_set_hena(struct ice_dcf_hw *hw, uint64_t hena)
 
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
-		PMD_INIT_LOG(ERR, "Failed to execute OP_SET_RSS_HENA");
+		PMD_INIT_LOG(ERR, "Failed to execute %s",
+			     virtchnl_op_str(args.v_op));
 
 	return err;
 }
@@ -1288,7 +1305,8 @@ ice_dcf_config_irq_map(struct ice_dcf_hw *hw)
 
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
-		PMD_DRV_LOG(ERR, "fail to execute command OP_CONFIG_IRQ_MAP");
+		PMD_DRV_LOG(ERR, "fail to execute command %s",
+			    virtchnl_op_str(args.v_op));
 
 	rte_free(map_info);
 	return err;
@@ -1320,7 +1338,7 @@ ice_dcf_switch_queue(struct ice_dcf_hw *hw, uint16_t qid, bool rx, bool on)
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR, "Failed to execute command of %s",
-			    on ? "OP_ENABLE_QUEUES" : "OP_DISABLE_QUEUES");
+			    virtchnl_op_str(args.v_op));
 
 	return err;
 }
@@ -1349,7 +1367,8 @@ ice_dcf_disable_queues(struct ice_dcf_hw *hw)
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR,
-			    "Failed to execute command of OP_DISABLE_QUEUES");
+			    "Failed to execute command of %s",
+			    virtchnl_op_str(args.v_op));
 
 	return err;
 }
@@ -1374,7 +1393,8 @@ ice_dcf_query_stats(struct ice_dcf_hw *hw,
 
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err) {
-		PMD_DRV_LOG(ERR, "fail to execute command OP_GET_STATS");
+		PMD_DRV_LOG(ERR, "fail to execute command %s",
+			    virtchnl_op_str(args.v_op));
 		return err;
 	}
 
@@ -1424,8 +1444,7 @@ ice_dcf_add_del_all_mac_addr(struct ice_dcf_hw *hw,
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR, "fail to execute command %s",
-			    add ? "OP_ADD_ETHER_ADDRESS" :
-			    "OP_DEL_ETHER_ADDRESS");
+			    virtchnl_op_str(args.v_op));
 	rte_free(list);
 	return err;
 }
