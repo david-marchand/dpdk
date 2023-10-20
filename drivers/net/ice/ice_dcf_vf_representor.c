@@ -222,14 +222,14 @@ ice_dcf_vlan_offload_config(struct ice_dcf_vf_repr *repr,
 	int err;
 
 	memset(&args, 0, sizeof(args));
-	args.v_op = VIRTCHNL_OP_DCF_VLAN_OFFLOAD;
+	args.v_op = VIRTCHNL_OP_OOT_DCF_VLAN_OFFLOAD;
 	args.req_msg = (uint8_t *)vlan_offload;
 	args.req_msglen = sizeof(*vlan_offload);
 
 	err = ice_dcf_execute_virtchnl_cmd(ice_dcf_vf_repr_hw(repr), &args);
 	if (err)
 		PMD_DRV_LOG(ERR,
-			    "Failed to execute command of VIRTCHNL_OP_DCF_VLAN_OFFLOAD");
+			    "Failed to execute command of VIRTCHNL_OP_OOT_DCF_VLAN_OFFLOAD");
 
 	return err;
 }

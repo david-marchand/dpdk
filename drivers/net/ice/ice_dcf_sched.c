@@ -570,13 +570,13 @@ ice_dcf_set_vf_bw(struct ice_dcf_hw *hw,
 	int err;
 
 	memset(&args, 0, sizeof(args));
-	args.v_op = VIRTCHNL_OP_DCF_CONFIG_BW;
+	args.v_op = VIRTCHNL_OP_OOT_DCF_CONFIG_BW;
 	args.req_msg = (uint8_t *)vf_bw;
 	args.req_msglen  = len;
 	err = ice_dcf_execute_virtchnl_cmd(hw, &args);
 	if (err)
 		PMD_DRV_LOG(ERR, "fail to execute command %s",
-			    "VIRTCHNL_OP_DCF_CONFIG_BW");
+			    "VIRTCHNL_OP_OOT_DCF_CONFIG_BW");
 	return err;
 }
 

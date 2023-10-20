@@ -135,21 +135,21 @@ enum virtchnl_ops {
 	VIRTCHNL_OP_DISABLE_CHANNELS = 31,
 	VIRTCHNL_OP_ADD_CLOUD_FILTER = 32,
 	VIRTCHNL_OP_DEL_CLOUD_FILTER = 33,
-	VIRTCHNL_OP_INLINE_IPSEC_CRYPTO = 34,
+	VIRTCHNL_OP_OOT_INLINE_IPSEC_CRYPTO = 34,
 	/* opcodes 35 and 36 are reserved */
-	VIRTCHNL_OP_DCF_CONFIG_BW = 37,
-	VIRTCHNL_OP_DCF_VLAN_OFFLOAD = 38,
-	VIRTCHNL_OP_DCF_CMD_DESC = 39,
-	VIRTCHNL_OP_DCF_CMD_BUFF = 40,
-	VIRTCHNL_OP_DCF_DISABLE = 41,
-	VIRTCHNL_OP_DCF_GET_VSI_MAP = 42,
-	VIRTCHNL_OP_DCF_GET_PKG_INFO = 43,
+	VIRTCHNL_OP_OOT_DCF_CONFIG_BW = 37,
+	VIRTCHNL_OP_OOT_DCF_VLAN_OFFLOAD = 38,
+	VIRTCHNL_OP_OOT_DCF_CMD_DESC = 39,
+	VIRTCHNL_OP_OOT_DCF_CMD_BUFF = 40,
+	VIRTCHNL_OP_OOT_DCF_DISABLE = 41,
+	VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP = 42,
+	VIRTCHNL_OP_OOT_DCF_GET_PKG_INFO = 43,
 	VIRTCHNL_OP_GET_SUPPORTED_RXDIDS = 44,
 	VIRTCHNL_OP_ADD_RSS_CFG = 45,
 	VIRTCHNL_OP_DEL_RSS_CFG = 46,
 	VIRTCHNL_OP_ADD_FDIR_FILTER = 47,
 	VIRTCHNL_OP_DEL_FDIR_FILTER = 48,
-	VIRTCHNL_OP_GET_MAX_RSS_QREGION = 50,
+	VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION = 50,
 	VIRTCHNL_OP_GET_OFFLOAD_VLAN_V2_CAPS = 51,
 	VIRTCHNL_OP_ADD_VLAN_V2 = 52,
 	VIRTCHNL_OP_DEL_VLAN_V2 = 53,
@@ -157,19 +157,19 @@ enum virtchnl_ops {
 	VIRTCHNL_OP_DISABLE_VLAN_STRIPPING_V2 = 55,
 	VIRTCHNL_OP_ENABLE_VLAN_INSERTION_V2 = 56,
 	VIRTCHNL_OP_DISABLE_VLAN_INSERTION_V2 = 57,
-	VIRTCHNL_OP_ENABLE_VLAN_FILTERING_V2 = 58,
-	VIRTCHNL_OP_DISABLE_VLAN_FILTERING_V2 = 59,
-	VIRTCHNL_OP_1588_PTP_GET_CAPS = 60,
-	VIRTCHNL_OP_1588_PTP_GET_TIME = 61,
-	VIRTCHNL_OP_GET_QOS_CAPS = 66,
-	VIRTCHNL_OP_CONFIG_QUEUE_TC_MAP = 67,
-	VIRTCHNL_OP_ENABLE_QUEUES_V2 = 107,
-	VIRTCHNL_OP_DISABLE_QUEUES_V2 = 108,
-	VIRTCHNL_OP_MAP_QUEUE_VECTOR = 111,
-	VIRTCHNL_OP_CONFIG_QUEUE_BW = 112,
-	VIRTCHNL_OP_CONFIG_QUANTA = 113,
-	VIRTCHNL_OP_FLOW_SUBSCRIBE = 114,
-	VIRTCHNL_OP_FLOW_UNSUBSCRIBE = 115,
+	VIRTCHNL_OP_OOT_ENABLE_VLAN_FILTERING_V2 = 58,
+	VIRTCHNL_OP_OOT_DISABLE_VLAN_FILTERING_V2 = 59,
+	VIRTCHNL_OP_OOT_1588_PTP_GET_CAPS = 60,
+	VIRTCHNL_OP_OOT_1588_PTP_GET_TIME = 61,
+	VIRTCHNL_OP_OOT_GET_QOS_CAPS = 66,
+	VIRTCHNL_OP_OOT_CONFIG_QUEUE_TC_MAP = 67,
+	VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2 = 107,
+	VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2 = 108,
+	VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR = 111,
+	VIRTCHNL_OP_OOT_CONFIG_QUEUE_BW = 112,
+	VIRTCHNL_OP_OOT_CONFIG_QUANTA = 113,
+	VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE = 114,
+	VIRTCHNL_OP_OOT_FLOW_UNSUBSCRIBE = 115,
 	VIRTCHNL_OP_MAX,
 };
 
@@ -234,16 +234,16 @@ static inline const char *virtchnl_op_str(enum virtchnl_ops v_opcode)
 		return "VIRTCHNL_OP_ADD_CLOUD_FILTER";
 	case VIRTCHNL_OP_DEL_CLOUD_FILTER:
 		return "VIRTCHNL_OP_DEL_CLOUD_FILTER";
-	case VIRTCHNL_OP_INLINE_IPSEC_CRYPTO:
-		return "VIRTCHNL_OP_INLINE_IPSEC_CRYPTO";
-	case VIRTCHNL_OP_DCF_CMD_DESC:
-		return "VIRTCHNL_OP_DCF_CMD_DESC";
-	case VIRTCHNL_OP_DCF_CMD_BUFF:
-		return "VIRTCHNL_OP_DCF_CMD_BUFF";
-	case VIRTCHNL_OP_DCF_DISABLE:
-		return "VIRTCHNL_OP_DCF_DISABLE";
-	case VIRTCHNL_OP_DCF_GET_VSI_MAP:
-		return "VIRTCHNL_OP_DCF_GET_VSI_MAP";
+	case VIRTCHNL_OP_OOT_INLINE_IPSEC_CRYPTO:
+		return "VIRTCHNL_OP_OOT_INLINE_IPSEC_CRYPTO";
+	case VIRTCHNL_OP_OOT_DCF_CMD_DESC:
+		return "VIRTCHNL_OP_OOT_DCF_CMD_DESC";
+	case VIRTCHNL_OP_OOT_DCF_CMD_BUFF:
+		return "VIRTCHNL_OP_OOT_DCF_CMD_BUFF";
+	case VIRTCHNL_OP_OOT_DCF_DISABLE:
+		return "VIRTCHNL_OP_OOT_DCF_DISABLE";
+	case VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP:
+		return "VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP";
 	case VIRTCHNL_OP_GET_SUPPORTED_RXDIDS:
 		return "VIRTCHNL_OP_GET_SUPPORTED_RXDIDS";
 	case VIRTCHNL_OP_ADD_RSS_CFG:
@@ -254,14 +254,14 @@ static inline const char *virtchnl_op_str(enum virtchnl_ops v_opcode)
 		return "VIRTCHNL_OP_ADD_FDIR_FILTER";
 	case VIRTCHNL_OP_DEL_FDIR_FILTER:
 		return "VIRTCHNL_OP_DEL_FDIR_FILTER";
-	case VIRTCHNL_OP_GET_MAX_RSS_QREGION:
-		return "VIRTCHNL_OP_GET_MAX_RSS_QREGION";
-	case VIRTCHNL_OP_ENABLE_QUEUES_V2:
-		return "VIRTCHNL_OP_ENABLE_QUEUES_V2";
-	case VIRTCHNL_OP_DISABLE_QUEUES_V2:
-		return "VIRTCHNL_OP_DISABLE_QUEUES_V2";
-	case VIRTCHNL_OP_MAP_QUEUE_VECTOR:
-		return "VIRTCHNL_OP_MAP_QUEUE_VECTOR";
+	case VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION:
+		return "VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION";
+	case VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2:
+		return "VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2";
+	case VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2:
+		return "VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2";
+	case VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR:
+		return "VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR";
 	case VIRTCHNL_OP_GET_OFFLOAD_VLAN_V2_CAPS:
 		return "VIRTCHNL_OP_GET_OFFLOAD_VLAN_V2_CAPS";
 	case VIRTCHNL_OP_ADD_VLAN_V2:
@@ -276,18 +276,18 @@ static inline const char *virtchnl_op_str(enum virtchnl_ops v_opcode)
 		return "VIRTCHNL_OP_ENABLE_VLAN_INSERTION_V2";
 	case VIRTCHNL_OP_DISABLE_VLAN_INSERTION_V2:
 		return "VIRTCHNL_OP_DISABLE_VLAN_INSERTION_V2";
-	case VIRTCHNL_OP_ENABLE_VLAN_FILTERING_V2:
-		return "VIRTCHNL_OP_ENABLE_VLAN_FILTERING_V2";
-	case VIRTCHNL_OP_DISABLE_VLAN_FILTERING_V2:
-		return "VIRTCHNL_OP_DISABLE_VLAN_FILTERING_V2";
-	case VIRTCHNL_OP_1588_PTP_GET_CAPS:
-		return "VIRTCHNL_OP_1588_PTP_GET_CAPS";
-	case VIRTCHNL_OP_1588_PTP_GET_TIME:
-		return "VIRTCHNL_OP_1588_PTP_GET_TIME";
-	case VIRTCHNL_OP_FLOW_SUBSCRIBE:
-		return "VIRTCHNL_OP_FLOW_SUBSCRIBE";
-	case VIRTCHNL_OP_FLOW_UNSUBSCRIBE:
-		return "VIRTCHNL_OP_FLOW_UNSUBSCRIBE";
+	case VIRTCHNL_OP_OOT_ENABLE_VLAN_FILTERING_V2:
+		return "VIRTCHNL_OP_OOT_ENABLE_VLAN_FILTERING_V2";
+	case VIRTCHNL_OP_OOT_DISABLE_VLAN_FILTERING_V2:
+		return "VIRTCHNL_OP_OOT_DISABLE_VLAN_FILTERING_V2";
+	case VIRTCHNL_OP_OOT_1588_PTP_GET_CAPS:
+		return "VIRTCHNL_OP_OOT_1588_PTP_GET_CAPS";
+	case VIRTCHNL_OP_OOT_1588_PTP_GET_TIME:
+		return "VIRTCHNL_OP_OOT_1588_PTP_GET_TIME";
+	case VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE:
+		return "VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE";
+	case VIRTCHNL_OP_OOT_FLOW_UNSUBSCRIBE:
+		return "VIRTCHNL_OP_OOT_FLOW_UNSUBSCRIBE";
 	case VIRTCHNL_OP_MAX:
 		return "VIRTCHNL_OP_MAX";
 	default:
@@ -654,7 +654,7 @@ struct virtchnl_queue_select {
 
 VIRTCHNL_CHECK_STRUCT_LEN(12, virtchnl_queue_select);
 
-/* VIRTCHNL_OP_GET_MAX_RSS_QREGION
+/* VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION
  *
  * if VIRTCHNL_VF_LARGE_NUM_QPAIRS was negotiated in VIRTCHNL_OP_GET_VF_RESOURCES
  * then this op must be supported.
@@ -1095,8 +1095,8 @@ VIRTCHNL_CHECK_STRUCT_LEN(40, virtchnl_vlan_filter_list_v2);
  * virtchnl_vlan_setting.vport_id = vport_id or vsi_id assigned to the VF on
  * initialization.
  *
- * VIRTCHNL_OP_ENABLE_VLAN_FILTERING_V2
- * VIRTCHNL_OP_DISABLE_VLAN_FILTERING_V2
+ * VIRTCHNL_OP_OOT_ENABLE_VLAN_FILTERING_V2
+ * VIRTCHNL_OP_OOT_DISABLE_VLAN_FILTERING_V2
  *
  * VF sends this message to enable or disable VLAN filtering. It also needs to
  * specify an ethertype. The VF knows which VLAN ethertypes are allowed and
@@ -1123,9 +1123,9 @@ VIRTCHNL_CHECK_STRUCT_LEN(40, virtchnl_vlan_filter_list_v2);
  * In order to enable outer VLAN filtering for 0x88a8 and 0x8100 VLANs (0x9100
  * VLANs aren't supported by the VF driver), the VF would populate the
  * virtchnl_vlan_setting structure in the following manner and send the
- * VIRTCHNL_OP_ENABLE_VLAN_FILTERING_V2. The same message format would be used
+ * VIRTCHNL_OP_OOT_ENABLE_VLAN_FILTERING_V2. The same message format would be used
  * to disable outer VLAN filtering for 0x88a8 and 0x8100 VLANs, but the
- * VIRTCHNL_OP_DISABLE_VLAN_FILTERING_V2 opcode is used.
+ * VIRTCHNL_OP_OOT_DISABLE_VLAN_FILTERING_V2 opcode is used.
  *
  * virtchnl_vlan_setting.outer_ethertype_setting =
  *			VIRTCHNL_VLAN_ETHERTYPE_8100 |
@@ -1331,7 +1331,7 @@ struct virtchnl_shaper_bw {
 
 VIRTCHNL_CHECK_STRUCT_LEN(8, virtchnl_shaper_bw);
 
-/* VIRTCHNL_OP_DCF_GET_VSI_MAP
+/* VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP
  * VF sends this message to get VSI mapping table.
  * PF responds with an indirect message containing VF's
  * HW VSI IDs.
@@ -1371,7 +1371,7 @@ struct virtchnl_pkg_info {
 
 VIRTCHNL_CHECK_STRUCT_LEN(48, virtchnl_pkg_info);
 
-/* VIRTCHNL_OP_DCF_VLAN_OFFLOAD
+/* VIRTCHNL_OP_OOT_DCF_VLAN_OFFLOAD
  * DCF negotiates the VIRTCHNL_VF_OFFLOAD_VLAN_V2 capability firstly to get
  * the double VLAN configuration, then DCF sends this message to configure the
  * outer or inner VLAN offloads (insertion and strip) for the target VF.
@@ -1418,7 +1418,7 @@ struct virtchnl_dcf_bw_cfg {
 
 VIRTCHNL_CHECK_STRUCT_LEN(40, virtchnl_dcf_bw_cfg);
 
-/* VIRTCHNL_OP_DCF_CONFIG_BW
+/* VIRTCHNL_OP_OOT_DCF_CONFIG_BW
  * VF send this message to set the bandwidth configuration of each
  * TC with a specific vf id. The flag node_type is to indicate that
  * this message is to configure VSI node or TC node bandwidth.
@@ -1906,7 +1906,7 @@ enum virtchnl_fsub_prgm_status {
 	VIRTCHNL_FSUB_FAILURE_RULE_INVALID,
 };
 
-/* VIRTCHNL_OP_FLOW_SUBSCRIBE
+/* VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE
  * VF sends this request to PF by filling out vsi_id,
  * validate_only, priority, proto_hdrs and actions.
  * PF will return flow_id
@@ -1925,7 +1925,7 @@ struct virtchnl_flow_sub {
 
 VIRTCHNL_CHECK_STRUCT_LEN(2616, virtchnl_flow_sub);
 
-/* VIRTCHNL_OP_FLOW_UNSUBSCRIBE
+/* VIRTCHNL_OP_OOT_FLOW_UNSUBSCRIBE
  * VF sends this request to PF by filling out vsi_id
  * and flow_id. PF will return status to VF.
  */
@@ -1939,7 +1939,7 @@ struct virtchnl_flow_unsub {
 
 VIRTCHNL_CHECK_STRUCT_LEN(12, virtchnl_flow_unsub);
 
-/* VIRTCHNL_OP_GET_QOS_CAPS
+/* VIRTCHNL_OP_OOT_GET_QOS_CAPS
  * VF sends this message to get its QoS Caps, such as
  * TC number, Arbiter and Bandwidth.
  */
@@ -1968,7 +1968,7 @@ struct virtchnl_qos_cap_list {
 
 VIRTCHNL_CHECK_STRUCT_LEN(44, virtchnl_qos_cap_list);
 
-/* VIRTCHNL_OP_CONFIG_QUEUE_TC_MAP
+/* VIRTCHNL_OP_OOT_CONFIG_QUEUE_TC_MAP
  * VF sends message virtchnl_queue_tc_mapping to set queue to tc
  * mapping for all the Tx and Rx queues with a specified VSI, and
  * would get response about bitmap of valid user priorities
@@ -1995,7 +1995,7 @@ struct virtchnl_queue_tc_mapping {
 
 VIRTCHNL_CHECK_STRUCT_LEN(12, virtchnl_queue_tc_mapping);
 
-/* VIRTCHNL_OP_CONFIG_QUEUE_BW */
+/* VIRTCHNL_OP_OOT_CONFIG_QUEUE_BW */
 struct virtchnl_queue_bw {
 	u16 queue_id;
 	u8 tc;
@@ -2048,15 +2048,15 @@ struct virtchnl_queue_chunks {
 VIRTCHNL_CHECK_STRUCT_LEN(12, virtchnl_queue_chunks);
 
 
-/* VIRTCHNL_OP_ENABLE_QUEUES_V2
- * VIRTCHNL_OP_DISABLE_QUEUES_V2
+/* VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2
+ * VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2
  * VIRTCHNL_OP_DEL_QUEUES
  *
  * If VIRTCHNL_CAP_EXT_FEATURES was negotiated in VIRTCHNL_OP_GET_VF_RESOURCES
  * then all of these ops are available.
  *
  * If VIRTCHNL_VF_LARGE_NUM_QPAIRS was negotiated in VIRTCHNL_OP_GET_VF_RESOURCES
- * then VIRTCHNL_OP_ENABLE_QUEUES_V2 and VIRTCHNL_OP_DISABLE_QUEUES_V2 are
+ * then VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2 and VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2 are
  * available.
  *
  * PF sends these messages to enable, disable or delete queues specified in
@@ -2094,14 +2094,14 @@ struct virtchnl_queue_vector {
 
 VIRTCHNL_CHECK_STRUCT_LEN(16, virtchnl_queue_vector);
 
-/* VIRTCHNL_OP_MAP_QUEUE_VECTOR
+/* VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR
  * VIRTCHNL_OP_UNMAP_QUEUE_VECTOR
  *
  * If VIRTCHNL_CAP_EXT_FEATURES was negotiated in VIRTCHNL_OP_GET_VF_RESOURCES
  * then all of these ops are available.
  *
  * If VIRTCHNL_VF_LARGE_NUM_QPAIRS was negotiated in VIRTCHNL_OP_GET_VF_RESOURCES
- * then only VIRTCHNL_OP_MAP_QUEUE_VECTOR is available.
+ * then only VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR is available.
  *
  * PF sends this message to map or unmap queues to vectors and ITR index
  * registers. External data buffer contains virtchnl_queue_vector_maps structure
@@ -2163,36 +2163,36 @@ VIRTCHNL_CHECK_STRUCT_LEN(16, virtchnl_phc_time);
  * possibly handle in a single message.
  */
 enum virtchnl_vector_limits {
-	VIRTCHNL_OP_CONFIG_VSI_QUEUES_MAX	=
+	VIRTCHNL_OP_OOT_CONFIG_VSI_QUEUES_MAX	=
 		((u16)(~0) - sizeof(struct virtchnl_vsi_queue_config_info)) /
 		sizeof(struct virtchnl_queue_pair_info),
 
-	VIRTCHNL_OP_CONFIG_IRQ_MAP_MAX		=
+	VIRTCHNL_OP_OOT_CONFIG_IRQ_MAP_MAX		=
 		((u16)(~0) - sizeof(struct virtchnl_irq_map_info)) /
 		sizeof(struct virtchnl_vector_map),
 
-	VIRTCHNL_OP_ADD_DEL_ETH_ADDR_MAX	=
+	VIRTCHNL_OP_OOT_ADD_DEL_ETH_ADDR_MAX	=
 		((u16)(~0) - sizeof(struct virtchnl_ether_addr_list)) /
 		sizeof(struct virtchnl_ether_addr),
 
-	VIRTCHNL_OP_ADD_DEL_VLAN_MAX		=
+	VIRTCHNL_OP_OOT_ADD_DEL_VLAN_MAX		=
 		((u16)(~0) - sizeof(struct virtchnl_vlan_filter_list)) /
 		sizeof(u16),
 
 
-	VIRTCHNL_OP_ENABLE_CHANNELS_MAX		=
+	VIRTCHNL_OP_OOT_ENABLE_CHANNELS_MAX		=
 		((u16)(~0) - sizeof(struct virtchnl_tc_info)) /
 		sizeof(struct virtchnl_channel_info),
 
-	VIRTCHNL_OP_ENABLE_DISABLE_DEL_QUEUES_V2_MAX	=
+	VIRTCHNL_OP_OOT_ENABLE_DISABLE_DEL_QUEUES_V2_MAX	=
 		((u16)(~0) - sizeof(struct virtchnl_del_ena_dis_queues)) /
 		sizeof(struct virtchnl_queue_chunk),
 
-	VIRTCHNL_OP_MAP_UNMAP_QUEUE_VECTOR_MAX	=
+	VIRTCHNL_OP_OOT_MAP_UNMAP_QUEUE_VECTOR_MAX	=
 		((u16)(~0) - sizeof(struct virtchnl_queue_vector_maps)) /
 		sizeof(struct virtchnl_queue_vector),
 
-	VIRTCHNL_OP_ADD_DEL_VLAN_V2_MAX		=
+	VIRTCHNL_OP_OOT_ADD_DEL_VLAN_V2_MAX		=
 		((u16)(~0) - sizeof(struct virtchnl_vlan_filter_list_v2)) /
 		sizeof(struct virtchnl_vlan_filter),
 };
@@ -2237,7 +2237,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 			    (struct virtchnl_vsi_queue_config_info *)msg;
 
 			if (vqc->num_queue_pairs == 0 || vqc->num_queue_pairs >
-			    VIRTCHNL_OP_CONFIG_VSI_QUEUES_MAX) {
+			    VIRTCHNL_OP_OOT_CONFIG_VSI_QUEUES_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2254,7 +2254,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 			    (struct virtchnl_irq_map_info *)msg;
 
 			if (vimi->num_vectors == 0 || vimi->num_vectors >
-			    VIRTCHNL_OP_CONFIG_IRQ_MAP_MAX) {
+			    VIRTCHNL_OP_OOT_CONFIG_IRQ_MAP_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2267,7 +2267,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 	case VIRTCHNL_OP_DISABLE_QUEUES:
 		valid_len = sizeof(struct virtchnl_queue_select);
 		break;
-	case VIRTCHNL_OP_GET_MAX_RSS_QREGION:
+	case VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION:
 		break;
 	case VIRTCHNL_OP_ADD_ETH_ADDR:
 	case VIRTCHNL_OP_DEL_ETH_ADDR:
@@ -2277,7 +2277,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 			    (struct virtchnl_ether_addr_list *)msg;
 
 			if (veal->num_elements == 0 || veal->num_elements >
-			    VIRTCHNL_OP_ADD_DEL_ETH_ADDR_MAX) {
+			    VIRTCHNL_OP_OOT_ADD_DEL_ETH_ADDR_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2294,7 +2294,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 			    (struct virtchnl_vlan_filter_list *)msg;
 
 			if (vfl->num_elements == 0 || vfl->num_elements >
-			    VIRTCHNL_OP_ADD_DEL_VLAN_MAX) {
+			    VIRTCHNL_OP_OOT_ADD_DEL_VLAN_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2354,7 +2354,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 				(struct virtchnl_tc_info *)msg;
 
 			if (vti->num_tc == 0 || vti->num_tc >
-			    VIRTCHNL_OP_ENABLE_CHANNELS_MAX) {
+			    VIRTCHNL_OP_OOT_ENABLE_CHANNELS_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2369,21 +2369,21 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 	case VIRTCHNL_OP_DEL_CLOUD_FILTER:
 		valid_len = sizeof(struct virtchnl_filter);
 		break;
-	case VIRTCHNL_OP_DCF_VLAN_OFFLOAD:
+	case VIRTCHNL_OP_OOT_DCF_VLAN_OFFLOAD:
 		valid_len = sizeof(struct virtchnl_dcf_vlan_offload);
 		break;
-	case VIRTCHNL_OP_DCF_CMD_DESC:
-	case VIRTCHNL_OP_DCF_CMD_BUFF:
+	case VIRTCHNL_OP_OOT_DCF_CMD_DESC:
+	case VIRTCHNL_OP_OOT_DCF_CMD_BUFF:
 		/* These two opcodes are specific to handle the AdminQ command,
 		 * so the validation needs to be done in PF's context.
 		 */
 		valid_len = msglen;
 		break;
-	case VIRTCHNL_OP_DCF_DISABLE:
-	case VIRTCHNL_OP_DCF_GET_VSI_MAP:
-	case VIRTCHNL_OP_DCF_GET_PKG_INFO:
+	case VIRTCHNL_OP_OOT_DCF_DISABLE:
+	case VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP:
+	case VIRTCHNL_OP_OOT_DCF_GET_PKG_INFO:
 		break;
-	case VIRTCHNL_OP_DCF_CONFIG_BW:
+	case VIRTCHNL_OP_OOT_DCF_CONFIG_BW:
 		valid_len = sizeof(struct virtchnl_dcf_bw_cfg_list);
 		if (msglen >= valid_len) {
 			struct virtchnl_dcf_bw_cfg_list *cfg_list =
@@ -2408,15 +2408,15 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 	case VIRTCHNL_OP_DEL_FDIR_FILTER:
 		valid_len = sizeof(struct virtchnl_fdir_del);
 		break;
-	case VIRTCHNL_OP_FLOW_SUBSCRIBE:
+	case VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE:
 		valid_len = sizeof(struct virtchnl_flow_sub);
 		break;
-	case VIRTCHNL_OP_FLOW_UNSUBSCRIBE:
+	case VIRTCHNL_OP_OOT_FLOW_UNSUBSCRIBE:
 		valid_len = sizeof(struct virtchnl_flow_unsub);
 		break;
-	case VIRTCHNL_OP_GET_QOS_CAPS:
+	case VIRTCHNL_OP_OOT_GET_QOS_CAPS:
 		break;
-	case VIRTCHNL_OP_CONFIG_QUEUE_TC_MAP:
+	case VIRTCHNL_OP_OOT_CONFIG_QUEUE_TC_MAP:
 		valid_len = sizeof(struct virtchnl_queue_tc_mapping);
 		if (msglen >= valid_len) {
 			struct virtchnl_queue_tc_mapping *q_tc =
@@ -2429,7 +2429,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 					 sizeof(q_tc->tc[0]);
 		}
 		break;
-	case VIRTCHNL_OP_CONFIG_QUEUE_BW:
+	case VIRTCHNL_OP_OOT_CONFIG_QUEUE_BW:
 		valid_len = sizeof(struct virtchnl_queues_bw_cfg);
 		if (msglen >= valid_len) {
 			struct virtchnl_queues_bw_cfg *q_bw =
@@ -2442,7 +2442,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 					 sizeof(q_bw->cfg[0]);
 		}
 		break;
-	case VIRTCHNL_OP_CONFIG_QUANTA:
+	case VIRTCHNL_OP_OOT_CONFIG_QUANTA:
 		valid_len = sizeof(struct virtchnl_quanta_cfg);
 		if (msglen >= valid_len) {
 			struct virtchnl_quanta_cfg *q_quanta =
@@ -2464,7 +2464,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 			    (struct virtchnl_vlan_filter_list_v2 *)msg;
 
 			if (vfl->num_elements == 0 || vfl->num_elements >
-			    VIRTCHNL_OP_ADD_DEL_VLAN_V2_MAX) {
+			    VIRTCHNL_OP_OOT_ADD_DEL_VLAN_V2_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2477,24 +2477,24 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 	case VIRTCHNL_OP_DISABLE_VLAN_STRIPPING_V2:
 	case VIRTCHNL_OP_ENABLE_VLAN_INSERTION_V2:
 	case VIRTCHNL_OP_DISABLE_VLAN_INSERTION_V2:
-	case VIRTCHNL_OP_ENABLE_VLAN_FILTERING_V2:
-	case VIRTCHNL_OP_DISABLE_VLAN_FILTERING_V2:
+	case VIRTCHNL_OP_OOT_ENABLE_VLAN_FILTERING_V2:
+	case VIRTCHNL_OP_OOT_DISABLE_VLAN_FILTERING_V2:
 		valid_len = sizeof(struct virtchnl_vlan_setting);
 		break;
-	case VIRTCHNL_OP_1588_PTP_GET_CAPS:
+	case VIRTCHNL_OP_OOT_1588_PTP_GET_CAPS:
 		valid_len = sizeof(struct virtchnl_ptp_caps);
 		break;
-	case VIRTCHNL_OP_1588_PTP_GET_TIME:
+	case VIRTCHNL_OP_OOT_1588_PTP_GET_TIME:
 		valid_len = sizeof(struct virtchnl_phc_time);
 		break;
-	case VIRTCHNL_OP_ENABLE_QUEUES_V2:
-	case VIRTCHNL_OP_DISABLE_QUEUES_V2:
+	case VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2:
+	case VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2:
 		valid_len = sizeof(struct virtchnl_del_ena_dis_queues);
 		if (msglen >= valid_len) {
 			struct virtchnl_del_ena_dis_queues *qs =
 				(struct virtchnl_del_ena_dis_queues *)msg;
 			if (qs->chunks.num_chunks == 0 ||
-			    qs->chunks.num_chunks > VIRTCHNL_OP_ENABLE_DISABLE_DEL_QUEUES_V2_MAX) {
+			    qs->chunks.num_chunks > VIRTCHNL_OP_OOT_ENABLE_DISABLE_DEL_QUEUES_V2_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2502,13 +2502,13 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 				      sizeof(struct virtchnl_queue_chunk);
 		}
 		break;
-	case VIRTCHNL_OP_MAP_QUEUE_VECTOR:
+	case VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR:
 		valid_len = sizeof(struct virtchnl_queue_vector_maps);
 		if (msglen >= valid_len) {
 			struct virtchnl_queue_vector_maps *v_qp =
 				(struct virtchnl_queue_vector_maps *)msg;
 			if (v_qp->num_qv_maps == 0 ||
-			    v_qp->num_qv_maps > VIRTCHNL_OP_MAP_UNMAP_QUEUE_VECTOR_MAX) {
+			    v_qp->num_qv_maps > VIRTCHNL_OP_OOT_MAP_UNMAP_QUEUE_VECTOR_MAX) {
 				err_msg_format = true;
 				break;
 			}
@@ -2517,7 +2517,7 @@ virtchnl_vc_validate_vf_msg(struct virtchnl_version_info *ver, u32 v_opcode,
 		}
 		break;
 
-	case VIRTCHNL_OP_INLINE_IPSEC_CRYPTO:
+	case VIRTCHNL_OP_OOT_INLINE_IPSEC_CRYPTO:
 	{
 		struct inline_ipsec_msg *iim = (struct inline_ipsec_msg *)msg;
 		valid_len =

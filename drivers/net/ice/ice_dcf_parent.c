@@ -399,7 +399,7 @@ ice_dcf_load_pkg(struct ice_adapter *adapter)
 	bool use_dsn;
 	uint64_t dsn = 0;
 
-	vc_cmd.v_op = VIRTCHNL_OP_DCF_GET_PKG_INFO;
+	vc_cmd.v_op = VIRTCHNL_OP_OOT_DCF_GET_PKG_INFO;
 	vc_cmd.req_msglen = 0;
 	vc_cmd.req_msg = NULL;
 	vc_cmd.rsp_buflen = sizeof(pkg_info);

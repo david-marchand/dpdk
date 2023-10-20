@@ -530,7 +530,7 @@ iavf_handle_virtchnl_msg(struct rte_eth_dev *dev)
 				/* check for unsolicited messages i.e. events */
 				if (info.msg_len > 0) {
 					switch (msg_opc) {
-					case VIRTCHNL_OP_INLINE_IPSEC_CRYPTO: {
+					case VIRTCHNL_OP_OOT_INLINE_IPSEC_CRYPTO: {
 						struct inline_ipsec_msg *imsg =
 							(struct inline_ipsec_msg *)info.msg_buf;
 						if (imsg->ipsec_opcode
@@ -1029,7 +1029,7 @@ iavf_enable_queues_lv(struct iavf_adapter *adapter)
 	queue_chunk[VIRTCHNL_QUEUE_TYPE_RX].num_queues =
 		adapter->dev_data->nb_rx_queues;
 
-	args.ops = VIRTCHNL_OP_ENABLE_QUEUES_V2;
+	args.ops = VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2;
 	args.in_args = (u8 *)queue_select;
 	args.in_args_size = len;
 	args.out_buffer = vf->aq_resp;
@@ -1073,7 +1073,7 @@ iavf_disable_queues_lv(struct iavf_adapter *adapter)
 	queue_chunk[VIRTCHNL_QUEUE_TYPE_RX].num_queues =
 		adapter->dev_data->nb_rx_queues;
 
-	args.ops = VIRTCHNL_OP_DISABLE_QUEUES_V2;
+	args.ops = VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2;
 	args.in_args = (u8 *)queue_select;
 	args.in_args_size = len;
 	args.out_buffer = vf->aq_resp;
@@ -1117,9 +1117,9 @@ iavf_switch_queue_lv(struct iavf_adapter *adapter, uint16_t qid,
 	}
 
 	if (on)
-		args.ops = VIRTCHNL_OP_ENABLE_QUEUES_V2;
+		args.ops = VIRTCHNL_OP_OOT_ENABLE_QUEUES_V2;
 	else
-		args.ops = VIRTCHNL_OP_DISABLE_QUEUES_V2;
+		args.ops = VIRTCHNL_OP_OOT_DISABLE_QUEUES_V2;
 	args.in_args = (u8 *)queue_select;
 	args.in_args_size = len;
 	args.out_buffer = vf->aq_resp;
@@ -1363,7 +1363,7 @@ iavf_config_irq_map_lv(struct iavf_adapter *adapter, uint16_t num,
 		qv_maps->vector_id = vf->qv_map[i].vector_id;
 	}
 
-	args.ops = VIRTCHNL_OP_MAP_QUEUE_VECTOR;
+	args.ops = VIRTCHNL_OP_OOT_MAP_QUEUE_VECTOR;
 	args.in_args = (u8 *)map_info;
 	args.in_args_size = len;
 	args.out_buffer = vf->aq_resp;
@@ -1737,7 +1737,7 @@ iavf_flow_sub(struct iavf_adapter *adapter, struct iavf_fsub_conf *filter)
 	filter->sub_fltr.validate_only = 0;
 
 	memset(&args, 0, sizeof(args));
-	args.ops = VIRTCHNL_OP_FLOW_SUBSCRIBE;
+	args.ops = VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE;
 	args.in_args = (uint8_t *)(&filter->sub_fltr);
 	args.in_args_size = sizeof(*(&filter->sub_fltr));
 	args.out_buffer = vf->aq_resp;
@@ -1788,7 +1788,7 @@ iavf_flow_unsub(struct iavf_adapter *adapter, struct iavf_fsub_conf *filter)
 	filter->unsub_fltr.flow_id = filter->flow_id;
 
 	memset(&args, 0, sizeof(args));
-	args.ops = VIRTCHNL_OP_FLOW_UNSUBSCRIBE;
+	args.ops = VIRTCHNL_OP_OOT_FLOW_UNSUBSCRIBE;
 	args.in_args = (uint8_t *)(&filter->unsub_fltr);
 	args.in_args_size = sizeof(filter->unsub_fltr);
 	args.out_buffer = vf->aq_resp;
@@ -1831,7 +1831,7 @@ iavf_flow_sub_check(struct iavf_adapter *adapter,
 	filter->sub_fltr.vsi_id = vf->vsi_res->vsi_id;
 	filter->sub_fltr.validate_only = 1;
 
-	args.ops = VIRTCHNL_OP_FLOW_SUBSCRIBE;
+	args.ops = VIRTCHNL_OP_OOT_FLOW_SUBSCRIBE;
 	args.in_args = (uint8_t *)(&filter->sub_fltr);
 	args.in_args_size = sizeof(*(&filter->sub_fltr));
 	args.out_buffer = vf->aq_resp;
@@ -1942,7 +1942,7 @@ iavf_get_qos_cap(struct iavf_adapter *adapter)
 	uint32_t len;
 	int err;
 
-	args.ops = VIRTCHNL_OP_GET_QOS_CAPS;
+	args.ops = VIRTCHNL_OP_OOT_GET_QOS_CAPS;
 	args.in_args = NULL;
 	args.in_args_size = 0;
 	args.out_buffer = vf->aq_resp;
@@ -1974,7 +1974,7 @@ int iavf_set_q_tc_map(struct rte_eth_dev *dev,
 	int err;
 
 	memset(&args, 0, sizeof(args));
-	args.ops = VIRTCHNL_OP_CONFIG_QUEUE_TC_MAP;
+	args.ops = VIRTCHNL_OP_OOT_CONFIG_QUEUE_TC_MAP;
 	args.in_args = (uint8_t *)q_tc_mapping;
 	args.in_args_size = size;
 	args.out_buffer = vf->aq_resp;
@@ -1997,7 +1997,7 @@ int iavf_set_q_bw(struct rte_eth_dev *dev,
 	int err;
 
 	memset(&args, 0, sizeof(args));
-	args.ops = VIRTCHNL_OP_CONFIG_QUEUE_BW;
+	args.ops = VIRTCHNL_OP_OOT_CONFIG_QUEUE_BW;
 	args.in_args = (uint8_t *)q_bw;
 	args.in_args_size = size;
 	args.out_buffer = vf->aq_resp;
@@ -2006,7 +2006,7 @@ int iavf_set_q_bw(struct rte_eth_dev *dev,
 	err = iavf_execute_vf_cmd_safe(adapter, &args, 0);
 	if (err)
 		PMD_DRV_LOG(ERR, "Failed to execute command of"
-			    " VIRTCHNL_OP_CONFIG_QUEUE_BW");
+			    " VIRTCHNL_OP_OOT_CONFIG_QUEUE_BW");
 	return err;
 }
 
@@ -2133,7 +2133,7 @@ iavf_get_max_rss_queue_region(struct iavf_adapter *adapter)
 	uint16_t qregion_width;
 	int err;
 
-	args.ops = VIRTCHNL_OP_GET_MAX_RSS_QREGION;
+	args.ops = VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION;
 	args.in_args = NULL;
 	args.in_args_size = 0;
 	args.out_buffer = vf->aq_resp;
@@ -2141,7 +2141,7 @@ iavf_get_max_rss_queue_region(struct iavf_adapter *adapter)
 
 	err = iavf_execute_vf_cmd_safe(adapter, &args, 0);
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to execute command of VIRTCHNL_OP_GET_MAX_RSS_QREGION");
+		PMD_DRV_LOG(ERR, "Failed to execute command of VIRTCHNL_OP_OOT_GET_MAX_RSS_QREGION");
 		return err;
 	}
 
@@ -2164,7 +2164,7 @@ iavf_ipsec_crypto_request(struct iavf_adapter *adapter,
 	struct iavf_cmd_info args;
 	int err;
 
-	args.ops = VIRTCHNL_OP_INLINE_IPSEC_CRYPTO;
+	args.ops = VIRTCHNL_OP_OOT_INLINE_IPSEC_CRYPTO;
 	args.in_args = msg;
 	args.in_args_size = msg_len;
 	args.out_buffer = vf->aq_resp;
@@ -2198,7 +2198,7 @@ iavf_set_vf_quanta_size(struct iavf_adapter *adapter, u16 start_queue_id, u16 nu
 	q_quanta.queue_select.start_queue_id = start_queue_id;
 	q_quanta.queue_select.num_queues = num_queues;
 
-	args.ops = VIRTCHNL_OP_CONFIG_QUANTA;
+	args.ops = VIRTCHNL_OP_OOT_CONFIG_QUANTA;
 	args.in_args = (uint8_t *)&q_quanta;
 	args.in_args_size = sizeof(q_quanta);
 	args.out_buffer = vf->aq_resp;
@@ -2206,7 +2206,7 @@ iavf_set_vf_quanta_size(struct iavf_adapter *adapter, u16 start_queue_id, u16 nu
 
 	err = iavf_execute_vf_cmd_safe(adapter, &args, 0);
 	if (err) {
-		PMD_DRV_LOG(ERR, "Failed to execute command VIRTCHNL_OP_CONFIG_QUANTA");
+		PMD_DRV_LOG(ERR, "Failed to execute command VIRTCHNL_OP_OOT_CONFIG_QUANTA");
 		return err;
 	}
 
@@ -2224,7 +2224,7 @@ iavf_get_ptp_cap(struct iavf_adapter *adapter)
 	ptp_caps.caps = VIRTCHNL_1588_PTP_CAP_RX_TSTAMP |
 			VIRTCHNL_1588_PTP_CAP_READ_PHC;
 
-	args.ops = VIRTCHNL_OP_1588_PTP_GET_CAPS;
+	args.ops = VIRTCHNL_OP_OOT_1588_PTP_GET_CAPS;
 	args.in_args = (uint8_t *)&ptp_caps;
 	args.in_args_size = sizeof(ptp_caps);
 	args.out_buffer = vf->aq_resp;
@@ -2251,7 +2251,7 @@ iavf_get_phc_time(struct iavf_rx_queue *rxq)
 	struct iavf_cmd_info args;
 	int err = 0;
 
-	args.ops = VIRTCHNL_OP_1588_PTP_GET_TIME;
+	args.ops = VIRTCHNL_OP_OOT_1588_PTP_GET_TIME;
 	args.in_args = (uint8_t *)&phc_time;
 	args.in_args_size = sizeof(phc_time);
 	args.out_buffer = vf->aq_resp;
@@ -2261,7 +2261,7 @@ iavf_get_phc_time(struct iavf_rx_queue *rxq)
 	err = iavf_execute_vf_cmd_safe(adapter, &args, 0);
 	if (err) {
 		PMD_DRV_LOG(ERR,
-			    "Failed to execute command of VIRTCHNL_OP_1588_PTP_GET_TIME");
+			    "Failed to execute command of VIRTCHNL_OP_OOT_1588_PTP_GET_TIME");
 		goto out;
 	}
 	rxq->phc_time = ((struct virtchnl_phc_time *)args.out_buffer)->time;

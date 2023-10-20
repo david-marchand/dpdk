@@ -409,20 +409,20 @@ ice_dcf_get_vf_vsi_map(struct ice_dcf_hw *hw)
 	uint16_t len;
 	int err;
 
-	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_DCF_GET_VSI_MAP,
+	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP,
 					  NULL, 0);
 	if (err) {
 		PMD_DRV_LOG(ERR, "Failed to send msg %s",
-			    virtchnl_op_str(VIRTCHNL_OP_DCF_GET_VSI_MAP));
+			    virtchnl_op_str(VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP));
 		return err;
 	}
 
-	err = ice_dcf_recv_cmd_rsp_no_irq(hw, VIRTCHNL_OP_DCF_GET_VSI_MAP,
+	err = ice_dcf_recv_cmd_rsp_no_irq(hw, VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP,
 					  hw->arq_buf, ICE_DCF_AQ_BUF_SZ,
 					  &len);
 	if (err) {
 		PMD_DRV_LOG(ERR, "Failed to get response of %s",
-			    virtchnl_op_str(VIRTCHNL_OP_DCF_GET_VSI_MAP));
+			    virtchnl_op_str(VIRTCHNL_OP_OOT_DCF_GET_VSI_MAP));
 		return err;
 	}
 
@@ -471,20 +471,20 @@ ice_dcf_mode_disable(struct ice_dcf_hw *hw)
 	if (hw->resetting)
 		return 0;
 
-	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_DCF_DISABLE,
+	err = ice_dcf_send_cmd_req_no_irq(hw, VIRTCHNL_OP_OOT_DCF_DISABLE,
 					  NULL, 0);
 	if (err) {
 		PMD_DRV_LOG(ERR, "Failed to send msg %s",
-			    virtchnl_op_str(VIRTCHNL_OP_DCF_DISABLE));
+			    virtchnl_op_str(VIRTCHNL_OP_OOT_DCF_DISABLE));
 		return err;
 	}
 
-	err = ice_dcf_recv_cmd_rsp_no_irq(hw, VIRTCHNL_OP_DCF_DISABLE,
+	err = ice_dcf_recv_cmd_rsp_no_irq(hw, VIRTCHNL_OP_OOT_DCF_DISABLE,
 					  hw->arq_buf, ICE_DCF_AQ_BUF_SZ, NULL);
 	if (err) {
 		PMD_DRV_LOG(ERR,
 			    "Failed to get response of %s %d",
-			    virtchnl_op_str(VIRTCHNL_OP_DCF_DISABLE),
+			    virtchnl_op_str(VIRTCHNL_OP_OOT_DCF_DISABLE),
 			    err);
 		return -1;
 	}
@@ -613,7 +613,7 @@ ice_dcf_send_aq_cmd(void *dcf_hw, struct ice_aq_desc *desc,
 	    buf_size > ICE_DCF_AQ_BUF_SZ)
 		return -EINVAL;
 
-	desc_cmd.v_op = VIRTCHNL_OP_DCF_CMD_DESC;
+	desc_cmd.v_op = VIRTCHNL_OP_OOT_DCF_CMD_DESC;
 	desc_cmd.req_msglen = sizeof(*desc);
 	desc_cmd.req_msg = (uint8_t *)desc;
 	desc_cmd.rsp_buflen = sizeof(*desc);
@@ -624,7 +624,7 @@ ice_dcf_send_aq_cmd(void *dcf_hw, struct ice_aq_desc *desc,
 
 	desc->flags |= rte_cpu_to_le_16(ICE_AQ_FLAG_BUF);
 
-	buff_cmd.v_op = VIRTCHNL_OP_DCF_CMD_BUFF;
+	buff_cmd.v_op = VIRTCHNL_OP_OOT_DCF_CMD_BUFF;
 	buff_cmd.req_msglen = buf_size;
 	buff_cmd.req_msg = buf;
 	buff_cmd.rsp_buflen = buf_size;
