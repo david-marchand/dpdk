@@ -19,6 +19,7 @@ extern "C" {
 
 #include <dev_driver.h>
 #include <rte_common.h>
+#include <rte_compat.h>
 #include <rte_dev.h>
 #include <rte_os.h>
 #include <rte_vfio.h>
