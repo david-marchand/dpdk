@@ -276,22 +276,22 @@ build build-x86-mingw $f skipABI -Dexamples=helloworld
 
 # generic armv8
 f=$srcdir/config/arm/arm64_armv8_linux_gcc
-build build-arm64-generic-gcc $f ABI $use_shared
+build build-arm64-generic-gcc $f ABI -Dcheck_includes=true $use_shared
 
 # generic LoongArch
 f=$srcdir/config/loongarch/loongarch_loongarch64_linux_gcc
-build build-loongarch64-generic-gcc $f ABI $use_shared
+build build-loongarch64-generic-gcc $f ABI -Dcheck_includes=true $use_shared
 
 # IBM POWER
 f=$srcdir/config/ppc/ppc64le-power8-linux-gcc
 if grep -q 'NAME="Ubuntu"' /etc/os-release ; then
 	f=$f-ubuntu
 fi
-build build-ppc64-power8-gcc $f ABI $use_shared
+build build-ppc64-power8-gcc $f ABI -Dcheck_includes=true $use_shared
 
 # generic RISC-V
 f=$srcdir/config/riscv/riscv64_linux_gcc
-build build-riscv64-generic-gcc $f ABI $use_shared
+build build-riscv64-generic-gcc $f ABI -Dcheck_includes=true $use_shared
 
 # Test installation of the x86-generic target, to be used for checking
 # the sample apps build using the pkg-config file for cflags and libs
