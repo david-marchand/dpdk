@@ -6,6 +6,7 @@
 #define _FD_MAN_H_
 #include <pthread.h>
 #include <poll.h>
+#include <sys/queue.h>
 
 #define MAX_FDS 1024
 
@@ -17,14 +18,15 @@ struct fdentry {
 	fd_cb wcb;	/* callback when this fd is writeable.*/
 	void *dat;	/* fd context */
 	int busy;	/* whether this entry is being used in cb. */
+	LIST_ENTRY(fdentry) next;
 };
 
 struct fdset {
-	struct pollfd rwfds[MAX_FDS];
+	int epfd;
 	struct fdentry fd[MAX_FDS];
+	LIST_HEAD(, fdentry) fdlist;
+	int next_free_idx;
 	pthread_mutex_t fd_mutex;
-	pthread_mutex_t fd_pooling_mutex;
-	int num;	/* current fd number of this fdset */
 
 	union pipefds {
 		struct {
@@ -43,7 +45,7 @@ void fdset_init(struct fdset *pfdset);
 int fdset_add(struct fdset *pfdset, int fd,
 	fd_cb rcb, fd_cb wcb, void *dat);
 
-void *fdset_del(struct fdset *pfdset, int fd);
+void fdset_del(struct fdset *pfdset, int fd);
 int fdset_try_del(struct fdset *pfdset, int fd);
 
 uint32_t fdset_event_dispatch(void *arg);
