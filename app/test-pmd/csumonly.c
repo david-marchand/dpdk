@@ -577,19 +577,20 @@ static uint64_t
 process_outer_cksums(void *outer_l3_hdr, struct testpmd_offload_info *info,
 	uint64_t tx_offloads, int tso_enabled, struct rte_mbuf *m)
 {
-	struct rte_ipv4_hdr *ipv4_hdr = outer_l3_hdr;
-	struct rte_ipv6_hdr *ipv6_hdr = outer_l3_hdr;
 	struct rte_udp_hdr *udp_hdr;
 	uint64_t ol_flags = 0;
 
 	if (info->outer_ethertype == _htons(RTE_ETHER_TYPE_IPV4)) {
-		ipv4_hdr->hdr_checksum = 0;
 		ol_flags |= RTE_MBUF_F_TX_OUTER_IPV4;
 
-		if (tx_offloads	& RTE_ETH_TX_OFFLOAD_OUTER_IPV4_CKSUM)
+		if (tx_offloads	& RTE_ETH_TX_OFFLOAD_OUTER_IPV4_CKSUM) {
 			ol_flags |= RTE_MBUF_F_TX_OUTER_IP_CKSUM;
-		else
+		} else {
+			struct rte_ipv4_hdr *ipv4_hdr = outer_l3_hdr;
+
+			ipv4_hdr->hdr_checksum = 0;
 			ipv4_hdr->hdr_checksum = rte_ipv4_cksum(ipv4_hdr);
+		}
 	} else
 		ol_flags |= RTE_MBUF_F_TX_OUTER_IPV6;
 
@@ -606,13 +607,6 @@ process_outer_cksums(void *outer_l3_hdr, struct testpmd_offload_info *info,
 
 	/* Skip SW outer UDP checksum generation if HW supports it */
 	if (tx_offloads & RTE_ETH_TX_OFFLOAD_OUTER_UDP_CKSUM) {
-		if (info->outer_ethertype == _htons(RTE_ETHER_TYPE_IPV4))
-			udp_hdr->dgram_cksum
-				= rte_ipv4_phdr_cksum(ipv4_hdr, ol_flags);
-		else
-			udp_hdr->dgram_cksum
-				= rte_ipv6_phdr_cksum(ipv6_hdr, ol_flags);
-
 		ol_flags |= RTE_MBUF_F_TX_OUTER_UDP_CKSUM;
 		return ol_flags;
 	}
