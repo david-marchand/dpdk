@@ -136,6 +136,14 @@ if [ -z "$cross_file" ]; then
     [ "$failed" != "true" ]
 fi
 
+if [ -z "$cross_file" ] && [ "$MINI" != "true" ]; then
+    failed=
+    configure_coredump
+    devtools/test-vhost.sh || failed="true"
+    catch_coredump
+    [ "$failed" != "true" ]
+fi
+
 if [ "$ABI_CHECKS" = "true" ]; then
     if [ "$(cat libabigail/VERSION 2>/dev/null)" != "$LIBABIGAIL_VERSION" ]; then
         rm -rf libabigail

@@ -991,6 +991,7 @@ M: Maxime Coquelin <maxime.coquelin@redhat.com>
 M: Chenbo Xia <chenbox@nvidia.com>
 T: git://dpdk.org/next/dpdk-next-virtio
 F: lib/vhost/
+F: devtools/test-vhost.sh
 F: doc/guides/prog_guide/vhost_lib.rst
 F: examples/vhost/
 F: doc/guides/sample_app_ug/vhost.rst
