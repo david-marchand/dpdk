@@ -67,6 +67,27 @@ New Features
 
   The new statistics are useful for debugging and profiling.
 
+* **Added support for compiler memcpy in DPDK memcpy implementation.**
+
+  The memory copy functions of ``<rte_memcpy.h>`` now optionally
+  delegates to the standard memcpy() function, implemented by the
+  compiler and the C runtime (e.g., libc).
+
+  In this release of DPDK, the handcrafted, per-architecture memory
+  copy implementations are still the default. Compiler memcpy is
+  enabled by setting the new ``use_cc_memcpy`` build option to true.
+
+  The performance benefits of the custom DPDK rte_memcpy()
+  implementations have been diminishing with every new compiler
+  release, and with current toolchains the use of a custom memcpy()
+  implementation may even result in worse performance than the
+  standard memcpy().
+
+  An additional benefit of using compiler memcpy is that compilers and
+  static analysis tools have an easier time detecting incorrect usage
+  of rte_memcpy() (e.g., buffer overruns, or overlapping source and
+  destination buffers).
+
 
 Removed Items
 -------------
