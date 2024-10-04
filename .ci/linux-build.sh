@@ -101,7 +101,7 @@ fi
 if [ "$CCMEMCPY" = "true" ]; then
 	OPTS="$OPTS -Duse_cc_memcpy=true"
 else
-	OPTS="$OPTS -Duse_cc_memcpy=true"
+	OPTS="$OPTS -Duse_cc_memcpy=false"
 fi
 if [ "$MINI" = "true" ]; then
     OPTS="$OPTS -Denable_drivers=net/null"
