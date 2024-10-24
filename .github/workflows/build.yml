@@ -36,37 +36,37 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             mini: mini
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             checks: stdatomic
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: clang
             checks: stdatomic
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             checks: debug+doc+examples+tests
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: clang
             checks: asan+doc+tests
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             library: static
             cross: i386
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             library: static
             cross: mingw
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             library: shared
             cross: aarch64
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             cross: ppc64le
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: gcc
             cross: riscv64
 
@@ -162,7 +162,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - image: fedora:39
+          - image: fedora:41
 
     steps:
     - name: Generate various keys
@@ -211,9 +211,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - image: fedora:39
+          - image: fedora:41
             compiler: gcc
-          - image: fedora:39
+          - image: fedora:41
             compiler: clang
 
     steps:
