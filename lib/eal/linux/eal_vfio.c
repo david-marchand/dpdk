@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+#include <linux/vfio.h>
+
 #include <rte_errno.h>
 #include <rte_log.h>
 #include <rte_memory.h>
@@ -19,6 +21,16 @@
 #include "eal_vfio.h"
 #include "eal_private.h"
 #include "eal_internal_cfg.h"
+
+/*
+ * we don't need to store device fd's anywhere since they can be obtained from
+ * the group fd via an ioctl() call.
+ */
+struct vfio_group {
+	int group_num;
+	int fd;
+	int devices;
+};
 
 #define VFIO_MEM_EVENT_CLB_NAME "vfio_mem_event_clb"
 
@@ -54,14 +66,96 @@ struct vfio_config {
 static struct vfio_config vfio_cfgs[RTE_MAX_VFIO_CONTAINERS];
 static struct vfio_config *default_vfio_cfg = &vfio_cfgs[0];
 
+#define RTE_VFIO_TYPE1 VFIO_TYPE1_IOMMU
 static int vfio_type1_dma_map(int);
 static int vfio_type1_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
+
+#ifndef VFIO_SPAPR_TCE_v2_IOMMU
+#define RTE_VFIO_SPAPR 7
+#define VFIO_IOMMU_SPAPR_REGISTER_MEMORY _IO(VFIO_TYPE, VFIO_BASE + 17)
+#define VFIO_IOMMU_SPAPR_UNREGISTER_MEMORY _IO(VFIO_TYPE, VFIO_BASE + 18)
+#define VFIO_IOMMU_SPAPR_TCE_CREATE _IO(VFIO_TYPE, VFIO_BASE + 19)
+#define VFIO_IOMMU_SPAPR_TCE_REMOVE _IO(VFIO_TYPE, VFIO_BASE + 20)
+
+struct vfio_iommu_spapr_register_memory {
+	uint32_t argsz;
+	uint32_t flags;
+	uint64_t vaddr;
+	uint64_t size;
+};
+
+struct vfio_iommu_spapr_tce_create {
+	uint32_t argsz;
+	uint32_t flags;
+	/* in */
+	uint32_t page_shift;
+	uint32_t __resv1;
+	uint64_t window_size;
+	uint32_t levels;
+	uint32_t __resv2;
+	/* out */
+	uint64_t start_addr;
+};
+
+struct vfio_iommu_spapr_tce_remove {
+	uint32_t argsz;
+	uint32_t flags;
+	/* in */
+	uint64_t start_addr;
+};
+
+struct vfio_iommu_spapr_tce_ddw_info {
+	uint64_t pgsizes;
+	uint32_t max_dynamic_windows_supported;
+	uint32_t levels;
+};
+
+/* SPAPR_v2 is not present, but SPAPR might be */
+#ifndef VFIO_SPAPR_TCE_IOMMU
+#define VFIO_IOMMU_SPAPR_TCE_GET_INFO _IO(VFIO_TYPE, VFIO_BASE + 12)
+
+struct vfio_iommu_spapr_tce_info {
+	uint32_t argsz;
+	uint32_t flags;
+	uint32_t dma32_window_start;
+	uint32_t dma32_window_size;
+	struct vfio_iommu_spapr_tce_ddw_info ddw;
+};
+#endif /* VFIO_SPAPR_TCE_IOMMU */
+
+#else /* VFIO_SPAPR_TCE_v2_IOMMU */
+#define RTE_VFIO_SPAPR VFIO_SPAPR_TCE_v2_IOMMU
+#endif
 static int vfio_spapr_dma_map(int);
 static int vfio_spapr_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
+
 static int vfio_noiommu_dma_map(int);
 static int vfio_noiommu_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
+
 static int vfio_dma_mem_map(struct vfio_config *vfio_cfg, uint64_t vaddr,
 		uint64_t iova, uint64_t len, int do_map);
+
+/* DMA mapping function prototype.
+ * Takes VFIO container fd as a parameter.
+ * Returns 0 on success, -1 on error.
+ */
+typedef int (*vfio_dma_func_t)(int);
+
+/* Custom memory region DMA mapping function prototype.
+ * Takes VFIO container fd, virtual address, physical address, length and
+ * operation type (0 to unmap 1 for map) as a parameters.
+ * Returns 0 on success, -1 on error.
+ */
+typedef int (*vfio_dma_user_func_t)(int fd, uint64_t vaddr, uint64_t iova,
+		uint64_t len, int do_map);
+
+struct vfio_iommu_type {
+	int type_id;
+	const char *name;
+	bool partial_unmap;
+	vfio_dma_user_func_t dma_user_map_func;
+	vfio_dma_func_t dma_map_func;
+};
 
 /* IOMMU types we support */
 static const struct vfio_iommu_type iommu_types[] = {
@@ -600,6 +694,35 @@ vfio_group_device_count(int vfio_group_fd)
 	}
 
 	return vfio_cfg->vfio_groups[i].devices;
+}
+
+int
+vfio_get_iommu_type(void)
+{
+	if (default_vfio_cfg->vfio_iommu_type == NULL)
+		return -1;
+
+	return default_vfio_cfg->vfio_iommu_type->type_id;
+}
+
+static const struct vfio_iommu_type *
+vfio_set_iommu_type(int vfio_container_fd)
+{
+	unsigned idx;
+	for (idx = 0; idx < RTE_DIM(iommu_types); idx++) {
+		const struct vfio_iommu_type *t = &iommu_types[idx];
+
+		int ret = ioctl(vfio_container_fd, VFIO_SET_IOMMU, t->type_id);
+		if (!ret) {
+			EAL_LOG(INFO, "Using IOMMU type %d (%s)", t->type_id, t->name);
+			return t;
+		}
+		/* not an error, there may be more supported IOMMU types */
+		EAL_LOG(DEBUG, "Set IOMMU type %d (%s) failed, error %i (%s)", t->type_id,
+			t->name, errno, strerror(errno));
+	}
+	/* if we didn't find a suitable IOMMU type, fail */
+	return NULL;
 }
 
 static void
@@ -1194,38 +1317,6 @@ vfio_get_default_container_fd(void)
 }
 
 int
-vfio_get_iommu_type(void)
-{
-	if (default_vfio_cfg->vfio_iommu_type == NULL)
-		return -1;
-
-	return default_vfio_cfg->vfio_iommu_type->type_id;
-}
-
-const struct vfio_iommu_type *
-vfio_set_iommu_type(int vfio_container_fd)
-{
-	unsigned idx;
-	for (idx = 0; idx < RTE_DIM(iommu_types); idx++) {
-		const struct vfio_iommu_type *t = &iommu_types[idx];
-
-		int ret = ioctl(vfio_container_fd, VFIO_SET_IOMMU,
-				t->type_id);
-		if (!ret) {
-			EAL_LOG(INFO, "Using IOMMU type %d (%s)",
-					t->type_id, t->name);
-			return t;
-		}
-		/* not an error, there may be more supported IOMMU types */
-		EAL_LOG(DEBUG, "Set IOMMU type %d (%s) failed, error "
-				"%i (%s)", t->type_id, t->name, errno,
-				strerror(errno));
-	}
-	/* if we didn't find a suitable IOMMU type, fail */
-	return NULL;
-}
-
-int
 rte_vfio_get_device_info(const char *sysfs_base, const char *dev_addr,
 		int *vfio_dev_fd, struct vfio_device_info *device_info)
 {
@@ -1251,7 +1342,7 @@ rte_vfio_get_device_info(const char *sysfs_base, const char *dev_addr,
 	return 0;
 }
 
-int
+static int
 vfio_has_supported_extensions(int vfio_container_fd)
 {
 	int ret;
