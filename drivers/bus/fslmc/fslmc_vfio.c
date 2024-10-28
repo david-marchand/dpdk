@@ -30,6 +30,7 @@
 #include <rte_kvargs.h>
 #include <dev_driver.h>
 #include <rte_eal_memconfig.h>
+#include <rte_vfio.h>
 
 #include "private.h"
 #include "fslmc_vfio.h"

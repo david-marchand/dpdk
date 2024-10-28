@@ -13,6 +13,8 @@
 
 #ifdef RTE_EAL_VFIO
 
+#include <linux/vfio.h>
+
 #include <rte_vfio.h>
 
 static int

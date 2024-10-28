@@ -19,16 +19,8 @@
 extern "C" {
 #endif
 
-#ifdef RTE_EAL_VFIO
-
-#include <linux/vfio.h>
-
-#else /* ! RTE_EAL_VFIO */
-
 /* we don't need an actual definition, only pointer is used */
 struct vfio_device_info;
-
-#endif /* RTE_EAL_VFIO */
 
 #define RTE_VFIO_DEFAULT_CONTAINER_FD (-1)
 
