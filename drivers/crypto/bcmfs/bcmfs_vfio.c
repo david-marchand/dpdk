@@ -13,7 +13,7 @@
 
 #ifdef RTE_EAL_VFIO
 
-#include <linux/vfio.h>
+#include <uapi/linux/vfio.h>
 
 #include <rte_vfio.h>
 

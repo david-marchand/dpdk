@@ -72,13 +72,6 @@ rte_fslmc_object_register(struct rte_dpaa2_object *object)
 	TAILQ_INSERT_TAIL(&dpaa2_obj_list, object, next);
 }
 
-/* NOIOMMU is defined from kernel version 4.5 onwards */
-#ifdef VFIO_NOIOMMU_IOMMU
-#define RTE_VFIO_NOIOMMU VFIO_NOIOMMU_IOMMU
-#else
-#define RTE_VFIO_NOIOMMU 8
-#endif
-
 int
 fslmc_get_container_group(int *groupid)
 {
@@ -105,7 +98,7 @@ fslmc_get_container_group(int *groupid)
 	}
 
 	fslmc_iommu_type = (rte_vfio_noiommu_is_enabled() == 1) ?
-		RTE_VFIO_NOIOMMU : VFIO_TYPE1_IOMMU;
+		VFIO_NOIOMMU_IOMMU : VFIO_TYPE1_IOMMU;
 
 	/* get group number */
 	ret = rte_vfio_get_group_num(SYSFS_FSL_MC_DEVICES,
@@ -278,7 +271,7 @@ fslmc_map_dma(uint64_t vaddr, rte_iova_t iovaddr __rte_unused, size_t len)
 	};
 	int ret;
 
-	if (fslmc_iommu_type == RTE_VFIO_NOIOMMU) {
+	if (fslmc_iommu_type == VFIO_NOIOMMU_IOMMU) {
 		DPAA2_BUS_DEBUG("Running in NOIOMMU mode");
 		return 0;
 	}
@@ -322,7 +315,7 @@ fslmc_unmap_dma(uint64_t vaddr, uint64_t iovaddr __rte_unused, size_t len)
 	};
 	int ret;
 
-	if (fslmc_iommu_type == RTE_VFIO_NOIOMMU) {
+	if (fslmc_iommu_type == VFIO_NOIOMMU_IOMMU) {
 		DPAA2_BUS_DEBUG("Running in NOIOMMU mode");
 		return 0;
 	}
@@ -381,7 +374,7 @@ rte_fslmc_vfio_mem_dmamap(uint64_t vaddr, uint64_t iova, uint64_t size)
 		.flags = VFIO_DMA_MAP_FLAG_READ | VFIO_DMA_MAP_FLAG_WRITE,
 	};
 
-	if (fslmc_iommu_type == RTE_VFIO_NOIOMMU) {
+	if (fslmc_iommu_type == VFIO_NOIOMMU_IOMMU) {
 		DPAA2_BUS_DEBUG("Running in NOIOMMU mode");
 		return 0;
 	}

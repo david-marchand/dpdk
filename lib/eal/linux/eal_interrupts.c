@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include <linux/vfio.h>
+#include <uapi/linux/vfio.h>
 
 #include <eal_trace_internal.h>
 #include <rte_common.h>
@@ -31,11 +31,6 @@
 #include <rte_pause.h>
 
 #include "eal_private.h"
-
-#include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
-#define HAVE_VFIO_DEV_REQ_INTERFACE
-#endif /* kernel version >= 4.0.0 */
 
 #define EAL_INTR_EPOLL_WAIT_FOREVER (-1)
 #define NB_OTHER_INTR               1
@@ -339,7 +334,6 @@ vfio_disable_msix(const struct rte_intr_handle *intr_handle) {
 	return ret;
 }
 
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 /* enable req notifier */
 static int
 vfio_enable_req(const struct rte_intr_handle *intr_handle)
@@ -399,7 +393,6 @@ vfio_disable_req(const struct rte_intr_handle *intr_handle)
 
 	return ret;
 }
-#endif
 
 static int
 uio_intx_intr_disable(const struct rte_intr_handle *intr_handle)
@@ -739,12 +732,10 @@ rte_intr_enable(const struct rte_intr_handle *intr_handle)
 		if (vfio_enable_intx(intr_handle))
 			rc = -1;
 		break;
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	case RTE_INTR_HANDLE_VFIO_REQ:
 		if (vfio_enable_req(intr_handle))
 			rc = -1;
 		break;
-#endif
 	/* not used at this moment */
 	case RTE_INTR_HANDLE_DEV_EVENT:
 		rc = -1;
@@ -805,10 +796,8 @@ rte_intr_ack(const struct rte_intr_handle *intr_handle)
 		if (vfio_ack_intx(intr_handle))
 			return -1;
 		break;
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	case RTE_INTR_HANDLE_VFIO_REQ:
 		return -1;
-#endif
 	/* not used at this moment */
 	case RTE_INTR_HANDLE_DEV_EVENT:
 		return -1;
@@ -867,12 +856,10 @@ rte_intr_disable(const struct rte_intr_handle *intr_handle)
 		if (vfio_disable_intx(intr_handle))
 			rc = -1;
 		break;
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	case RTE_INTR_HANDLE_VFIO_REQ:
 		if (vfio_disable_req(intr_handle))
 			rc = -1;
 		break;
-#endif
 	/* not used at this moment */
 	case RTE_INTR_HANDLE_DEV_EVENT:
 		rc = -1;
@@ -933,9 +920,7 @@ eal_intr_process_interrupts(struct epoll_event *events, int nfds)
 		case RTE_INTR_HANDLE_ALARM:
 			bytes_read = sizeof(buf.timerfd_num);
 			break;
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 		case RTE_INTR_HANDLE_VFIO_REQ:
-#endif
 		case RTE_INTR_HANDLE_VFIO_MSIX:
 		case RTE_INTR_HANDLE_VFIO_MSI:
 		case RTE_INTR_HANDLE_VFIO_LEGACY:

@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-#include <linux/vfio.h>
+#include <uapi/linux/vfio.h>
 
 #include <rte_errno.h>
 #include <rte_log.h>
@@ -66,75 +66,12 @@ struct vfio_config {
 static struct vfio_config vfio_cfgs[RTE_MAX_VFIO_CONTAINERS];
 static struct vfio_config *default_vfio_cfg = &vfio_cfgs[0];
 
-#define RTE_VFIO_TYPE1 VFIO_TYPE1_IOMMU
 static int vfio_type1_dma_map(int);
 static int vfio_type1_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
 
-#ifndef VFIO_SPAPR_TCE_v2_IOMMU
-#define RTE_VFIO_SPAPR 7
-#define VFIO_IOMMU_SPAPR_REGISTER_MEMORY _IO(VFIO_TYPE, VFIO_BASE + 17)
-#define VFIO_IOMMU_SPAPR_UNREGISTER_MEMORY _IO(VFIO_TYPE, VFIO_BASE + 18)
-#define VFIO_IOMMU_SPAPR_TCE_CREATE _IO(VFIO_TYPE, VFIO_BASE + 19)
-#define VFIO_IOMMU_SPAPR_TCE_REMOVE _IO(VFIO_TYPE, VFIO_BASE + 20)
-
-struct vfio_iommu_spapr_register_memory {
-	uint32_t argsz;
-	uint32_t flags;
-	uint64_t vaddr;
-	uint64_t size;
-};
-
-struct vfio_iommu_spapr_tce_create {
-	uint32_t argsz;
-	uint32_t flags;
-	/* in */
-	uint32_t page_shift;
-	uint32_t __resv1;
-	uint64_t window_size;
-	uint32_t levels;
-	uint32_t __resv2;
-	/* out */
-	uint64_t start_addr;
-};
-
-struct vfio_iommu_spapr_tce_remove {
-	uint32_t argsz;
-	uint32_t flags;
-	/* in */
-	uint64_t start_addr;
-};
-
-struct vfio_iommu_spapr_tce_ddw_info {
-	uint64_t pgsizes;
-	uint32_t max_dynamic_windows_supported;
-	uint32_t levels;
-};
-
-/* SPAPR_v2 is not present, but SPAPR might be */
-#ifndef VFIO_SPAPR_TCE_IOMMU
-#define VFIO_IOMMU_SPAPR_TCE_GET_INFO _IO(VFIO_TYPE, VFIO_BASE + 12)
-
-struct vfio_iommu_spapr_tce_info {
-	uint32_t argsz;
-	uint32_t flags;
-	uint32_t dma32_window_start;
-	uint32_t dma32_window_size;
-	struct vfio_iommu_spapr_tce_ddw_info ddw;
-};
-#endif /* VFIO_SPAPR_TCE_IOMMU */
-
-#else /* VFIO_SPAPR_TCE_v2_IOMMU */
-#define RTE_VFIO_SPAPR VFIO_SPAPR_TCE_v2_IOMMU
-#endif
 static int vfio_spapr_dma_map(int);
 static int vfio_spapr_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
 
-/* NOIOMMU is defined from kernel version 4.5 onwards */
-#ifdef VFIO_NOIOMMU_IOMMU
-#define RTE_VFIO_NOIOMMU VFIO_NOIOMMU_IOMMU
-#else
-#define RTE_VFIO_NOIOMMU 8
-#endif
 static int vfio_noiommu_dma_map(int);
 static int vfio_noiommu_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
 
@@ -167,7 +104,7 @@ struct vfio_iommu_type {
 static const struct vfio_iommu_type iommu_types[] = {
 	/* x86 IOMMU, otherwise known as type 1 */
 	{
-		.type_id = RTE_VFIO_TYPE1,
+		.type_id = VFIO_TYPE1_IOMMU,
 		.name = "Type 1",
 		.partial_unmap = false,
 		.dma_map_func = &vfio_type1_dma_map,
@@ -175,7 +112,7 @@ static const struct vfio_iommu_type iommu_types[] = {
 	},
 	/* ppc64 IOMMU, otherwise known as spapr */
 	{
-		.type_id = RTE_VFIO_SPAPR,
+		.type_id = VFIO_SPAPR_TCE_v2_IOMMU,
 		.name = "sPAPR",
 		.partial_unmap = true,
 		.dma_map_func = &vfio_spapr_dma_map,
@@ -183,7 +120,7 @@ static const struct vfio_iommu_type iommu_types[] = {
 	},
 	/* IOMMU-less mode */
 	{
-		.type_id = RTE_VFIO_NOIOMMU,
+		.type_id = VFIO_NOIOMMU_IOMMU,
 		.name = "No-IOMMU",
 		.partial_unmap = true,
 		.dma_map_func = &vfio_noiommu_dma_map,

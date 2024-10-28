@@ -20,7 +20,8 @@
 #include <sys/queue.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <linux/vfio.h>
+
+#include <uapi/linux/vfio.h>
 
 #include <rte_compat.h>
 #include <rte_debug.h>

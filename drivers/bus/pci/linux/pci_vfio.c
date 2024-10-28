@@ -11,7 +11,7 @@
 #include <sys/mman.h>
 #include <stdbool.h>
 
-#include <linux/vfio.h>
+#include <uapi/linux/vfio.h>
 
 #include <rte_log.h>
 #include <rte_pci.h>
@@ -28,11 +28,6 @@
 
 #include "pci_init.h"
 #include "private.h"
-
-#include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
-#define HAVE_VFIO_DEV_REQ_INTERFACE
-#endif /* kernel version >= 4.0.0 */
 
 static struct rte_tailq_elem rte_vfio_tailq = {
 	.name = "VFIO_RESOURCE_LIST",
@@ -280,7 +275,6 @@ pci_vfio_setup_interrupts(struct rte_pci_device *dev, int vfio_dev_fd)
 	return -1;
 }
 
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 /*
  * Spinlock for device hot-unplug failure handling.
  * If it tries to access bus or device, such as handle sigbus on bus
@@ -397,7 +391,6 @@ pci_vfio_disable_notifier(struct rte_pci_device *dev)
 
 	return 0;
 }
-#endif
 
 static int
 pci_vfio_is_ioport_bar(const struct rte_pci_device *dev, int vfio_dev_fd,
@@ -776,10 +769,8 @@ pci_vfio_map_resource_primary(struct rte_pci_device *dev)
 	if (rte_intr_fd_set(dev->intr_handle, -1))
 		return -1;
 
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	if (rte_intr_fd_set(dev->vfio_req_intr_handle, -1))
 		return -1;
-#endif
 
 	/* store PCI address string */
 	snprintf(pci_addr, sizeof(pci_addr), PCI_PRI_FMT,
@@ -935,13 +926,11 @@ pci_vfio_map_resource_primary(struct rte_pci_device *dev)
 		goto err_map;
 	}
 
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	if (pci_vfio_enable_notifier(dev, vfio_dev_fd) != 0) {
 		PCI_LOG(ERR, "Error setting up notifier!");
 		goto err_map;
 	}
 
-#endif
 	TAILQ_INSERT_TAIL(vfio_res_list, vfio_res, next);
 
 	return 0;
@@ -976,10 +965,8 @@ pci_vfio_map_resource_secondary(struct rte_pci_device *dev)
 
 	if (rte_intr_fd_set(dev->intr_handle, -1))
 		return -1;
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	if (rte_intr_fd_set(dev->vfio_req_intr_handle, -1))
 		return -1;
-#endif
 
 	/* store PCI address string */
 	snprintf(pci_addr, sizeof(pci_addr), PCI_PRI_FMT,
@@ -1033,10 +1020,8 @@ pci_vfio_map_resource_secondary(struct rte_pci_device *dev)
 	/* we need save vfio_dev_fd, so it can be used during release */
 	if (rte_intr_dev_fd_set(dev->intr_handle, vfio_dev_fd))
 		goto err_vfio_dev_fd;
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	if (rte_intr_dev_fd_set(dev->vfio_req_intr_handle, vfio_dev_fd))
 		goto err_vfio_dev_fd;
-#endif
 
 	return 0;
 err_vfio_dev_fd:
@@ -1116,14 +1101,12 @@ pci_vfio_unmap_resource_primary(struct rte_pci_device *dev)
 	snprintf(pci_addr, sizeof(pci_addr), PCI_PRI_FMT,
 			loc->domain, loc->bus, loc->devid, loc->function);
 
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	ret = pci_vfio_disable_notifier(dev);
 	if (ret) {
 		PCI_LOG(ERR, "fail to disable req notifier.");
 		return -1;
 	}
 
-#endif
 	if (rte_intr_fd_get(dev->intr_handle) < 0)
 		return -1;
 
