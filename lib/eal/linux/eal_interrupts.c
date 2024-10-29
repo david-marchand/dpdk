@@ -31,6 +31,11 @@
 
 #include "eal_private.h"
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#define HAVE_VFIO_DEV_REQ_INTERFACE
+#endif /* kernel version >= 4.0.0 */
+
 #define EAL_INTR_EPOLL_WAIT_FOREVER (-1)
 #define NB_OTHER_INTR               1
 

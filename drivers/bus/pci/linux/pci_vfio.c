@@ -27,6 +27,11 @@
 #include "pci_init.h"
 #include "private.h"
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#define HAVE_VFIO_DEV_REQ_INTERFACE
+#endif /* kernel version >= 4.0.0 */
+
 static struct rte_tailq_elem rte_vfio_tailq = {
 	.name = "VFIO_RESOURCE_LIST",
 };
@@ -659,6 +664,23 @@ again:
 	return 0;
 }
 
+/*
+ * capabilities are only supported on kernel 4.6+. there were also some API
+ * changes as well, so add a macro to get cap offset.
+ */
+#ifdef VFIO_REGION_INFO_FLAG_CAPS
+#define RTE_VFIO_INFO_FLAG_CAPS VFIO_REGION_INFO_FLAG_CAPS
+#define VFIO_CAP_OFFSET(x) (x->cap_offset)
+#else
+#define RTE_VFIO_INFO_FLAG_CAPS (1 << 3)
+#define VFIO_CAP_OFFSET(x) (x->resv)
+struct vfio_info_cap_header {
+	uint16_t id;
+	uint16_t version;
+	uint32_t next;
+};
+#endif
+
 static struct vfio_info_cap_header *
 pci_vfio_info_cap(struct vfio_region_info *info, int cap)
 {
@@ -679,6 +701,13 @@ pci_vfio_info_cap(struct vfio_region_info *info, int cap)
 	}
 	return NULL;
 }
+
+/* kernels 4.16+ can map BAR containing MSI-X table */
+#ifdef VFIO_REGION_INFO_CAP_MSIX_MAPPABLE
+#define RTE_VFIO_CAP_MSIX_MAPPABLE VFIO_REGION_INFO_CAP_MSIX_MAPPABLE
+#else
+#define RTE_VFIO_CAP_MSIX_MAPPABLE 3
+#endif
 
 static int
 pci_vfio_msix_is_mappable(int vfio_dev_fd, int msix_region)
@@ -1226,6 +1255,7 @@ pci_vfio_ioport_map(struct rte_pci_device *dev, int bar,
 	return 0;
 }
 
+#define PCI_VFIO_GET_REGION_IDX(x) (x >> 40)
 void
 pci_vfio_ioport_read(struct rte_pci_ioport *p,
 		     void *data, size_t len, off_t offset)
@@ -1239,7 +1269,7 @@ pci_vfio_ioport_read(struct rte_pci_ioport *p,
 	if (pread(vfio_dev_fd, data,
 		    len, p->base + offset) <= 0)
 		PCI_LOG(ERR, "Can't read from PCI bar (%" PRIu64 ") : offset (%x)",
-			VFIO_GET_REGION_IDX(p->base), (int)offset);
+			PCI_VFIO_GET_REGION_IDX(p->base), (int)offset);
 }
 
 void
@@ -1255,7 +1285,7 @@ pci_vfio_ioport_write(struct rte_pci_ioport *p,
 	if (pwrite(vfio_dev_fd, data,
 		     len, p->base + offset) <= 0)
 		PCI_LOG(ERR, "Can't write to PCI bar (%" PRIu64 ") : offset (%x)",
-			VFIO_GET_REGION_IDX(p->base), (int)offset);
+			PCI_VFIO_GET_REGION_IDX(p->base), (int)offset);
 }
 
 int

@@ -607,7 +607,6 @@ pci_hot_unplug_handler(struct rte_device *dev)
 		return -1;
 
 	switch (pdev->kdrv) {
-#ifdef HAVE_VFIO_DEV_REQ_INTERFACE
 	case RTE_PCI_KDRV_VFIO:
 		/*
 		 * vfio kernel module guaranty the pci device would not be
@@ -618,7 +617,6 @@ pci_hot_unplug_handler(struct rte_device *dev)
 		rte_dev_event_callback_process(dev->name,
 					       RTE_DEV_EVENT_REMOVE);
 		break;
-#endif
 	case RTE_PCI_KDRV_IGB_UIO:
 	case RTE_PCI_KDRV_UIO_GENERIC:
 	case RTE_PCI_KDRV_NIC_UIO:

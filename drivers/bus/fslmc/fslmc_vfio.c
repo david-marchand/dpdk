@@ -71,6 +71,13 @@ rte_fslmc_object_register(struct rte_dpaa2_object *object)
 	TAILQ_INSERT_TAIL(&dpaa2_obj_list, object, next);
 }
 
+/* NOIOMMU is defined from kernel version 4.5 onwards */
+#ifdef VFIO_NOIOMMU_IOMMU
+#define RTE_VFIO_NOIOMMU VFIO_NOIOMMU_IOMMU
+#else
+#define RTE_VFIO_NOIOMMU 8
+#endif
+
 int
 fslmc_get_container_group(int *groupid)
 {

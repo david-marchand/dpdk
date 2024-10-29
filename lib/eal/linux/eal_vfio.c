@@ -129,6 +129,12 @@ struct vfio_iommu_spapr_tce_info {
 static int vfio_spapr_dma_map(int);
 static int vfio_spapr_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
 
+/* NOIOMMU is defined from kernel version 4.5 onwards */
+#ifdef VFIO_NOIOMMU_IOMMU
+#define RTE_VFIO_NOIOMMU VFIO_NOIOMMU_IOMMU
+#else
+#define RTE_VFIO_NOIOMMU 8
+#endif
 static int vfio_noiommu_dma_map(int);
 static int vfio_noiommu_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
 
@@ -455,8 +461,7 @@ vfio_open_group_fd(int iommu_group_num)
 	/* if primary, try to open the group */
 	if (internal_conf->process_type == RTE_PROC_PRIMARY) {
 		/* try regular group format */
-		snprintf(filename, sizeof(filename),
-				 VFIO_GROUP_FMT, iommu_group_num);
+		snprintf(filename, sizeof(filename), "/dev/vfio/%u", iommu_group_num);
 		vfio_group_fd = open(filename, O_RDWR);
 		if (vfio_group_fd < 0) {
 			/* if file not found, it's not an error */
@@ -467,9 +472,8 @@ vfio_open_group_fd(int iommu_group_num)
 			}
 
 			/* special case: try no-IOMMU path as well */
-			snprintf(filename, sizeof(filename),
-					VFIO_NOIOMMU_GROUP_FMT,
-					iommu_group_num);
+			snprintf(filename, sizeof(filename), "/dev/vfio/noiommu-%u",
+				iommu_group_num);
 			vfio_group_fd = open(filename, O_RDWR);
 			if (vfio_group_fd < 0) {
 				if (errno != ENOENT) {
@@ -1386,7 +1390,7 @@ rte_vfio_get_container_fd(void)
 	const struct internal_config *internal_conf =
 		eal_get_internal_configuration();
 
-
+#define VFIO_CONTAINER_PATH "/dev/vfio/vfio"
 	/* if we're in a primary process, try to open the container */
 	if (internal_conf->process_type == RTE_PROC_PRIMARY) {
 		vfio_container_fd = open(VFIO_CONTAINER_PATH, O_RDWR);
@@ -2123,7 +2127,7 @@ rte_vfio_noiommu_is_enabled(void)
 	ssize_t cnt;
 	char c;
 
-	fd = open(VFIO_NOIOMMU_MODE, O_RDONLY);
+	fd = open("/sys/module/vfio/parameters/enable_unsafe_noiommu_mode", O_RDONLY);
 	if (fd < 0) {
 		if (errno != ENOENT) {
 			EAL_LOG(ERR, "Cannot open VFIO noiommu file "
