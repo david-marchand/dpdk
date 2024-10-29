@@ -24,8 +24,6 @@
 
 #include "private.h"
 
-#ifdef VFIO_PRESENT
-
 #define PLATFORM_BUS_DEVICES_PATH "/sys/bus/platform/devices"
 
 void
@@ -644,5 +642,3 @@ struct rte_platform_bus platform_bus = {
 
 RTE_REGISTER_BUS(platform, platform_bus.bus);
 RTE_LOG_REGISTER_DEFAULT(platform_bus_logtype, NOTICE);
-
-#endif /* VFIO_PRESENT */
