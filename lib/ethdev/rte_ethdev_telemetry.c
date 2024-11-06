@@ -489,7 +489,8 @@ ethdev_parse_queue_params(const char *params, bool is_rx,
 	if (nb_queues == 1 && *end_param == '\0')
 		qid = 0;
 	else {
-		qid_param = strtok(end_param, ",");
+		char *sp;
+		qid_param = strtok_r(end_param, ",", &sp);
 		if (!qid_param || strlen(qid_param) == 0 || !isdigit(*qid_param))
 			return -EINVAL;
 
@@ -1222,8 +1223,9 @@ eth_dev_parse_tm_params(char *params, uint32_t *result)
 {
 	const char *splited_param;
 	uint64_t ret;
+	char *sp;
 
-	splited_param = strtok(params, ",");
+	splited_param = strtok_r(params, ",", &sp);
 	if (!splited_param || strlen(splited_param) == 0 || !isdigit(*splited_param))
 		return -EINVAL;
 
@@ -1511,12 +1513,13 @@ eth_dev_handle_port_regs(const char *cmd __rte_unused,
 	char *filter, *end_param;
 	uint16_t port_id;
 	int ret;
+	char *sp;
 
 	ret = eth_dev_parse_port_params(params, &port_id, &end_param, true);
 	if (ret != 0)
 		return ret;
 
-	filter = strtok(end_param, ",");
+	filter = strtok_r(end_param, ",", &sp);
 	if (filter != NULL && strlen(filter) == 0)
 		filter = NULL;
 

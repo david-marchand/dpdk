@@ -25,7 +25,7 @@ extern "C" {
 /**
  * Takes string "string" parameter and splits it at character "delim"
  * up to maxtokens-1 times - to give "maxtokens" resulting tokens. Like
- * strtok or strsep functions, this modifies its input string, by replacing
+ * strtok_r or strsep functions, this modifies its input string, by replacing
  * instances of "delim" with '\\0'. All resultant tokens are returned in the
  * "tokens" array which must have enough entries to hold "maxtokens".
  *

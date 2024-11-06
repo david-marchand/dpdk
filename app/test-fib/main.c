@@ -205,8 +205,9 @@ parse_distrib(uint8_t depth_lim, const uint32_t n)
 	uint32_t n_routes;
 	uint8_t depth, ratio, ratio_acc = 0;
 	char *in;
+	char *sp;
 
-	in = strtok(distrib_string, ",");
+	in = strtok_r(distrib_string, ",", &sp);
 
 	/*parse configures routes percentage ratios*/
 	while (in != NULL) {
@@ -246,7 +247,7 @@ parse_distrib(uint8_t depth_lim, const uint32_t n)
 		}
 
 		/*number of configured depths in*/
-		in = strtok(NULL, ",");
+		in = strtok_r(NULL, ",", &sp);
 	}
 
 	if (ratio_acc > 100) {
@@ -525,7 +526,8 @@ parse_lookup(FILE *f, int af)
 	char *s;
 
 	while (fgets(line, sizeof(line), f) != NULL) {
-		s = strtok(line, " \t\n");
+		char *sp;
+		s = strtok_r(line, " \t\n", &sp);
 		if (s == NULL)
 			return -EINVAL;
 		ret = inet_pton(af, s, &tbl[i]);

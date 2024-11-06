@@ -179,12 +179,13 @@ parse_range(const char *arg, uint8_t *min, uint8_t *max, uint8_t *inc)
 	uint8_t number;
 
 	char *copy_arg = strdup(arg);
+	char *sp;
 
 	if (copy_arg == NULL)
 		return -1;
 
 	errno = 0;
-	token = strtok(copy_arg, ":");
+	token = strtok_r(copy_arg, ":", &sp);
 
 	/* Parse minimum value */
 	if (token != NULL) {
@@ -197,7 +198,7 @@ parse_range(const char *arg, uint8_t *min, uint8_t *max, uint8_t *inc)
 	} else
 		goto err_range;
 
-	token = strtok(NULL, ":");
+	token = strtok_r(NULL, ":", &sp);
 
 	/* Parse increment value */
 	if (token != NULL) {
@@ -211,7 +212,7 @@ parse_range(const char *arg, uint8_t *min, uint8_t *max, uint8_t *inc)
 	} else
 		goto err_range;
 
-	token = strtok(NULL, ":");
+	token = strtok_r(NULL, ":", &sp);
 
 	/* Parse maximum value */
 	if (token != NULL) {
@@ -225,7 +226,7 @@ parse_range(const char *arg, uint8_t *min, uint8_t *max, uint8_t *inc)
 	} else
 		goto err_range;
 
-	if (strtok(NULL, ":") != NULL)
+	if (strtok_r(NULL, ":", &sp) != NULL)
 		goto err_range;
 
 	free(copy_arg);
@@ -246,12 +247,13 @@ parse_list(const char *arg, uint8_t *list, uint8_t *min, uint8_t *max)
 	uint32_t temp_max;
 
 	char *copy_arg = strdup(arg);
+	char *sp;
 
 	if (copy_arg == NULL)
 		return -1;
 
 	errno = 0;
-	token = strtok(copy_arg, ",");
+	token = strtok_r(copy_arg, ",", &sp);
 
 	/* Parse first value */
 	if (token != NULL) {
@@ -266,7 +268,7 @@ parse_list(const char *arg, uint8_t *list, uint8_t *min, uint8_t *max)
 	} else
 		goto err_list;
 
-	token = strtok(NULL, ",");
+	token = strtok_r(NULL, ",", &sp);
 
 	while (token != NULL) {
 		if (count == MAX_LIST) {
@@ -288,7 +290,7 @@ parse_list(const char *arg, uint8_t *list, uint8_t *min, uint8_t *max)
 		if (number > temp_max)
 			temp_max = number;
 
-		token = strtok(NULL, ",");
+		token = strtok_r(NULL, ",", &sp);
 	}
 
 	if (min)

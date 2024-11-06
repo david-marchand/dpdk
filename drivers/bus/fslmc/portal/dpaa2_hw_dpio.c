@@ -141,7 +141,8 @@ dpaa2_affine_dpio_intr_to_respective_core(int32_t dpio_id, int cpu_id)
 	}
 	while (getline(&temp, &len, file) != -1) {
 		if ((strstr(temp, string)) != NULL) {
-			token = strtok(temp, ":");
+			char *sp;
+			token = strtok_r(temp, ":", &sp);
 			break;
 		}
 	}

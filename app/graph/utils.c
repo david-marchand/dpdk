@@ -96,11 +96,12 @@ parser_ip4_read(uint32_t *value, char *p)
 	uint8_t shift = 24;
 	uint32_t ip = 0;
 	char *token;
+	char *sp;
 
-	token = strtok(p, ".");
+	token = strtok_r(p, ".", &sp);
 	while (token != NULL) {
 		ip |= (((uint32_t)strtoul(token, NULL, 10)) << shift);
-		token = strtok(NULL, ".");
+		token = strtok_r(NULL, ".", &sp);
 		shift -= 8;
 	}
 
@@ -114,12 +115,13 @@ parser_ip6_read(uint8_t *value, char *p)
 {
 	uint64_t val = 0;
 	char *token;
+	char *sp;
 
-	token = strtok(p, ":");
+	token = strtok_r(p, ":", &sp);
 	while (token != NULL) {
 		hex_string_to_uint64(&val, token);
 		*value = val;
-		token = strtok(NULL, ":");
+		token = strtok_r(NULL, ":", &sp);
 		value++;
 		val = 0;
 	}
@@ -133,12 +135,13 @@ parser_mac_read(uint64_t *value, char *p)
 	uint64_t mac = 0, val = 0;
 	uint8_t shift = 40;
 	char *token;
+	char *sp;
 
-	token = strtok(p, ":");
+	token = strtok_r(p, ":", &sp);
 	while (token != NULL) {
 		hex_string_to_uint64(&val, token);
 		mac |= val << shift;
-		token = strtok(NULL, ":");
+		token = strtok_r(NULL, ":", &sp);
 		shift -= 8;
 		val = 0;
 	}

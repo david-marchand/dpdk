@@ -222,6 +222,7 @@ qat_dev_parse_command_line(struct qat_pci_device *qat_dev,
 {
 	int len = 0;
 	char *token = NULL;
+	char *sp;
 
 	if (!devargs)
 		return 0;
@@ -236,16 +237,16 @@ qat_dev_parse_command_line(struct qat_pci_device *qat_dev,
 		return -1;
 	}
 	strcpy(qat_dev->command_line, devargs->drv_str);
-	token = strtok(qat_dev->command_line, ",");
+	token = strtok_r(qat_dev->command_line, ",", &sp);
 	while (token != NULL) {
 		if (!cmdline_validate(token)) {
 			QAT_LOG(ERR, "Incorrect command line argument: %s",
 				token);
 			return -1;
 		}
-		token = strtok(NULL, ",");
+		token = strtok_r(NULL, ",", &sp);
 	}
-	/* Copy once againe the entire string, strtok already altered the contents */
+	/* Copy once again the entire string, strtok_r already altered the contents */
 	strcpy(qat_dev->command_line, devargs->drv_str);
 	return 0;
 }

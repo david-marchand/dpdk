@@ -1792,6 +1792,7 @@ handle_queue_links(const char *cmd __rte_unused,
 	uint8_t queues[RTE_EVENT_MAX_QUEUES_PER_DEV];
 	uint8_t priorities[RTE_EVENT_MAX_QUEUES_PER_DEV];
 	const char *p_param;
+	char *sp;
 
 	if (params == NULL || strlen(params) == 0 || !isdigit(*params))
 		return -1;
@@ -1800,12 +1801,12 @@ handle_queue_links(const char *cmd __rte_unused,
 	dev_id = strtoul(params, &end_param, 10);
 	RTE_EVENTDEV_VALID_DEVID_OR_ERR_RET(dev_id, -EINVAL);
 
-	p_param = strtok(end_param, ",");
+	p_param = strtok_r(end_param, ",", &sp);
 	if (p_param == NULL || strlen(p_param) == 0 || !isdigit(*p_param))
 		return -1;
 
 	port_id = strtoul(p_param, &end_param, 10);
-	p_param = strtok(NULL, "\0");
+	p_param = strtok_r(NULL, "\0", &sp);
 	if (p_param != NULL)
 		RTE_EDEV_LOG_DEBUG(
 			"Extra parameters passed to eventdev telemetry command, ignoring");
@@ -1927,6 +1928,7 @@ handle_port_xstats(const char *cmd __rte_unused,
 	enum rte_event_dev_xstats_mode mode;
 	char *end_param;
 	const char *p_param;
+	char *sp;
 
 	if (params == NULL || strlen(params) == 0 || !isdigit(*params))
 		return -1;
@@ -1935,7 +1937,7 @@ handle_port_xstats(const char *cmd __rte_unused,
 	dev_id = strtoul(params, &end_param, 10);
 	RTE_EVENTDEV_VALID_DEVID_OR_ERR_RET(dev_id, -EINVAL);
 
-	p_param = strtok(end_param, ",");
+	p_param = strtok_r(end_param, ",", &sp);
 	mode = RTE_EVENT_DEV_XSTATS_PORT;
 
 	if (p_param == NULL || strlen(p_param) == 0 || !isdigit(*p_param))
@@ -1943,7 +1945,7 @@ handle_port_xstats(const char *cmd __rte_unused,
 
 	port_queue_id = strtoul(p_param, &end_param, 10);
 
-	p_param = strtok(NULL, "\0");
+	p_param = strtok_r(NULL, "\0", &sp);
 	if (p_param != NULL)
 		RTE_EDEV_LOG_DEBUG(
 			"Extra parameters passed to eventdev telemetry command, ignoring");
@@ -1961,6 +1963,7 @@ handle_queue_xstats(const char *cmd __rte_unused,
 	enum rte_event_dev_xstats_mode mode;
 	char *end_param;
 	const char *p_param;
+	char *sp;
 
 	if (params == NULL || strlen(params) == 0 || !isdigit(*params))
 		return -1;
@@ -1969,7 +1972,7 @@ handle_queue_xstats(const char *cmd __rte_unused,
 	dev_id = strtoul(params, &end_param, 10);
 	RTE_EVENTDEV_VALID_DEVID_OR_ERR_RET(dev_id, -EINVAL);
 
-	p_param = strtok(end_param, ",");
+	p_param = strtok_r(end_param, ",", &sp);
 	mode = RTE_EVENT_DEV_XSTATS_QUEUE;
 
 	if (p_param == NULL || strlen(p_param) == 0 || !isdigit(*p_param))
@@ -1977,7 +1980,7 @@ handle_queue_xstats(const char *cmd __rte_unused,
 
 	port_queue_id = strtoul(p_param, &end_param, 10);
 
-	p_param = strtok(NULL, "\0");
+	p_param = strtok_r(NULL, "\0", &sp);
 	if (p_param != NULL)
 		RTE_EDEV_LOG_DEBUG(
 			"Extra parameters passed to eventdev telemetry command, ignoring");

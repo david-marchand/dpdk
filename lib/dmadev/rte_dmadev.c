@@ -1035,7 +1035,8 @@ dmadev_handle_dev_stats(const char *cmd __rte_unused,
 	if (dma_info.nb_vchans == 1 && *end_param == '\0')
 		vchan_id = 0;
 	else {
-		vchan_param = strtok(end_param, ",");
+		char *sp;
+		vchan_param = strtok_r(end_param, ",", &sp);
 		if (!vchan_param || strlen(vchan_param) == 0 || !isdigit(*vchan_param))
 			return -EINVAL;
 

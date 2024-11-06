@@ -1276,21 +1276,19 @@ parse_params(const char *params, uint32_t *vals, size_t n_vals)
 	char *params_args;
 	size_t count = 0;
 	char *token;
+	char *sp;
 
 	if (vals == NULL || params == NULL || strlen(params) == 0)
 		return -1;
 
-	/* strtok expects char * and param is const char *. Hence on using
-	 * params as "const char *" compiler throws warning.
-	 */
 	params_args = strdup(params);
 	if (params_args == NULL)
 		return -1;
 
-	token = strtok(params_args, dlim);
+	token = strtok_r(params_args, dlim, &sp);
 	while (token && isdigit(*token) && count < n_vals) {
 		vals[count++] = strtoul(token, NULL, 10);
-		token = strtok(NULL, dlim);
+		token = strtok_r(NULL, dlim, &sp);
 	}
 
 	free(params_args);

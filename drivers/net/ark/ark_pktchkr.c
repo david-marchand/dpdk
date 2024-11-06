@@ -361,12 +361,13 @@ ark_pktchkr_parse(char *args)
 {
 	char *argv, *v;
 	const char toks[] = "=\n\t\v\f \r";
-	argv = strtok(args, toks);
-	v = strtok(NULL, toks);
+	char *sp;
+	argv = strtok_r(args, toks, &sp);
+	v = strtok_r(NULL, toks, &sp);
 	while (argv && v) {
 		set_arg(argv, v);
-		argv = strtok(NULL, toks);
-		v = strtok(NULL, toks);
+		argv = strtok_r(NULL, toks, &sp);
+		v = strtok_r(NULL, toks, &sp);
 	}
 }
 
