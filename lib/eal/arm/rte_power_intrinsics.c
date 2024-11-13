@@ -7,6 +7,8 @@
 #include "rte_cpuflags.h"
 #include "rte_power_intrinsics.h"
 
+#include "eal_private.h"
+
 /**
  *  Set wfet_en if WFET is supported
  */
@@ -14,7 +16,8 @@
 static uint8_t wfet_en;
 #endif /* RTE_ARCH_64 */
 
-RTE_INIT(rte_power_intrinsics_init)
+void
+eal_power_intrinsics_arch_init(void)
 {
 #ifdef RTE_ARCH_64
 	if (rte_cpu_get_flag_enabled(RTE_CPUFLAG_WFXT))

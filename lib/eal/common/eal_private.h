@@ -702,6 +702,9 @@ eal_get_internal_configuration(void);
 rte_usage_hook_t
 eal_get_application_usage_hook(void);
 
+void
+eal_power_intrinsics_arch_init(void);
+
 /**
  * Instruct primary process that a secondary process wants to attach.
  */

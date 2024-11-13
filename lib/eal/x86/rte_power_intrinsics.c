@@ -12,6 +12,8 @@
 
 #include "rte_power_intrinsics.h"
 
+#include "eal_private.h"
+
 /*
  * Per-lcore structure holding current status of C0.2 sleeps.
  */
@@ -21,8 +23,6 @@ struct power_wait_status {
 };
 
 RTE_LCORE_VAR_HANDLE(struct power_wait_status, wait_status);
-
-RTE_LCORE_VAR_INIT(wait_status);
 
 /*
  * This function uses UMONITOR/UMWAIT instructions and will enter C0.2 state.
@@ -235,7 +235,9 @@ rte_power_pause(const uint64_t tsc_timestamp)
 	return 0;
 }
 
-RTE_INIT(rte_power_intrinsics_init) {
+void
+eal_power_intrinsics_arch_init(void)
+{
 	struct rte_cpu_intrinsics i;
 
 	rte_cpu_get_intrinsics_support(&i);
@@ -246,6 +248,8 @@ RTE_INIT(rte_power_intrinsics_init) {
 		wait_multi_supported = 1;
 	if (i.power_monitor)
 		monitor_supported = 1;
+
+	RTE_LCORE_VAR_ALLOC(wait_status);
 
 	if (rte_cpu_get_flag_enabled(RTE_CPUFLAG_MONITORX)) {
 		power_monitor_ops.mmonitor = &amd_monitorx;
@@ -308,7 +312,7 @@ int
 rte_power_monitor_multi(const struct rte_power_monitor_cond pmc[],
 		const uint32_t num, const uint64_t tsc_timestamp)
 {
-	struct power_wait_status *s = RTE_LCORE_VAR(wait_status);
+	struct power_wait_status *s;
 	uint32_t i, rc;
 
 	/* check if supported */
@@ -328,6 +332,8 @@ rte_power_monitor_multi(const struct rte_power_monitor_cond pmc[],
 	/* transaction abort, possible write to one of wait addresses */
 	if (rc != RTE_XBEGIN_STARTED)
 		return 0;
+
+	s = RTE_LCORE_VAR(wait_status);
 
 	/*
 	 * the mere act of reading the lock status here adds the lock to

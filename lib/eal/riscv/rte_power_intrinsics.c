@@ -8,6 +8,13 @@
 
 #include "rte_power_intrinsics.h"
 
+#include "eal_private.h"
+
+void
+eal_power_intrinsics_arch_init(void)
+{
+}
+
 /**
  * This function is not supported on RISC-V 64
  */
