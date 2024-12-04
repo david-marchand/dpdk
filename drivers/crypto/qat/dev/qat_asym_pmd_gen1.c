@@ -99,7 +99,7 @@ qat_asym_crypto_set_session_gen1(void *cdev __rte_unused,
 	return 0;
 }
 
-RTE_INIT(qat_asym_crypto_gen1_init)
+RTE_INIT_DEFERRED(qat_asym_crypto_gen1_init)
 {
 	qat_asym_gen_dev_ops[QAT_GEN1].cryptodev_ops =
 			&qat_asym_crypto_ops_gen1;

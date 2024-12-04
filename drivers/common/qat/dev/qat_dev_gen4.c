@@ -356,7 +356,7 @@ static struct qat_dev_hw_spec_funcs qat_dev_hw_spec_vqat = {
 	.qat_dev_get_slice_map = qat_dev_get_slice_map_gen4,
 };
 
-RTE_INIT(qat_dev_gen_4_init)
+RTE_INIT_DEFERRED(qat_dev_gen_4_init)
 {
 	qat_qp_hw_spec[QAT_VQAT] = qat_qp_hw_spec[QAT_GEN4] = &qat_qp_hw_spec_gen4;
 	qat_dev_hw_spec[QAT_GEN4] = &qat_dev_hw_spec_gen4;

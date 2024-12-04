@@ -66,7 +66,7 @@ void ml_test_dump_names(void (*f)(const char *));
 
 #define ML_TEST_REGISTER(nm) \
 	static struct ml_test_entry _ml_test_entry_##nm; \
-	RTE_INIT(ml_test_##nm) \
+	RTE_INIT_DEFERRED(ml_test_##nm) \
 	{ \
 		_ml_test_entry_##nm.test.name = RTE_STR(nm); \
 		memcpy(&_ml_test_entry_##nm.test.ops, &nm, sizeof(struct ml_test_ops)); \

@@ -192,7 +192,7 @@ struct dummy_queue {
 };
 static struct dummy_queue *dummy_queues_array[RTE_MAX_ETHPORTS][RTE_MAX_QUEUES_PER_PORT];
 static struct dummy_queue per_port_queues[RTE_MAX_ETHPORTS];
-RTE_INIT(dummy_queue_init)
+RTE_INIT_DEFERRED(dummy_queue_init)
 {
 	uint16_t port_id;
 

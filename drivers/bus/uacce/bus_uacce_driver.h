@@ -240,7 +240,7 @@ void rte_uacce_unregister(struct rte_uacce_driver *driver);
  * Helper for UACCE device registration from driver instance.
  */
 #define RTE_PMD_REGISTER_UACCE(nm, uacce_drv) \
-		RTE_INIT(uacceinitfn_ ##nm) \
+		RTE_INIT_DEFERRED(uacceinitfn_ ##nm) \
 		{\
 			(uacce_drv).driver.name = RTE_STR(nm);\
 			rte_uacce_register(&uacce_drv); \

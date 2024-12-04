@@ -3518,7 +3518,7 @@ RTE_LOG_REGISTER_DEFAULT(mlx5_logtype, NOTICE)
 /**
  * Driver initialization routine.
  */
-RTE_INIT(rte_mlx5_pmd_init)
+RTE_INIT_DEFERRED(rte_mlx5_pmd_init)
 {
 	pthread_mutex_init(&mlx5_dev_ctx_list_mutex, NULL);
 	mlx5_common_init();

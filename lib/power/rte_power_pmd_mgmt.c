@@ -767,7 +767,7 @@ rte_power_pmd_mgmt_get_scaling_freq_max(unsigned int lcore)
 	return scale_freq_max[lcore];
 }
 
-RTE_INIT(rte_power_ethdev_pmgmt_init) {
+RTE_INIT_DEFERRED(rte_power_ethdev_pmgmt_init) {
 	unsigned int lcore_id;
 	struct pmd_core_cfg *lcore_cfg;
 	int i;

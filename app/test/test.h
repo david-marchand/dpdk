@@ -197,7 +197,7 @@ void add_test_command(struct test_command *t);
 		.command = RTE_STR(cmd), \
 		.callback = func, \
 	}; \
-	RTE_INIT(test_register_##cmd) \
+	RTE_INIT_DEFERRED(test_register_##cmd) \
 	{ \
 		add_test_command(&test_struct_##cmd); \
 	}

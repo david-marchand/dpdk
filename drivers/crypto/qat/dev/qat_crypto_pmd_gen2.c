@@ -321,7 +321,7 @@ qat_sym_crypto_cap_get_gen2(struct qat_cryptodev_private *internals,
 	return 0;
 }
 
-RTE_INIT(qat_sym_crypto_gen2_init)
+RTE_INIT_DEFERRED(qat_sym_crypto_gen2_init)
 {
 	qat_sym_gen_dev_ops[QAT_GEN2].cryptodev_ops = &qat_sym_crypto_ops_gen2;
 	qat_sym_gen_dev_ops[QAT_GEN2].get_capabilities =
@@ -336,7 +336,7 @@ RTE_INIT(qat_sym_crypto_gen2_init)
 			qat_sym_create_security_gen1;
 }
 
-RTE_INIT(qat_asym_crypto_gen2_init)
+RTE_INIT_DEFERRED(qat_asym_crypto_gen2_init)
 {
 	qat_asym_gen_dev_ops[QAT_GEN2].cryptodev_ops =
 			&qat_asym_crypto_ops_gen1;

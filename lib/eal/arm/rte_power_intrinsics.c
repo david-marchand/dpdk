@@ -14,7 +14,7 @@
 static uint8_t wfet_en;
 #endif /* RTE_ARCH_64 */
 
-RTE_INIT(rte_power_intrinsics_init)
+RTE_INIT_DEFERRED(rte_power_intrinsics_init)
 {
 #ifdef RTE_ARCH_64
 	if (rte_cpu_get_flag_enabled(RTE_CPUFLAG_WFXT))

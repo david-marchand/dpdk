@@ -1987,7 +1987,7 @@ static struct iavf_flow_parser iavf_ipsec_flow_parser = {
 	.stage = IAVF_FLOW_STAGE_IPSEC_CRYPTO,
 };
 
-RTE_INIT(iavf_ipsec_flow_engine_register)
+RTE_INIT_DEFERRED(iavf_ipsec_flow_engine_register)
 {
 	iavf_register_flow_engine(&iavf_ipsec_flow_engine);
 }

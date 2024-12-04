@@ -199,7 +199,7 @@ cnxk_mempool_plt_init(void)
 	return rc;
 }
 
-RTE_INIT(cnxk_mempool_ops_init)
+RTE_INIT_DEFERRED(cnxk_mempool_ops_init)
 {
 	roc_plt_init_cb_register(cnxk_mempool_plt_init);
 }

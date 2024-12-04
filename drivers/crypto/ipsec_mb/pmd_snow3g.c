@@ -580,7 +580,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(snow3g_crypto_drv,
 				pmd_driver_id_snow3g);
 
 /* Constructor function to register snow3g PMD */
-RTE_INIT(ipsec_mb_register_snow3g)
+RTE_INIT_DEFERRED(ipsec_mb_register_snow3g)
 {
 	struct ipsec_mb_internals *snow3g_data
 		= &ipsec_mb_pmds[IPSEC_MB_PMD_TYPE_SNOW3G];

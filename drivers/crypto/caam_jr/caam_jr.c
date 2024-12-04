@@ -2458,7 +2458,7 @@ RTE_PMD_REGISTER_PARAM_STRING(CRYPTODEV_NAME_CAAM_JR_PMD,
 RTE_PMD_REGISTER_CRYPTO_DRIVER(caam_jr_crypto_drv, cryptodev_caam_jr_drv.driver,
 		cryptodev_driver_id);
 
-RTE_INIT(caam_jr_init)
+RTE_INIT_DEFERRED(caam_jr_init)
 {
 	sec_uio_job_rings_init();
 	sec_job_rings_init();

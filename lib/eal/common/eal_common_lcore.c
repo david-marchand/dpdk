@@ -659,7 +659,7 @@ handle_lcore_usage(const char *cmd __rte_unused, const char *params __rte_unused
 	return rte_lcore_iterate(lcore_telemetry_usage_cb, &usage);
 }
 
-RTE_INIT(lcore_telemetry)
+RTE_INIT_DEFERRED(lcore_telemetry)
 {
 	rte_telemetry_register_cmd("/eal/lcore/list", handle_lcore_list,
 		"List of lcore ids. Takes no parameters");

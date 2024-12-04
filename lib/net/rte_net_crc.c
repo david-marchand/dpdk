@@ -332,7 +332,7 @@ rte_net_crc_calc(const void *data,
 }
 
 /* Call initialisation helpers for all crc algorithm handlers */
-RTE_INIT(rte_net_crc_init)
+RTE_INIT_DEFERRED(rte_net_crc_init)
 {
 	rte_net_crc_scalar_init();
 	sse42_pclmulqdq_init();

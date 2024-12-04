@@ -663,7 +663,7 @@ cpfl_flow_engine cpfl_fxp_engine = {
 	.parse_pattern_action = cpfl_fxp_parse_pattern_action,
 };
 
-RTE_INIT(cpfl_sw_engine_init)
+RTE_INIT_DEFERRED(cpfl_sw_engine_init)
 {
 	struct cpfl_flow_engine *engine = &cpfl_fxp_engine;
 

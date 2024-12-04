@@ -21,7 +21,7 @@ RTE_DECLARE_PER_LCORE(volatile int, trace_point_sz);
 #define RTE_TRACE_POINT_REGISTER(trace, name) \
 rte_trace_point_t __rte_section("__rte_trace_point") __##trace; \
 static const char __##trace##_name[] = RTE_STR(name); \
-RTE_INIT(trace##_init) \
+RTE_INIT_DEFERRED(trace##_init) \
 { \
 	if (!rte_trace_feature_is_enabled()) \
 		return; \

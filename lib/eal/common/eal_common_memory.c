@@ -1631,7 +1631,7 @@ handle_eal_element_info_request(const char *cmd __rte_unused,
 	return 0;
 }
 
-RTE_INIT(memory_telemetry)
+RTE_INIT_DEFERRED(memory_telemetry)
 {
 	rte_telemetry_register_cmd(
 			EAL_MEMZONE_LIST_REQ, handle_eal_memzone_list_request,

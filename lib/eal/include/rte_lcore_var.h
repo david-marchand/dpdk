@@ -80,19 +80,19 @@ extern "C" {
 
 /**
  * Allocate an explicitly-sized, explicitly-aligned lcore variable
- * by means of a @ref RTE_INIT constructor.
+ * by means of a @ref RTE_INIT_DEFERRED constructor.
  *
  * The values of the lcore variable are initialized to zero.
  */
 #define RTE_LCORE_VAR_INIT_SIZE_ALIGN(name, size, align)		\
-	RTE_INIT(rte_lcore_var_init_ ## name)				\
+	RTE_INIT_DEFERRED(rte_lcore_var_init_ ## name)				\
 	{								\
 		RTE_LCORE_VAR_ALLOC_SIZE_ALIGN(name, size, align);	\
 	}
 
 /**
  * Allocate an explicitly-sized lcore variable
- * by means of a @ref RTE_INIT constructor.
+ * by means of a @ref RTE_INIT_DEFERRED constructor.
  *
  * The values of the lcore variable are initialized to zero.
  */
@@ -100,12 +100,12 @@ extern "C" {
 	RTE_LCORE_VAR_INIT_SIZE_ALIGN(name, size, 0)
 
 /**
- * Allocate an lcore variable by means of a @ref RTE_INIT constructor.
+ * Allocate an lcore variable by means of a @ref RTE_INIT_DEFERRED constructor.
  *
  * The values of the lcore variable are initialized to zero.
  */
 #define RTE_LCORE_VAR_INIT(name)					\
-	RTE_INIT(rte_lcore_var_init_ ## name)				\
+	RTE_INIT_DEFERRED(rte_lcore_var_init_ ## name)				\
 	{								\
 		RTE_LCORE_VAR_ALLOC(name);				\
 	}

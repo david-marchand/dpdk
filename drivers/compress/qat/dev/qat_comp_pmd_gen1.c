@@ -159,7 +159,7 @@ qat_comp_get_features_gen1(void)
 	return RTE_COMPDEV_FF_HW_ACCELERATED;
 }
 
-RTE_INIT(qat_comp_pmd_gen1_init)
+RTE_INIT_DEFERRED(qat_comp_pmd_gen1_init)
 {
 	qat_comp_gen_dev_ops[QAT_GEN1].compressdev_ops =
 			&qat_comp_ops_gen1;

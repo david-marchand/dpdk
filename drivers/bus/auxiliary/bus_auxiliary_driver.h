@@ -163,7 +163,7 @@ void rte_auxiliary_register(struct rte_auxiliary_driver *driver);
 
 /** Helper for auxiliary device registration from driver instance */
 #define RTE_PMD_REGISTER_AUXILIARY(nm, auxiliary_drv) \
-	RTE_INIT(auxiliaryinitfn_ ##nm) \
+	RTE_INIT_DEFERRED(auxiliaryinitfn_ ##nm) \
 	{ \
 		(auxiliary_drv).driver.name = RTE_STR(nm); \
 		rte_auxiliary_register(&(auxiliary_drv)); \

@@ -58,7 +58,7 @@ rte_hash_crc_set_alg(uint8_t alg)
 }
 
 /* Setting the best available algorithm */
-RTE_INIT(rte_hash_crc_init_alg)
+RTE_INIT_DEFERRED(rte_hash_crc_init_alg)
 {
 #if defined(RTE_ARCH_X86)
 	rte_hash_crc_set_alg(CRC32_SSE42_x64);

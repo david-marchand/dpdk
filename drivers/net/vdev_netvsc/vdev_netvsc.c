@@ -803,7 +803,7 @@ vdev_netvsc_scan_callback(__rte_unused void *arg)
 }
 
 /** Initialize the custom scan. */
-RTE_INIT(vdev_netvsc_custom_scan_add)
+RTE_INIT_DEFERRED(vdev_netvsc_custom_scan_add)
 {
 	if (rte_hypervisor_get() == RTE_HYPERVISOR_HYPERV)
 		rte_vdev_add_custom_scan(vdev_netvsc_scan_callback, NULL);

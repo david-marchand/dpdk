@@ -2460,7 +2460,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(
 	pmd_driver_id_aesni_mb);
 
 /* Constructor function to register aesni-mb PMD */
-RTE_INIT(ipsec_mb_register_aesni_mb)
+RTE_INIT_DEFERRED(ipsec_mb_register_aesni_mb)
 {
 	struct ipsec_mb_internals *aesni_mb_data =
 		&ipsec_mb_pmds[IPSEC_MB_PMD_TYPE_AESNI_MB];

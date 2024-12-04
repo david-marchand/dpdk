@@ -132,7 +132,7 @@ struct rte_platform_driver {
 /** Helper for platform driver registration. */
 #define RTE_PMD_REGISTER_PLATFORM(nm, platform_drv) \
 static const char *pdrvinit_ ## nm ## _alias; \
-RTE_INIT(pdrvinitfn_ ##nm) \
+RTE_INIT_DEFERRED(pdrvinitfn_ ##nm) \
 { \
 	(platform_drv).driver.name = RTE_STR(nm); \
 	(platform_drv).driver.alias = pdrvinit_ ## nm ## _alias; \

@@ -1693,7 +1693,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(qat_crypto_drv,
 		cryptodev_qat_asym_driver,
 		qat_asym_driver_id);
 
-RTE_INIT(qat_asym_init)
+RTE_INIT_DEFERRED(qat_asym_init)
 {
 	qat_cmdline_defines[QAT_SERVICE_ASYMMETRIC] = arguments;
 	qat_service[QAT_SERVICE_ASYMMETRIC].name = "asymmetric crypto";

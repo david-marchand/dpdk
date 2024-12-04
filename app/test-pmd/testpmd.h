@@ -1287,7 +1287,7 @@ struct testpmd_driver_commands {
 
 void testpmd_add_driver_commands(struct testpmd_driver_commands *c);
 #define TESTPMD_ADD_DRIVER_COMMANDS(c) \
-RTE_INIT(__##c) \
+RTE_INIT_DEFERRED(__##c) \
 { \
 	testpmd_add_driver_commands(&c); \
 }

@@ -56,7 +56,7 @@ qat_comp_cap_get_gen5(struct qat_pci_device *qat_dev __rte_unused)
 	return capa_info;
 }
 
-RTE_INIT(qat_comp_pmd_gen5_init)
+RTE_INIT_DEFERRED(qat_comp_pmd_gen5_init)
 {
 	qat_comp_gen_dev_ops[QAT_GEN5].compressdev_ops =
 			&qat_comp_ops_gen5;

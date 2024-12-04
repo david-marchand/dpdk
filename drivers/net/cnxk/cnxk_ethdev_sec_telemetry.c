@@ -385,7 +385,7 @@ ethdev_sec_tel_handle_info(const char *cmd __rte_unused, const char *params,
 	return 0;
 }
 
-RTE_INIT(cnxk_ipsec_init_telemetry)
+RTE_INIT_DEFERRED(cnxk_ipsec_init_telemetry)
 {
 	rte_telemetry_register_cmd("/cnxk/ipsec/info",
 				   ethdev_sec_tel_handle_info,

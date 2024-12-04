@@ -1471,7 +1471,7 @@ handle_ta_stats(const char *cmd __rte_unused, const char *params,
 	return 0;
 }
 
-RTE_INIT(ta_init_telemetry)
+RTE_INIT_DEFERRED(ta_init_telemetry)
 {
 	rte_telemetry_register_cmd("/eventdev/ta_info",
 		handle_ta_info,

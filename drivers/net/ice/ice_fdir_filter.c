@@ -2505,7 +2505,7 @@ struct ice_flow_parser ice_fdir_parser = {
 	.stage = ICE_FLOW_STAGE_DISTRIBUTOR,
 };
 
-RTE_INIT(ice_fdir_engine_register)
+RTE_INIT_DEFERRED(ice_fdir_engine_register)
 {
 	ice_register_flow_engine(&ice_fdir_engine);
 }

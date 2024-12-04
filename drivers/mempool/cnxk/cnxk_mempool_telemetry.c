@@ -49,7 +49,7 @@ mempool_tel_handle_info(const char *cmd __rte_unused, const char *params,
 	return 0;
 }
 
-RTE_INIT(cnxk_mempool_init_telemetry)
+RTE_INIT_DEFERRED(cnxk_mempool_init_telemetry)
 {
 	rte_telemetry_register_cmd(
 		"/cnxk/mempool/info", mempool_tel_handle_info,

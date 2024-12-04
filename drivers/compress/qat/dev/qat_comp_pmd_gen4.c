@@ -196,7 +196,7 @@ qat_comp_get_num_im_bufs_required_gen4(void)
 }
 
 
-RTE_INIT(qat_comp_pmd_gen4_init)
+RTE_INIT_DEFERRED(qat_comp_pmd_gen4_init)
 {
 	qat_comp_gen_dev_ops[QAT_VQAT].compressdev_ops =
 		qat_comp_gen_dev_ops[QAT_GEN4].compressdev_ops =

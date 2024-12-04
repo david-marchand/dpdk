@@ -530,7 +530,7 @@ handle_ports_stats_values_by_name(const char *cmd __rte_unused,
 
 RTE_LOG_REGISTER_DEFAULT(metrics_log_level, ERR);
 
-RTE_INIT(metrics_ctor)
+RTE_INIT_DEFERRED(metrics_ctor)
 {
 #ifdef RTE_LIB_TELEMETRY
 	rte_telemetry_legacy_register("ports_all_stat_values", DATA_NOT_REQ,

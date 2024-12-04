@@ -92,7 +92,7 @@ void evt_test_dump_names(void);
 
 #define EVT_TEST_REGISTER(nm)                         \
 static struct evt_test_entry _evt_test_entry_ ##nm;   \
-RTE_INIT(evt_test_ ##nm)                              \
+RTE_INIT_DEFERRED(evt_test_ ##nm)                              \
 {                                                     \
 	_evt_test_entry_ ##nm.test.name = RTE_STR(nm);\
 	memcpy(&_evt_test_entry_ ##nm.test.ops, &nm,  \

@@ -580,7 +580,7 @@ struct ice_flow_parser ice_hash_parser = {
 	.stage = ICE_FLOW_STAGE_RSS,
 };
 
-RTE_INIT(ice_hash_engine_init)
+RTE_INIT_DEFERRED(ice_hash_engine_init)
 {
 	struct ice_flow_engine *engine = &ice_hash_engine;
 	ice_register_flow_engine(engine);

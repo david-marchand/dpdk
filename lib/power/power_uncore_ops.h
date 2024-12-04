@@ -236,7 +236,7 @@ int rte_power_register_uncore_ops(struct rte_power_uncore_ops *ops);
  * Macro to statically register the ops of an uncore driver.
  */
 #define RTE_POWER_REGISTER_UNCORE_OPS(ops) \
-RTE_INIT(power_hdlr_init_uncore_##ops) \
+RTE_INIT_DEFERRED(power_hdlr_init_uncore_##ops) \
 { \
 	rte_power_register_uncore_ops(&ops); \
 }

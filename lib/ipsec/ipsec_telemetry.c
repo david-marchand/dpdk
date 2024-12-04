@@ -230,7 +230,7 @@ rte_ipsec_telemetry_sa_del(const struct rte_ipsec_sa *sa)
 }
 
 
-RTE_INIT(rte_ipsec_telemetry_init)
+RTE_INIT_DEFERRED(rte_ipsec_telemetry_init)
 {
 	rte_telemetry_register_cmd("/ipsec/sa/list",
 		handle_telemetry_cmd_ipsec_sa_list,

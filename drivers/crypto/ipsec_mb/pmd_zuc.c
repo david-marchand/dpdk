@@ -384,7 +384,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(zuc_crypto_drv, cryptodev_zuc_pmd_drv.driver,
 		pmd_driver_id_zuc);
 
 /* Constructor function to register zuc PMD */
-RTE_INIT(ipsec_mb_register_zuc)
+RTE_INIT_DEFERRED(ipsec_mb_register_zuc)
 {
 	struct ipsec_mb_internals *zuc_data
 	    = &ipsec_mb_pmds[IPSEC_MB_PMD_TYPE_ZUC];

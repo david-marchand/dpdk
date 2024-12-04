@@ -1297,7 +1297,7 @@ qat_sym_crypto_set_session_gen1(void *cryptodev __rte_unused, void *session)
 	return 0;
 }
 
-RTE_INIT(qat_sym_crypto_gen1_init)
+RTE_INIT_DEFERRED(qat_sym_crypto_gen1_init)
 {
 	qat_sym_gen_dev_ops[QAT_GEN1].cryptodev_ops = &qat_sym_crypto_ops_gen1;
 	qat_sym_gen_dev_ops[QAT_GEN1].get_capabilities =

@@ -83,7 +83,7 @@ void afu_pmd_register(struct afu_rawdev_drv *driver);
 void afu_pmd_unregister(struct afu_rawdev_drv *driver);
 
 #define AFU_PMD_REGISTER(drv)\
-RTE_INIT(afupmdinitfunc_ ##drv)\
+RTE_INIT_DEFERRED(afupmdinitfunc_ ##drv)\
 {\
 	afu_pmd_register(&drv);\
 }

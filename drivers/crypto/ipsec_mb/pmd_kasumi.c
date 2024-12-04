@@ -55,7 +55,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(kasumi_crypto_drv,
 				pmd_driver_id_kasumi);
 
 /* Constructor function to register kasumi PMD */
-RTE_INIT(ipsec_mb_register_kasumi)
+RTE_INIT_DEFERRED(ipsec_mb_register_kasumi)
 {
 	struct ipsec_mb_internals *kasumi_data
 	    = &ipsec_mb_pmds[IPSEC_MB_PMD_TYPE_KASUMI];

@@ -2081,7 +2081,7 @@ ice_flow_parser ice_switch_parser = {
 	.stage = ICE_FLOW_STAGE_DISTRIBUTOR,
 };
 
-RTE_INIT(ice_sw_engine_init)
+RTE_INIT_DEFERRED(ice_sw_engine_init)
 {
 	struct ice_flow_engine *engine = &ice_switch_engine;
 	ice_register_flow_engine(engine);

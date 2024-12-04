@@ -1626,7 +1626,7 @@ static struct iavf_flow_parser iavf_fdir_parser = {
 	.stage = IAVF_FLOW_STAGE_DISTRIBUTOR,
 };
 
-RTE_INIT(iavf_fdir_engine_register)
+RTE_INIT_DEFERRED(iavf_fdir_engine_register)
 {
 	iavf_register_flow_engine(&iavf_fdir_engine);
 }

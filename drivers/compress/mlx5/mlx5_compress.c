@@ -929,7 +929,7 @@ static struct mlx5_class_driver mlx5_compress_driver = {
 	.remove = mlx5_compress_dev_remove,
 };
 
-RTE_INIT(rte_mlx5_compress_init)
+RTE_INIT_DEFERRED(rte_mlx5_compress_init)
 {
 	mlx5_common_init();
 	if (mlx5_glue != NULL)

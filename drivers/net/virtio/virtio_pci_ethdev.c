@@ -231,7 +231,7 @@ static struct rte_pci_driver rte_virtio_net_pci_pmd = {
 	.remove = eth_virtio_pci_remove,
 };
 
-RTE_INIT(rte_virtio_net_pci_pmd_init)
+RTE_INIT_DEFERRED(rte_virtio_net_pci_pmd_init)
 {
 	rte_eal_iopl_init();
 	rte_pci_register(&rte_virtio_net_pci_pmd);

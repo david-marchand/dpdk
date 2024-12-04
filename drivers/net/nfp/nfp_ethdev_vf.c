@@ -464,7 +464,7 @@ static struct nfp_class_driver rte_nfp_net_vf_pmd = {
 	.remove = nfp_vf_pci_remove,
 };
 
-RTE_INIT(rte_nfp_vf_pmd_init)
+RTE_INIT_DEFERRED(rte_nfp_vf_pmd_init)
 {
 	nfp_class_driver_register(&rte_nfp_net_vf_pmd);
 }

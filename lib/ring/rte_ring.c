@@ -552,7 +552,7 @@ ring_handle_info(const char *cmd __rte_unused, const char *params,
 	return 0;
 }
 
-RTE_INIT(ring_init_telemetry)
+RTE_INIT_DEFERRED(ring_init_telemetry)
 {
 	rte_telemetry_register_cmd("/ring/list", ring_handle_list,
 		"Returns list of available rings. Takes no parameters");

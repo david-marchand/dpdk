@@ -203,7 +203,7 @@ RTE_PMD_REGISTER_KMOD_DEP(mempool_cnxk, "vfio-pci");
 RTE_PMD_REGISTER_PARAM_STRING(mempool_cnxk,
 			      CNXK_NPA_MAX_POOLS_PARAM "=<128-1048576>");
 
-RTE_INIT(cnxk_mempool_parse_devargs)
+RTE_INIT_DEFERRED(cnxk_mempool_parse_devargs)
 {
 	roc_npa_lf_init_cb_register(cnxk_mempool_plt_parse_devargs);
 }

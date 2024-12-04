@@ -166,7 +166,7 @@ Below is an example of the use of an lcore variable:
            return state->a + state->b;
    }
 
-   RTE_INIT(rte_foo_init)
+   RTE_INIT_DEFERRED(rte_foo_init)
    {
            RTE_LCORE_VAR_ALLOC(lcore_states);
 
@@ -354,7 +354,8 @@ The resulting memory layout will look something like the following:
 .. figure:: img/lcore_var_mem_layout.*
 
 The above figure assumes that ``x_lcores`` is allocated prior to ``y_lcores``.
-``RTE_LCORE_VAR_INIT()`` relies constructors, run prior to ``main()`` in an undefined order.
+``RTE_LCORE_VAR_INIT()`` relies on deferred init callbacks,
+ran early in ``rte_eal_init()`` in an undefined order.
 
 The use of lcore variables ensures that per-lcore id data is kept in close proximity,
 within a designated region of memory.

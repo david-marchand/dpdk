@@ -795,7 +795,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(aesni_gcm_crypto_drv,
 			       pmd_driver_id_aesni_gcm);
 
 /* Constructor function to register aesni-gcm PMD */
-RTE_INIT(ipsec_mb_register_aesni_gcm)
+RTE_INIT_DEFERRED(ipsec_mb_register_aesni_gcm)
 {
 	struct ipsec_mb_internals *aesni_gcm_data =
 		&ipsec_mb_pmds[IPSEC_MB_PMD_TYPE_AESNI_GCM];

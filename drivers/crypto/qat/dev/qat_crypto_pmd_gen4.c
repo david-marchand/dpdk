@@ -517,7 +517,7 @@ qat_sym_configure_raw_dp_ctx_gen4(void *_raw_dp_ctx, void *_ctx)
 	return 0;
 }
 
-RTE_INIT(qat_sym_crypto_gen4_init)
+RTE_INIT_DEFERRED(qat_sym_crypto_gen4_init)
 {
 	qat_sym_gen_dev_ops[QAT_VQAT].cryptodev_ops =
 		qat_sym_gen_dev_ops[QAT_GEN4].cryptodev_ops = &qat_sym_crypto_ops_gen1;
@@ -536,7 +536,7 @@ RTE_INIT(qat_sym_crypto_gen4_init)
 			qat_sym_create_security_gen1;
 }
 
-RTE_INIT(qat_asym_crypto_gen4_init)
+RTE_INIT_DEFERRED(qat_asym_crypto_gen4_init)
 {
 	qat_asym_gen_dev_ops[QAT_VQAT].cryptodev_ops =
 		qat_asym_gen_dev_ops[QAT_GEN4].cryptodev_ops =

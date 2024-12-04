@@ -235,7 +235,7 @@ rte_power_pause(const uint64_t tsc_timestamp)
 	return 0;
 }
 
-RTE_INIT(rte_power_intrinsics_init) {
+RTE_INIT_DEFERRED(rte_power_intrinsics_init) {
 	struct rte_cpu_intrinsics i;
 
 	rte_cpu_get_intrinsics_support(&i);

@@ -1537,7 +1537,7 @@ static int eth_dev_telemetry_do(const char *cmd, const char *params, void *arg,
 	return ret;
 }
 
-RTE_INIT(ethdev_init_telemetry)
+RTE_INIT_DEFERRED(ethdev_init_telemetry)
 {
 	rte_telemetry_register_cmd_arg("/ethdev/list",
 			eth_dev_telemetry_do, eth_dev_handle_port_list,

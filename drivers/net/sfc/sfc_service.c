@@ -18,7 +18,7 @@
 static uint32_t sfc_service_lcore[RTE_MAX_NUMA_NODES];
 static rte_spinlock_t sfc_service_lcore_lock = RTE_SPINLOCK_INITIALIZER;
 
-RTE_INIT(sfc_service_lcore_init)
+RTE_INIT_DEFERRED(sfc_service_lcore_init)
 {
 	size_t i;
 

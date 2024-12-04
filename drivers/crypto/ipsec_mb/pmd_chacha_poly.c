@@ -51,7 +51,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(chacha20_poly1305_crypto_drv,
 				pmd_driver_id_chacha20_poly1305);
 
 /* Constructor function to register chacha20_poly1305 PMD */
-RTE_INIT(ipsec_mb_register_chacha20_poly1305)
+RTE_INIT_DEFERRED(ipsec_mb_register_chacha20_poly1305)
 {
 	struct ipsec_mb_internals *chacha_poly_data
 		= &ipsec_mb_pmds[IPSEC_MB_PMD_TYPE_CHACHA20_POLY1305];

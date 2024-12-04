@@ -812,7 +812,7 @@ qat_comp_dev_destroy(struct qat_pci_device *qat_pci_dev)
 	return 0;
 }
 
-RTE_INIT(qat_sym_init)
+RTE_INIT_DEFERRED(qat_sym_init)
 {
 	qat_cmdline_defines[QAT_SERVICE_COMPRESSION] = arguments;
 	qat_service[QAT_SERVICE_COMPRESSION].name = "symmetric crypto";

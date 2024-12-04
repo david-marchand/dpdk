@@ -755,7 +755,7 @@ iavf_rss_hash_set(struct iavf_adapter *ad, uint64_t rss_hf, bool add)
 	return 0;
 }
 
-RTE_INIT(iavf_hash_engine_init)
+RTE_INIT_DEFERRED(iavf_hash_engine_init)
 {
 	struct iavf_flow_engine *engine = &iavf_hash_engine;
 

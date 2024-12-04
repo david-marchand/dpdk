@@ -80,7 +80,7 @@ void rte_delay_us_callback_register(void (*userfunc)(unsigned int))
 	rte_delay_us = userfunc;
 }
 
-RTE_INIT(rte_timer_init)
+RTE_INIT_DEFERRED(rte_timer_init)
 {
 	/* set rte_delay_us_block as a delay function */
 	rte_delay_us_callback_register(rte_delay_us_block);

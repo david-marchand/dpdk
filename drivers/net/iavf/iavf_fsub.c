@@ -809,7 +809,7 @@ iavf_flow_parser iavf_fsub_parser = {
 	.stage = IAVF_FLOW_STAGE_DISTRIBUTOR,
 };
 
-RTE_INIT(iavf_fsub_engine_init)
+RTE_INIT_DEFERRED(iavf_fsub_engine_init)
 {
 	iavf_register_flow_engine(&iavf_fsub_engine);
 }

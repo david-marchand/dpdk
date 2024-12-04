@@ -183,7 +183,7 @@ int rte_power_register_cpufreq_ops(struct rte_power_cpufreq_ops *ops);
  * Macro to statically register the ops of a cpufreq driver.
  */
 #define RTE_POWER_REGISTER_CPUFREQ_OPS(ops) \
-RTE_INIT(power_hdlr_init_##ops) \
+RTE_INIT_DEFERRED(power_hdlr_init_##ops) \
 { \
 	rte_power_register_cpufreq_ops(&ops); \
 }

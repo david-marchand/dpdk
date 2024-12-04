@@ -669,7 +669,7 @@ void
 rte_cryptodev_pmd_probing_finish(struct rte_cryptodev *dev);
 
 #define RTE_PMD_REGISTER_CRYPTO_DRIVER(crypto_drv, drv, driver_id)\
-RTE_INIT(init_ ##driver_id)\
+RTE_INIT_DEFERRED(init_ ##driver_id)\
 {\
 	driver_id = rte_cryptodev_allocate_driver(&crypto_drv, &(drv));\
 }

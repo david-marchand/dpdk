@@ -530,7 +530,7 @@ security_handle_cryptodev_crypto_caps(const char *cmd __rte_unused, const char *
 	return 0;
 }
 
-RTE_INIT(security_init_telemetry)
+RTE_INIT_DEFERRED(security_init_telemetry)
 {
 	rte_telemetry_register_cmd("/security/cryptodev/list",
 		security_handle_cryptodev_list,

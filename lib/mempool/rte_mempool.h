@@ -981,7 +981,7 @@ int rte_mempool_register_ops(const struct rte_mempool_ops *ops);
  * more than RTE_MEMPOOL_MAX_OPS_IDX is registered.
  */
 #define RTE_MEMPOOL_REGISTER_OPS(ops)				\
-	RTE_INIT(mp_hdlr_init_##ops)				\
+	RTE_INIT_DEFERRED(mp_hdlr_init_##ops)				\
 	{							\
 		rte_mempool_register_ops(&ops);			\
 	}

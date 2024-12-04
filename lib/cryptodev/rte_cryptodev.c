@@ -2804,7 +2804,7 @@ rte_cryptodev_allocate_driver(struct cryptodev_driver *crypto_drv,
 	return nb_drivers++;
 }
 
-RTE_INIT(cryptodev_init_fp_ops)
+RTE_INIT_DEFERRED(cryptodev_init_fp_ops)
 {
 	uint32_t i;
 
@@ -2949,7 +2949,7 @@ cryptodev_handle_dev_caps(const char *cmd __rte_unused, const char *params,
 	return 0;
 }
 
-RTE_INIT(cryptodev_init_telemetry)
+RTE_INIT_DEFERRED(cryptodev_init_telemetry)
 {
 	rte_telemetry_register_cmd("/cryptodev/info", cryptodev_handle_dev_info,
 			"Returns information for a cryptodev. Parameters: int dev_id");

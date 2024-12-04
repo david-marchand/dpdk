@@ -250,7 +250,7 @@ qat_sym_crypto_set_session_gen5(void *cdev, void *session)
 	return ret;
 }
 
-RTE_INIT(qat_sym_crypto_gen5_init)
+RTE_INIT_DEFERRED(qat_sym_crypto_gen5_init)
 {
 	qat_sym_gen_dev_ops[QAT_GEN5].cryptodev_ops = &qat_sym_crypto_ops_gen1;
 	qat_sym_gen_dev_ops[QAT_GEN5].get_capabilities =
@@ -265,7 +265,7 @@ RTE_INIT(qat_sym_crypto_gen5_init)
 			qat_sym_create_security_gen1;
 }
 
-RTE_INIT(qat_asym_crypto_gen5_init)
+RTE_INIT_DEFERRED(qat_asym_crypto_gen5_init)
 {
 	qat_asym_gen_dev_ops[QAT_GEN5].cryptodev_ops =
 			&qat_asym_crypto_ops_gen1;

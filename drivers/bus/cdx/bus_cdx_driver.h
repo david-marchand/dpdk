@@ -148,7 +148,7 @@ void rte_cdx_register(struct rte_cdx_driver *driver);
  * Helper for CDX device registration from driver (eth, crypto, raw) instance.
  */
 #define RTE_PMD_REGISTER_CDX(nm, cdx_drv) \
-	RTE_INIT(cdxinitfn_ ##nm) \
+	RTE_INIT_DEFERRED(cdxinitfn_ ##nm) \
 	{\
 		(cdx_drv).driver.name = RTE_STR(nm);\
 		rte_cdx_register(&cdx_drv); \

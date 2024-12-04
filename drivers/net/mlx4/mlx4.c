@@ -1347,7 +1347,7 @@ RTE_LOG_REGISTER_DEFAULT(mlx4_logtype, NOTICE)
 /**
  * Driver initialization routine.
  */
-RTE_INIT(rte_mlx4_pmd_init)
+RTE_INIT_DEFERRED(rte_mlx4_pmd_init)
 {
 	/*
 	 * MLX4_DEVICE_FATAL_CLEANUP tells ibv_destroy functions we

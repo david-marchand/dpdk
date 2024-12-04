@@ -3909,7 +3909,7 @@ error:
 	return ret;
 }
 
-RTE_INIT(rxa_init_telemetry)
+RTE_INIT_DEFERRED(rxa_init_telemetry)
 {
 	rte_telemetry_register_cmd("/eventdev/rxa_stats",
 		handle_rxa_stats,

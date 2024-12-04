@@ -228,7 +228,7 @@ __rte_random_initial_seed(void)
 	return rte_get_tsc_cycles();
 }
 
-RTE_INIT(rte_rand_init)
+RTE_INIT_DEFERRED(rte_rand_init)
 {
 	uint64_t seed;
 

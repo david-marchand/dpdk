@@ -679,7 +679,7 @@ handle_dev_dump(const char *cmd __rte_unused,
 
 RTE_LOG_REGISTER_DEFAULT(librawdev_logtype, INFO);
 
-RTE_INIT(librawdev_init_telemetry)
+RTE_INIT_DEFERRED(librawdev_init_telemetry)
 {
 	rte_telemetry_register_cmd("/rawdev/list", handle_dev_list,
 			"Returns list of available rawdev ports. Takes no parameters");

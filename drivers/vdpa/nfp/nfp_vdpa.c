@@ -1304,7 +1304,7 @@ static struct nfp_class_driver nfp_vdpa = {
 	.remove = nfp_vdpa_pci_remove,
 };
 
-RTE_INIT(nfp_vdpa_init)
+RTE_INIT_DEFERRED(nfp_vdpa_init)
 {
 	nfp_class_driver_register(&nfp_vdpa);
 }

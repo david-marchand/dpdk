@@ -1095,7 +1095,7 @@ dmadev_handle_dev_dump(const char *cmd __rte_unused,
 }
 #endif /* !RTE_EXEC_ENV_WINDOWS */
 
-RTE_INIT(dmadev_init_telemetry)
+RTE_INIT_DEFERRED(dmadev_init_telemetry)
 {
 	rte_telemetry_register_cmd("/dmadev/list", dmadev_handle_dev_list,
 			"Returns list of available dmadev devices by IDs. No parameters.");

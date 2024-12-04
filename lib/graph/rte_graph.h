@@ -518,7 +518,7 @@ rte_node_t __rte_node_register(const struct rte_node_register *node);
  *   Valid node pointer with name, process function, and next_nodes.
  */
 #define RTE_NODE_REGISTER(node)                                                \
-	RTE_INIT(rte_node_register_##node)                                     \
+	RTE_INIT_DEFERRED(rte_node_register_##node)                                     \
 	{                                                                      \
 		node.parent_id = RTE_NODE_ID_INVALID;                          \
 		node.id = __rte_node_register(&node);                          \

@@ -2026,7 +2026,7 @@ handle_dev_dump(const char *cmd __rte_unused,
 	return ret;
 }
 
-RTE_INIT(eventdev_init_telemetry)
+RTE_INIT_DEFERRED(eventdev_init_telemetry)
 {
 	rte_telemetry_register_cmd("/eventdev/dev_list", handle_dev_list,
 			"Returns list of available eventdevs. Takes no parameters");

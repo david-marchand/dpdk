@@ -996,7 +996,7 @@ RTE_LOG_REGISTER_DEFAULT(mlx5_vdpa_logtype, NOTICE)
 /**
  * Driver initialization routine.
  */
-RTE_INIT(rte_mlx5_vdpa_init)
+RTE_INIT_DEFERRED(rte_mlx5_vdpa_init)
 {
 	mlx5_common_init();
 	if (mlx5_glue)

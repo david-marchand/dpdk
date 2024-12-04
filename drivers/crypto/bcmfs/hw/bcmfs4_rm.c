@@ -737,7 +737,7 @@ struct bcmfs_hw_queue_pair_ops bcmfs4_qp_ops = {
 	.stopq = bcmfs4_shutdown_qp,
 };
 
-RTE_INIT(bcmfs4_register_qp_ops)
+RTE_INIT_DEFERRED(bcmfs4_register_qp_ops)
 {
 	 bcmfs_hw_queue_pair_register_ops(&bcmfs4_qp_ops);
 }

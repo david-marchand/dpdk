@@ -292,7 +292,7 @@ qat_sym_crypto_cap_get_gen_lce(struct qat_cryptodev_private *internals,
 	return 0;
 }
 
-RTE_INIT(qat_sym_crypto_gen_lce_init)
+RTE_INIT_DEFERRED(qat_sym_crypto_gen_lce_init)
 {
 	qat_sym_gen_dev_ops[QAT_GEN_LCE].cryptodev_ops = &qat_sym_crypto_ops_gen1;
 	qat_sym_gen_dev_ops[QAT_GEN_LCE].get_capabilities = qat_sym_crypto_cap_get_gen_lce;
@@ -301,7 +301,7 @@ RTE_INIT(qat_sym_crypto_gen_lce_init)
 	qat_sym_gen_dev_ops[QAT_GEN_LCE].get_feature_flags = qat_sym_crypto_feature_flags_get_gen1;
 }
 
-RTE_INIT(qat_asym_crypto_gen_lce_init)
+RTE_INIT_DEFERRED(qat_asym_crypto_gen_lce_init)
 {
 	qat_asym_gen_dev_ops[QAT_GEN_LCE].cryptodev_ops = NULL;
 	qat_asym_gen_dev_ops[QAT_GEN_LCE].get_capabilities = NULL;

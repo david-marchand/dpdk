@@ -37,7 +37,7 @@ static struct qat_dev_hw_spec_funcs qat_dev_hw_spec_gen2 = {
 	.qat_dev_get_slice_map = qat_dev_get_slice_map_gen2,
 };
 
-RTE_INIT(qat_dev_gen_gen2_init)
+RTE_INIT_DEFERRED(qat_dev_gen_gen2_init)
 {
 	qat_qp_hw_spec[QAT_GEN2] = &qat_qp_hw_spec_gen2;
 	qat_dev_hw_spec[QAT_GEN2] = &qat_dev_hw_spec_gen2;

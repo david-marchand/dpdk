@@ -419,7 +419,7 @@ RTE_PMD_REGISTER_CRYPTO_DRIVER(qat_crypto_drv,
 		cryptodev_qat_sym_driver,
 		qat_sym_driver_id);
 
-RTE_INIT(qat_sym_init)
+RTE_INIT_DEFERRED(qat_sym_init)
 {
 	qat_cmdline_defines[QAT_SERVICE_SYMMETRIC] = arguments;
 	qat_service[QAT_SERVICE_SYMMETRIC].name = "symmetric crypto";

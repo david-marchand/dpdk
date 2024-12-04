@@ -90,7 +90,7 @@ ethdev_tel_handle_info(const char *cmd __rte_unused,
 	return 0;
 }
 
-RTE_INIT(cnxk_ethdev_init_telemetry)
+RTE_INIT_DEFERRED(cnxk_ethdev_init_telemetry)
 {
 	rte_telemetry_register_cmd("/cnxk/ethdev/info", ethdev_tel_handle_info,
 				   "Returns ethdev device information");

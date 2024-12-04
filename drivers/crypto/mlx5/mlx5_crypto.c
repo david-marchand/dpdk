@@ -498,7 +498,7 @@ static struct mlx5_class_driver mlx5_crypto_driver = {
 	.remove = mlx5_crypto_dev_remove,
 };
 
-RTE_INIT(rte_mlx5_crypto_init)
+RTE_INIT_DEFERRED(rte_mlx5_crypto_init)
 {
 	pthread_mutex_init(&priv_list_lock, NULL);
 	mlx5_common_init();
