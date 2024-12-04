@@ -548,6 +548,8 @@ rte_eal_init(int argc, char **argv)
 	bool has_phys_addr;
 	enum rte_iova_mode iova_mode;
 
+	rte_eal_init_call_deferred();
+
 	/* setup log as early as possible */
 	if (eal_parse_log_options(argc, argv) < 0) {
 		rte_eal_init_alert("invalid log arguments.");

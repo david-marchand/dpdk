@@ -927,6 +927,8 @@ rte_eal_init(int argc, char **argv)
 	struct internal_config *internal_conf =
 		eal_get_internal_configuration();
 
+	rte_eal_init_call_deferred();
+
 	/* setup log as early as possible */
 	if (eal_parse_log_options(argc, argv) < 0) {
 		rte_eal_init_alert("invalid log arguments.");

@@ -15,6 +15,7 @@ sources += files(
         'eal_common_errno.c',
         'eal_common_fbarray.c',
         'eal_common_hexdump.c',
+        'eal_common_init.c',
         'eal_common_interrupts.c',
         'eal_common_launch.c',
         'eal_common_lcore.c',

@@ -73,6 +73,12 @@ struct rte_config {
 struct rte_config *rte_eal_get_configuration(void);
 
 /**
+ * Helper called at the very start of rte_eal_init().
+ * This helper calls all registered deferred init callbacks.
+ */
+void rte_eal_init_call_deferred(void);
+
+/**
  * Initialize the memzone subsystem (private to eal).
  *
  * @return

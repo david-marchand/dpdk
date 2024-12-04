@@ -16,8 +16,10 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdalign.h>
+#include <sys/queue.h>
 
 #include <rte_config.h>
+#include <rte_compat.h>
 
 /* OS specific include */
 #include <rte_os.h>
@@ -315,6 +317,42 @@ typedef int(__cdecl *_PIFV)(void);
  */
 #define RTE_INIT(func) \
 	RTE_INIT_PRIO(func, LAST)
+
+struct rte_init_deferred {
+	TAILQ_ENTRY(rte_init_deferred) next;
+	unsigned int priority;
+	void (*callback)(void);
+};
+
+/**
+ * @warning
+ * @b EXPERIMENTAL: this API may change without prior notice.
+ *
+ * Register an initialisation callback that will be invoked at the very start of rte_eal_init.
+ *
+ * @param i
+ *   A deferred init object (see RTE_INIT_DEFERRED).
+ */
+__rte_experimental
+void
+rte_init_deferred_register(struct rte_init_deferred *i);
+
+/**
+ * Run function at the very start of rte_eal_init().
+ *
+ * @param func
+ *   Callback function to be called.
+ */
+#define RTE_INIT_DEFERRED(func) \
+static void func(void); \
+static struct rte_init_deferred init_deferred_obj_ ## func; \
+RTE_INIT(init_deferred_ ## func) \
+{ \
+	struct rte_init_deferred *i = &init_deferred_obj_ ## func; \
+	i->callback = func; \
+	rte_init_deferred_register(i); \
+} \
+static void func(void)
 
 /**
  * Run after main() with low priority.
