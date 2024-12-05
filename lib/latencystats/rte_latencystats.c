@@ -3,6 +3,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 
 #include <rte_string_fns.h>
 #include <rte_mbuf_dyn.h>
@@ -60,8 +61,10 @@ struct rxtx_cbs {
 	const struct rte_eth_rxtx_callback *cb;
 };
 
-static struct rxtx_cbs rx_cbs[RTE_MAX_ETHPORTS][RTE_MAX_QUEUES_PER_PORT];
-static struct rxtx_cbs tx_cbs[RTE_MAX_ETHPORTS][RTE_MAX_QUEUES_PER_PORT];
+static struct rxtx_cbs **rx_cbs;
+static unsigned int rx_cbs_count;
+static struct rxtx_cbs **tx_cbs;
+static unsigned int tx_cbs_count;
 
 struct latency_stats_nameoff {
 	char name[RTE_ETH_XSTATS_NAME_SIZE];
@@ -273,6 +276,31 @@ rte_latencystats_init(uint64_t app_samp_intvl,
 			continue;
 		}
 
+		if (pid >= rx_cbs_count) {
+			typeof(rx_cbs) new_rx_cbs;
+			uint16_t p;
+
+			new_rx_cbs = realloc(rx_cbs, sizeof(*rx_cbs) * (pid + 1));
+			if (new_rx_cbs == NULL) {
+				LATENCY_STATS_LOG(ERR,
+					"Failed to allocate object for rx callback on port=%d",
+					pid);
+				continue;
+			}
+			rx_cbs = new_rx_cbs;
+			for (p = rx_cbs_count; p < pid + 1; p++)
+				rx_cbs[p] = NULL;
+			rx_cbs_count = pid + 1;
+		}
+		if (rx_cbs[pid] == NULL)
+			rx_cbs[pid] = calloc(RTE_MAX_QUEUES_PER_PORT, sizeof(rx_cbs[pid][0]));
+		if (rx_cbs[pid] == NULL) {
+			LATENCY_STATS_LOG(ERR,
+				"Failed to allocate object for rx callback on port=%d",
+				pid);
+			continue;
+		}
+
 		for (qid = 0; qid < dev_info.nb_rx_queues; qid++) {
 			cbs = &rx_cbs[pid][qid];
 			cbs->cb = rte_eth_add_first_rx_callback(pid, qid,
@@ -282,6 +310,32 @@ rte_latencystats_init(uint64_t app_samp_intvl,
 					"register Rx callback for pid=%d, "
 					"qid=%d", pid, qid);
 		}
+
+		if (pid >= tx_cbs_count) {
+			typeof(tx_cbs) new_tx_cbs;
+			uint16_t p;
+
+			new_tx_cbs = realloc(tx_cbs, sizeof(*tx_cbs) * (pid + 1));
+			if (new_tx_cbs == NULL) {
+				LATENCY_STATS_LOG(ERR,
+					"Failed to allocate object for tx callback on port=%d",
+					pid);
+				continue;
+			}
+			tx_cbs = new_tx_cbs;
+			for (p = tx_cbs_count; p < pid + 1; p++)
+				tx_cbs[p] = NULL;
+			tx_cbs_count = pid + 1;
+		}
+		if (tx_cbs[pid] == NULL)
+			tx_cbs[pid] = calloc(RTE_MAX_QUEUES_PER_PORT, sizeof(tx_cbs[pid][0]));
+		if (tx_cbs[pid] == NULL) {
+			LATENCY_STATS_LOG(ERR,
+				"Failed to allocate object for tx callback on port=%d",
+				pid);
+			continue;
+		}
+
 		for (qid = 0; qid < dev_info.nb_tx_queues; qid++) {
 			cbs = &tx_cbs[pid][qid];
 			cbs->cb =  rte_eth_add_tx_callback(pid, qid,
@@ -317,6 +371,8 @@ rte_latencystats_uninit(void)
 			continue;
 		}
 
+		if (rx_cbs == NULL || rx_cbs[pid] == NULL)
+			goto skip_rx_callbacks;
 		for (qid = 0; qid < dev_info.nb_rx_queues; qid++) {
 			cbs = &rx_cbs[pid][qid];
 			ret = rte_eth_remove_rx_callback(pid, qid, cbs->cb);
@@ -325,14 +381,26 @@ rte_latencystats_uninit(void)
 					"remove Rx callback for pid=%d, "
 					"qid=%d", pid, qid);
 		}
+		free(rx_cbs[pid]);
+		rx_cbs[pid] = NULL;
+
+skip_rx_callbacks:
+		if (tx_cbs == NULL || tx_cbs[pid] == NULL)
+			continue;
 		for (qid = 0; qid < dev_info.nb_tx_queues; qid++) {
+			if (tx_cbs == NULL || tx_cbs[pid] == NULL)
+				continue;
 			cbs = &tx_cbs[pid][qid];
 			ret = rte_eth_remove_tx_callback(pid, qid, cbs->cb);
 			if (ret)
 				LATENCY_STATS_LOG(INFO, "failed to "
 					"remove Tx callback for pid=%d, "
 					"qid=%d", pid, qid);
+			free(tx_cbs[pid]);
+			tx_cbs[pid] = NULL;
 		}
+		free(rx_cbs[pid]);
+		rx_cbs[pid] = NULL;
 	}
 
 	/* free up the memzone */
