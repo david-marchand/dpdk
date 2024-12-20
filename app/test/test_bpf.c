@@ -2711,7 +2711,9 @@ test_ld_mbuf1(const struct rte_mbuf *pkt)
 	if (p32 == NULL)
 		return 0;
 
-	v += rte_be_to_cpu_32(p32[0]);
+	/* depending on packet length, p32 may be misaligned */
+	memcpy(&dof.u32, p32, sizeof(dof.u32));
+	v += rte_be_to_cpu_32(dof.u32);
 
 	/* load 2 bytes from the middle of IP data */
 	p16 = rte_pktmbuf_read(pkt, n / 2, sizeof(*p16), &dof);
