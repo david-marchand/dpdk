@@ -448,7 +448,7 @@ static __rte_always_inline void
 vhost_async_shadow_enqueue_packed_batch(struct vhost_virtqueue *vq,
 				 uint64_t *lens,
 				 uint16_t *ids)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 {
 	uint16_t i;
 	struct vhost_async *async = vq->async;
@@ -627,7 +627,7 @@ vhost_async_shadow_enqueue_packed(struct vhost_virtqueue *vq,
 				   uint16_t *id,
 				   uint16_t *count,
 				   uint16_t num_buffers)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 {
 	uint16_t i;
 	struct vhost_async *async = vq->async;
@@ -1814,7 +1814,7 @@ store_dma_desc_info_split(struct vring_used_elem *s_ring, struct vring_used_elem
 static __rte_noinline uint32_t
 virtio_dev_rx_async_submit_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		struct rte_mbuf **pkts, uint32_t count, struct async_dma_context *dma_ctx)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 	__rte_shared_locks_required(&vq->iotlb_lock)
 {
 	struct buf_vector buf_vec[BUF_VECTOR_MAX];
@@ -1925,7 +1925,7 @@ vhost_enqueue_async_packed(struct virtio_net *dev,
 			    struct buf_vector *buf_vec,
 			    uint16_t *nr_descs,
 			    uint16_t *nr_buffers)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 	__rte_shared_locks_required(&vq->iotlb_lock)
 {
 	uint16_t nr_vec = 0;
@@ -1985,7 +1985,7 @@ vhost_enqueue_async_packed(struct virtio_net *dev,
 static __rte_always_inline int16_t
 virtio_dev_rx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			    struct rte_mbuf *pkt, uint16_t *nr_descs, uint16_t *nr_buffers)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 	__rte_shared_locks_required(&vq->iotlb_lock)
 {
 	struct buf_vector buf_vec[BUF_VECTOR_MAX];
@@ -2009,7 +2009,7 @@ virtio_dev_rx_async_packed_batch_enqueue(struct virtio_net *dev,
 			   struct rte_mbuf **pkts,
 			   uint64_t *desc_addrs,
 			   uint64_t *lens)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 	__rte_shared_locks_required(&vq->iotlb_lock)
 {
 	uint32_t buf_offset = sizeof(struct virtio_net_hdr_mrg_rxbuf);
@@ -2069,7 +2069,7 @@ virtio_dev_rx_async_packed_batch_enqueue(struct virtio_net *dev,
 static __rte_always_inline int
 virtio_dev_rx_async_packed_batch(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		struct rte_mbuf **pkts, struct async_dma_context *dma_ctx)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 	__rte_shared_locks_required(&vq->iotlb_lock)
 {
 	uint64_t desc_addrs[PACKED_BATCH_SIZE];
@@ -2086,7 +2086,7 @@ virtio_dev_rx_async_packed_batch(struct virtio_net *dev, struct vhost_virtqueue 
 static __rte_always_inline void
 dma_error_handler_packed(struct vhost_virtqueue *vq, uint16_t slot_idx,
 			uint32_t nr_err, uint32_t *pkt_idx)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 {
 	uint16_t descs_err = 0;
 	uint16_t buffers_err = 0;
@@ -2118,7 +2118,7 @@ dma_error_handler_packed(struct vhost_virtqueue *vq, uint16_t slot_idx,
 static __rte_noinline uint32_t
 virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		struct rte_mbuf **pkts, uint32_t count, struct async_dma_context *dma_ctx)
-	__rte_exclusive_locks_required(&vq->access_lock)
+	__rte_shared_locks_required(&vq->access_lock)
 	__rte_shared_locks_required(&vq->iotlb_lock)
 {
 	uint32_t pkt_idx = 0;
@@ -2466,7 +2466,7 @@ virtio_dev_rx_async_submit(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 	VHOST_DATA_LOG(dev->ifname, DEBUG, "%s", __func__);
 
-	rte_rwlock_write_lock(&vq->access_lock);
+	rte_rwlock_read_lock(&vq->access_lock);
 
 	if (unlikely(!vq->enabled || !vq->async))
 		goto out_access_unlock;
@@ -2475,7 +2475,7 @@ virtio_dev_rx_async_submit(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 	if (unlikely(!vq->access_ok)) {
 		vhost_user_iotlb_rd_unlock(vq);
-		rte_rwlock_write_unlock(&vq->access_lock);
+		rte_rwlock_read_unlock(&vq->access_lock);
 
 		virtio_dev_vring_translate(dev, vq);
 		goto out_no_unlock;
@@ -2496,7 +2496,7 @@ out:
 	vhost_user_iotlb_rd_unlock(vq);
 
 out_access_unlock:
-	rte_rwlock_write_unlock(&vq->access_lock);
+	rte_rwlock_read_unlock(&vq->access_lock);
 
 out_no_unlock:
 	return nb_tx;
