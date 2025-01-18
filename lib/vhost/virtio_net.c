@@ -3263,112 +3263,6 @@ virtio_dev_tx_packed_compliant(struct virtio_net *dev,
 	return virtio_dev_tx_packed(dev, vq, mbuf_pool, pkts, count, false);
 }
 
-RTE_EXPORT_SYMBOL(rte_vhost_dequeue_burst)
-uint16_t
-rte_vhost_dequeue_burst(int vid, uint16_t queue_id,
-	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count)
-{
-	struct virtio_net *dev;
-	struct vhost_virtqueue *vq;
-	int16_t success = 1;
-	uint16_t nb_rx = 0;
-
-	dev = get_device(vid);
-	if (!dev)
-		return 0;
-
-	if (unlikely(!(dev->flags & VIRTIO_DEV_BUILTIN_VIRTIO_NET))) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: built-in vhost net backend is disabled.",
-			__func__);
-		goto out_no_unlock;
-	}
-
-	if (unlikely(!is_valid_virt_queue_idx(queue_id, 1, dev->nr_vring))) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid virtqueue idx %d.",
-			__func__, queue_id);
-		goto out_no_unlock;
-	}
-
-	vq = dev->virtqueue[queue_id];
-
-	if (unlikely(rte_rwlock_read_trylock(&vq->access_lock) != 0))
-		goto out_no_unlock;
-
-	if (unlikely(!vq->enabled))
-		goto out_access_unlock;
-
-	vhost_user_iotlb_rd_lock(vq);
-
-	if (unlikely(!vq->access_ok)) {
-		vhost_user_iotlb_rd_unlock(vq);
-		rte_rwlock_read_unlock(&vq->access_lock);
-
-		virtio_dev_vring_translate(dev, vq);
-
-		goto out_no_unlock;
-	}
-
-	/*
-	 * Construct a RARP broadcast packet, and inject it to the "pkts"
-	 * array, to looks like that guest actually send such packet.
-	 *
-	 * Check user_send_rarp() for more information.
-	 *
-	 * broadcast_rarp shares a cacheline in the virtio_net structure
-	 * with some fields that are accessed during enqueue and
-	 * rte_atomic_compare_exchange_strong_explicit causes a write if performed compare
-	 * and exchange. This could result in false sharing between enqueue
-	 * and dequeue.
-	 *
-	 * Prevent unnecessary false sharing by reading broadcast_rarp first
-	 * and only performing compare and exchange if the read indicates it
-	 * is likely to be set.
-	 */
-	if (unlikely(rte_atomic_load_explicit(&dev->broadcast_rarp, rte_memory_order_acquire) &&
-			rte_atomic_compare_exchange_strong_explicit(&dev->broadcast_rarp,
-			&success, 0, rte_memory_order_release, rte_memory_order_relaxed))) {
-		/*
-		 * Inject the RARP packet to the head of "pkts" array,
-		 * so that switch's mac learning table will get updated first.
-		 */
-		pkts[nb_rx] = rte_net_make_rarp_packet(mbuf_pool, &dev->mac);
-		if (pkts[nb_rx] == NULL) {
-			VHOST_DATA_LOG(dev->ifname, ERR, "failed to make RARP packet.");
-			goto out;
-		}
-		nb_rx += 1;
-	}
-
-	if (vq_is_packed(dev)) {
-		if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
-			nb_rx += virtio_dev_tx_packed_legacy(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx);
-		else
-			nb_rx += virtio_dev_tx_packed_compliant(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx);
-	} else {
-		if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
-			nb_rx += virtio_dev_tx_split_legacy(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx);
-		else
-			nb_rx += virtio_dev_tx_split_compliant(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx);
-	}
-
-	vhost_queue_stats_update(dev, vq, pkts, nb_rx);
-
-out:
-	vhost_user_iotlb_rd_unlock(vq);
-
-out_access_unlock:
-	rte_rwlock_read_unlock(&vq->access_lock);
-
-out_no_unlock:
-	return nb_rx;
-}
-
 static __rte_always_inline uint16_t
 async_poll_dequeue_completed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		struct rte_mbuf **pkts, uint16_t count, struct async_dma_context *dma_ctx,
@@ -3801,44 +3695,14 @@ virtio_dev_tx_async_packed_compliant(struct virtio_net *dev, struct vhost_virtqu
 	return virtio_dev_tx_async_packed(dev, vq, mbuf_pool, pkts, count, dma_ctx, false);
 }
 
-RTE_EXPORT_EXPERIMENTAL_SYMBOL(rte_vhost_async_try_dequeue_burst, 22.07)
-uint16_t
-rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
-	struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
-	int *nr_inflight, int16_t dma_id, uint16_t vchan_id)
+__rte_always_inline
+static uint16_t
+virtio_dev_tx(struct virtio_net *dev, struct vhost_virtqueue *vq,
+		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+		int *nr_inflight, struct async_dma_context *dma_ctx)
 {
-	struct async_dma_context dma_ctx;
-	struct virtio_net *dev;
-	struct vhost_virtqueue *vq;
 	int16_t success = 1;
 	uint16_t nb_rx = 0;
-
-	dev = get_device(vid);
-	if (!dev || !nr_inflight)
-		goto out_no_unlock;
-
-	*nr_inflight = -1;
-
-	if (unlikely(!(dev->flags & VIRTIO_DEV_BUILTIN_VIRTIO_NET))) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: built-in vhost net backend is disabled.",
-			__func__);
-		goto out_no_unlock;
-	}
-
-	if (unlikely(!is_valid_virt_queue_idx(queue_id, 1, dev->nr_vring))) {
-		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid virtqueue idx %d.",
-			__func__, queue_id);
-		goto out_no_unlock;
-	}
-
-	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
-		VHOST_DATA_LOG(dev->ifname, ERR,
-			"%s: invalid dma id %d or channel %u.",
-			__func__, dma_id, vchan_id);
-		goto out_no_unlock;
-	}
-
-	vq = dev->virtqueue[queue_id];
 
 	if (unlikely(rte_rwlock_read_trylock(&vq->access_lock) != 0))
 		goto out_no_unlock;
@@ -3846,9 +3710,9 @@ rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
 	if (unlikely(vq->enabled == 0))
 		goto out_access_unlock;
 
-	if (unlikely(!vq->async)) {
+	if (dma_ctx != NULL && unlikely(!vq->async)) {
 		VHOST_DATA_LOG(dev->ifname, ERR, "%s: async not registered for queue id %d.",
-			__func__, queue_id);
+			__func__, vq->index);
 		goto out_access_unlock;
 	}
 
@@ -3893,23 +3757,42 @@ rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
 		nb_rx += 1;
 	}
 
-	if (vq_is_packed(dev)) {
-		if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
-			nb_rx += virtio_dev_tx_async_packed_legacy(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx, &dma_ctx);
-		else
-			nb_rx += virtio_dev_tx_async_packed_compliant(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx, &dma_ctx);
+	if (dma_ctx == NULL) {
+		if (vq_is_packed(dev)) {
+			if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
+				nb_rx += virtio_dev_tx_packed_legacy(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx);
+			else
+				nb_rx += virtio_dev_tx_packed_compliant(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx);
+		} else {
+			if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
+				nb_rx += virtio_dev_tx_split_legacy(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx);
+			else
+				nb_rx += virtio_dev_tx_split_compliant(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx);
+		}
 	} else {
-		if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
-			nb_rx += virtio_dev_tx_async_split_legacy(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx, &dma_ctx);
-		else
-			nb_rx += virtio_dev_tx_async_split_compliant(dev, vq, mbuf_pool,
-					pkts + nb_rx, count - nb_rx, &dma_ctx);
+		if (vq_is_packed(dev)) {
+			if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
+				nb_rx += virtio_dev_tx_async_packed_legacy(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx, dma_ctx);
+			else
+				nb_rx += virtio_dev_tx_async_packed_compliant(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx, dma_ctx);
+		} else {
+			if (dev->flags & VIRTIO_DEV_LEGACY_OL_FLAGS)
+				nb_rx += virtio_dev_tx_async_split_legacy(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx, dma_ctx);
+			else
+				nb_rx += virtio_dev_tx_async_split_compliant(dev, vq, mbuf_pool,
+						pkts + nb_rx, count - nb_rx, dma_ctx);
+		}
+
+		*nr_inflight = vq->async->pkts_inflight_n;
 	}
 
-	*nr_inflight = vq->async->pkts_inflight_n;
 	vhost_queue_stats_update(dev, vq, pkts, nb_rx);
 
 out:
@@ -3920,4 +3803,67 @@ out_access_unlock:
 
 out_no_unlock:
 	return nb_rx;
+}
+
+RTE_EXPORT_SYMBOL(rte_vhost_dequeue_burst)
+uint16_t
+rte_vhost_dequeue_burst(int vid, uint16_t queue_id,
+		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count)
+{
+	struct virtio_net *dev;
+
+	dev = get_device(vid);
+	if (!dev)
+		return 0;
+
+	if (unlikely(!(dev->flags & VIRTIO_DEV_BUILTIN_VIRTIO_NET))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: built-in vhost net backend is disabled.",
+			__func__);
+		return 0;
+	}
+
+	if (unlikely(!is_valid_virt_queue_idx(queue_id, 1, dev->nr_vring))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid virtqueue idx %d.",
+			__func__, queue_id);
+		return 0;
+	}
+
+	return virtio_dev_tx(dev, dev->virtqueue[queue_id], mbuf_pool, pkts, count, NULL, NULL);
+}
+
+uint16_t
+RTE_EXPORT_EXPERIMENTAL_SYMBOL(rte_vhost_async_try_dequeue_burst, 22.07)
+rte_vhost_async_try_dequeue_burst(int vid, uint16_t queue_id,
+		struct rte_mempool *mbuf_pool, struct rte_mbuf **pkts, uint16_t count,
+		int *nr_inflight, int16_t dma_id, uint16_t vchan_id)
+{
+	struct async_dma_context dma_ctx;
+	struct virtio_net *dev;
+
+	dev = get_device(vid);
+	if (!dev || !nr_inflight)
+		return 0;
+
+	*nr_inflight = -1;
+
+	if (unlikely(!(dev->flags & VIRTIO_DEV_BUILTIN_VIRTIO_NET))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: built-in vhost net backend is disabled.",
+			__func__);
+		return 0;
+	}
+
+	if (unlikely(!is_valid_virt_queue_idx(queue_id, 1, dev->nr_vring))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid virtqueue idx %d.",
+			__func__, queue_id);
+		return 0;
+	}
+
+	if (unlikely(!init_dma_context(&dma_ctx, dma_id, vchan_id))) {
+		VHOST_DATA_LOG(dev->ifname, ERR, "%s: invalid dma id %d or channel %u.",
+			__func__, dma_id, vchan_id);
+		return 0;
+	}
+
+	return virtio_dev_tx(dev, dev->virtqueue[queue_id], mbuf_pool, pkts, count, nr_inflight,
+			&dma_ctx);
 }
