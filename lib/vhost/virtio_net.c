@@ -3693,11 +3693,9 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
 	static bool allocerr_warned;
-	bool dropped = false;
 	uint16_t avail_entries;
 	uint16_t pkt_idx, slot_idx = 0;
 	uint16_t nr_done_pkts = 0;
-	uint16_t pkt_err = 0;
 	uint16_t n_xfer;
 	struct vhost_async *async = vq->async;
 	struct rte_mbuf *pkts_prealloc[MAX_PKT_BURST];
@@ -3735,18 +3733,12 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		uint32_t buf_len;
 		uint16_t to;
 
-		if (unlikely(fill_vec_buf_split(dev, vq, vq->last_avail_idx,
-						&nr_vec, buf_vec,
-						&head_idx, &buf_len,
-						VHOST_ACCESS_RO) < 0)) {
-			dropped = true;
+		if (unlikely(fill_vec_buf_split(dev, vq, vq->last_avail_idx + pkt_idx,
+				&nr_vec, buf_vec, &head_idx, &buf_len, VHOST_ACCESS_RO) < 0))
 			break;
-		}
 
-		if (unlikely(buf_len <= dev->vhost_hlen)) {
-			dropped = true;
+		if (unlikely(buf_len <= dev->vhost_hlen))
 			break;
-		}
 
 		buf_len -= dev->vhost_hlen;
 
@@ -3762,7 +3754,6 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 					__func__, buf_len, mbuf_pool->name);
 				allocerr_warned = true;
 			}
-			dropped = true;
 			slot_idx--;
 			break;
 		}
@@ -3776,7 +3767,6 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 					__func__);
 				allocerr_warned = true;
 			}
-			dropped = true;
 			slot_idx--;
 			break;
 		}
@@ -3790,43 +3780,33 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		async->descs_split[to].id = head_idx;
 		async->descs_split[to].len = 0;
 		async->desc_idx_split++;
-
-		vq->last_avail_idx++;
-		vhost_virtqueue_reconnect_log_split(vq);
 	}
-
-	if (unlikely(dropped))
-		rte_pktmbuf_free_bulk(&pkts_prealloc[pkt_idx], count - pkt_idx);
 
 	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
 			async->iov_iter, pkt_idx);
 
-	async->pkts_inflight_n += n_xfer;
-
-	pkt_err = pkt_idx - n_xfer;
-	if (unlikely(pkt_err)) {
+	if (unlikely(pkt_idx != n_xfer)) {
 		VHOST_DATA_LOG(dev->ifname, DEBUG, "%s: failed to transfer data.",
 			__func__);
-
-		pkt_idx = n_xfer;
-		/* recover available ring */
-		vq->last_avail_idx -= pkt_err;
-		vhost_virtqueue_reconnect_log_split(vq);
 
 		/**
 		 * recover async channel copy related structures and free pktmbufs
 		 * for error pkts.
 		 */
-		async->desc_idx_split -= pkt_err;
-		while (pkt_err-- > 0) {
-			rte_pktmbuf_free(async->pkts_info[slot_idx & (vq->size - 1)].mbuf);
-			slot_idx--;
-		}
+		async->desc_idx_split -= pkt_idx - n_xfer;
+		pkt_idx = n_xfer;
 	}
 
+	vq->last_avail_idx += pkt_idx;
+	vhost_virtqueue_reconnect_log_split(vq);
+
+	async->pkts_inflight_n += pkt_idx;
 	async->pkts_idx += pkt_idx;
 	if (async->pkts_idx >= vq->size)
 		async->pkts_idx -= vq->size;
+
+	if (unlikely(pkt_idx != count))
+		rte_pktmbuf_free_bulk(&pkts_prealloc[pkt_idx], count - pkt_idx);
 
 out:
 	/* DMA device may serve other queues, unconditionally check completed. */
@@ -3918,7 +3898,6 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue
 
 	hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
 	if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts, mbuf_pool, true))) {
-		rte_pktmbuf_free(pkts);
 		if (!allocerr_warned) {
 			VHOST_DATA_LOG(dev->ifname, ERR, "Failed to copy desc to mbuf on.");
 			allocerr_warned = true;
@@ -4006,7 +3985,6 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	uint32_t pkt_idx = 0;
 	uint16_t slot_idx = 0;
 	uint16_t nr_done_pkts = 0;
-	uint16_t pkt_err = 0;
 	uint32_t n_xfer;
 	uint16_t i;
 	struct vhost_async *async = vq->async;
@@ -4023,8 +4001,6 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	}
 
 	do {
-		struct rte_mbuf *pkt = pkts_prealloc[pkt_idx];
-
 		rte_prefetch0(&vq->desc_packed[vq->last_avail_idx]);
 
 		slot_idx = (async->pkts_idx + pkt_idx) % vq->size;
@@ -4042,10 +4018,8 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			}
 		}
 
-		if (unlikely(virtio_dev_tx_async_single_packed(dev, vq, mbuf_pool, pkt,
-				slot_idx))) {
-			rte_pktmbuf_free_bulk(&pkts_prealloc[pkt_idx], count - pkt_idx);
-
+		if (unlikely(virtio_dev_tx_async_single_packed(dev, vq, mbuf_pool,
+				pkts_prealloc[pkt_idx], slot_idx))) {
 			if (slot_idx == 0)
 				slot_idx = vq->size - 1;
 			else
@@ -4060,14 +4034,11 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
 			async->iov_iter, pkt_idx);
 
-	async->pkts_inflight_n += n_xfer;
-
-	pkt_err = pkt_idx - n_xfer;
-
-	if (unlikely(pkt_err)) {
+	if (unlikely(pkt_idx != n_xfer)) {
+		uint16_t pkt_err = pkt_idx - n_xfer;
 		uint16_t descs_err = 0;
 
-		pkt_idx -= pkt_err;
+		pkt_idx = n_xfer;
 
 		/**
 		 * recover DMA-copy related structures and free pktmbuf for DMA-error pkts.
@@ -4078,7 +4049,6 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			async->buffer_idx_packed += vq->size - pkt_err;
 
 		while (pkt_err-- > 0) {
-			rte_pktmbuf_free(pkts_info[slot_idx].mbuf);
 			descs_err += pkts_info[slot_idx].descs;
 
 			if (slot_idx == 0)
@@ -4097,9 +4067,13 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		vhost_virtqueue_reconnect_log_packed(vq);
 	}
 
+	async->pkts_inflight_n += pkt_idx;
 	async->pkts_idx += pkt_idx;
 	if (async->pkts_idx >= vq->size)
 		async->pkts_idx -= vq->size;
+
+	if (unlikely(pkt_idx != count))
+		rte_pktmbuf_free_bulk(&pkts_prealloc[pkt_idx], count - pkt_idx);
 
 out:
 	nr_done_pkts = async_poll_dequeue_completed(dev, vq, pkts, count, dma_ctx,
