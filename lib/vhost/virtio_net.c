@@ -2833,11 +2833,33 @@ copy_vnet_hdr_from_desc(struct virtio_net_hdr *hdr,
 	}
 }
 
+static __rte_always_inline struct virtio_net_hdr *
+desc_extract_hdr(struct virtio_net *dev, struct buf_vector *buf_vec, struct virtio_net_hdr *hdr)
+{
+	if (!virtio_net_with_host_offload(dev))
+		return NULL;
+
+	/*
+	 * The caller has checked the descriptors chain is larger than the
+	 * header size.
+	 */
+	if (unlikely(buf_vec[0].buf_len < sizeof(struct virtio_net_hdr))) {
+		/*
+		 * No luck, the virtio-net header doesn't fit
+		 * in a contiguous virtual area.
+		 */
+		copy_vnet_hdr_from_desc(hdr, buf_vec);
+		return hdr;
+	}
+
+	return (struct virtio_net_hdr *)((uintptr_t)buf_vec[0].buf_addr);
+}
+
 static __rte_always_inline int
 desc_to_mbuf(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		  struct buf_vector *buf_vec, uint16_t nr_vec,
 		  struct rte_mbuf *m, struct rte_mempool *mbuf_pool,
-		  bool legacy_ol_flags, uint16_t slot_idx, bool is_async)
+		  bool is_async)
 	__rte_requires_shared_capability(&vq->access_lock)
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
@@ -2847,29 +2869,11 @@ desc_to_mbuf(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	uint32_t hdr_remain = dev->vhost_hlen;
 	uint32_t cpy_len;
 	struct rte_mbuf *cur = m, *prev = m;
-	struct virtio_net_hdr tmp_hdr;
-	struct virtio_net_hdr *hdr = NULL;
 	uint16_t vec_idx;
 	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info;
+	bool has_hdr;
 
-	/*
-	 * The caller has checked the descriptors chain is larger than the
-	 * header size.
-	 */
-
-	if (virtio_net_with_host_offload(dev)) {
-		if (unlikely(buf_vec[0].buf_len < sizeof(struct virtio_net_hdr))) {
-			/*
-			 * No luck, the virtio-net header doesn't fit
-			 * in a contiguous virtual area.
-			 */
-			copy_vnet_hdr_from_desc(&tmp_hdr, buf_vec);
-			hdr = &tmp_hdr;
-		} else {
-			hdr = (struct virtio_net_hdr *)((uintptr_t)buf_vec[0].buf_addr);
-		}
-	}
+	has_hdr = virtio_net_with_host_offload(dev);
 
 	for (vec_idx = 0; vec_idx < nr_vec; vec_idx++) {
 		if (buf_vec[vec_idx].buf_len > hdr_remain)
@@ -2892,7 +2896,6 @@ desc_to_mbuf(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	mbuf_avail  = m->buf_len - RTE_PKTMBUF_HEADROOM;
 
 	if (is_async) {
-		pkts_info = async->pkts_info;
 		if (async_iter_initialize(dev, async))
 			return -1;
 	}
@@ -2904,7 +2907,7 @@ desc_to_mbuf(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			if (async_fill_seg(dev, vq, cur, mbuf_offset,
 					   buf_iova + buf_offset, cpy_len, false) < 0)
 				goto error;
-		} else if (likely(hdr && cur == m)) {
+		} else if (likely(has_hdr && cur == m)) {
 			rte_memcpy(rte_pktmbuf_mtod_offset(cur, void *, mbuf_offset),
 				(void *)((uintptr_t)(buf_addr + buf_offset)),
 				cpy_len);
@@ -2962,13 +2965,8 @@ desc_to_mbuf(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	prev->data_len = mbuf_offset;
 	m->pkt_len    += mbuf_offset;
 
-	if (is_async) {
+	if (is_async)
 		async_iter_finalize(async);
-		if (hdr)
-			pkts_info[slot_idx].nethdr = *hdr;
-	} else if (hdr) {
-		vhost_dequeue_offload(dev, hdr, m, legacy_ol_flags);
-	}
 
 	return 0;
 error:
@@ -3077,10 +3075,11 @@ virtio_dev_tx_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 	for (i = 0; i < count; i++) {
 		struct buf_vector buf_vec[BUF_VECTOR_MAX];
+		struct virtio_net_hdr *hdr = NULL;
+		struct virtio_net_hdr tmp_hdr;
+		uint16_t nr_vec = 0;
 		uint16_t head_idx;
 		uint32_t buf_len;
-		uint16_t nr_vec = 0;
-		int err;
 
 		if (unlikely(fill_vec_buf_split(dev, vq,
 						vq->last_avail_idx + i,
@@ -3096,8 +3095,7 @@ virtio_dev_tx_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 		buf_len -= dev->vhost_hlen;
 
-		err = virtio_dev_pktmbuf_prep(dev, pkts[i], buf_len);
-		if (unlikely(err)) {
+		if (unlikely(virtio_dev_pktmbuf_prep(dev, pkts[i], buf_len))) {
 			/*
 			 * mbuf allocation fails for jumbo packets when external
 			 * buffer allocation is not allowed and linear buffer
@@ -3112,15 +3110,16 @@ virtio_dev_tx_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			break;
 		}
 
-		err = desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts[i],
-				   mbuf_pool, legacy_ol_flags, 0, false);
-		if (unlikely(err)) {
+		hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
+		if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts[i], mbuf_pool, false))) {
 			if (!allocerr_warned) {
 				VHOST_DATA_LOG(dev->ifname, ERR, "failed to copy desc to mbuf.");
 				allocerr_warned = true;
 			}
 			break;
 		}
+		if (hdr)
+			vhost_dequeue_offload(dev, hdr, pkts[i], legacy_ol_flags);
 	}
 
 	if (unlikely(count != i))
@@ -3355,9 +3354,10 @@ vhost_dequeue_single_packed(struct virtio_net *dev,
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
 	struct buf_vector buf_vec[BUF_VECTOR_MAX];
-	uint32_t buf_len;
+	struct virtio_net_hdr *hdr = NULL;
+	struct virtio_net_hdr tmp_hdr;
 	uint16_t nr_vec = 0;
-	int err;
+	uint32_t buf_len;
 	static bool allocerr_warned;
 
 	if (unlikely(fill_vec_buf_packed(dev, vq,
@@ -3382,15 +3382,16 @@ vhost_dequeue_single_packed(struct virtio_net *dev,
 		return -1;
 	}
 
-	err = desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts,
-			   mbuf_pool, legacy_ol_flags, 0, false);
-	if (unlikely(err)) {
+	hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
+	if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts, mbuf_pool, false))) {
 		if (!allocerr_warned) {
 			VHOST_DATA_LOG(dev->ifname, ERR, "failed to copy desc to mbuf.");
 			allocerr_warned = true;
 		}
 		return -1;
 	}
+	if (hdr)
+		vhost_dequeue_offload(dev, hdr, pkts, legacy_ol_flags);
 
 	return 0;
 }
@@ -3699,7 +3700,6 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	uint16_t pkt_err = 0;
 	uint16_t n_xfer;
 	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = async->pkts_info;
 	struct rte_mbuf *pkts_prealloc[MAX_PKT_BURST];
 	uint16_t pkts_size = count;
 
@@ -3726,13 +3726,14 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	}
 
 	for (pkt_idx = 0; pkt_idx < count; pkt_idx++) {
+		struct rte_mbuf *pkt = pkts_prealloc[pkt_idx];
+		struct buf_vector buf_vec[BUF_VECTOR_MAX];
+		struct virtio_net_hdr *hdr = NULL;
+		struct virtio_net_hdr tmp_hdr;
 		uint16_t head_idx = 0;
 		uint16_t nr_vec = 0;
-		uint16_t to;
 		uint32_t buf_len;
-		int err;
-		struct buf_vector buf_vec[BUF_VECTOR_MAX];
-		struct rte_mbuf *pkt = pkts_prealloc[pkt_idx];
+		uint16_t to;
 
 		if (unlikely(fill_vec_buf_split(dev, vq, vq->last_avail_idx,
 						&nr_vec, buf_vec,
@@ -3749,8 +3750,7 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 
 		buf_len -= dev->vhost_hlen;
 
-		err = virtio_dev_pktmbuf_prep(dev, pkt, buf_len);
-		if (unlikely(err)) {
+		if (unlikely(virtio_dev_pktmbuf_prep(dev, pkt, buf_len))) {
 			/**
 			 * mbuf allocation fails for jumbo packets when external
 			 * buffer allocation is not allowed and linear buffer
@@ -3768,9 +3768,8 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		}
 
 		slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
-		err = desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkt, mbuf_pool,
-					legacy_ol_flags, slot_idx, true);
-		if (unlikely(err)) {
+		hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
+		if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkt, mbuf_pool, true))) {
 			if (!allocerr_warned) {
 				VHOST_DATA_LOG(dev->ifname, ERR,
 					"%s: Failed to offload copies to async channel.",
@@ -3782,7 +3781,9 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			break;
 		}
 
-		pkts_info[slot_idx].mbuf = pkt;
+		if (hdr)
+			async->pkts_info[slot_idx].nethdr = *hdr;
+		async->pkts_info[slot_idx].mbuf = pkt;
 
 		/* store used descs */
 		to = async->desc_idx_split & (vq->size - 1);
@@ -3818,7 +3819,7 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		 */
 		async->desc_idx_split -= pkt_err;
 		while (pkt_err-- > 0) {
-			rte_pktmbuf_free(pkts_info[slot_idx & (vq->size - 1)].mbuf);
+			rte_pktmbuf_free(async->pkts_info[slot_idx & (vq->size - 1)].mbuf);
 			slot_idx--;
 		}
 	}
@@ -3876,23 +3877,19 @@ vhost_async_shadow_dequeue_single_packed(struct vhost_virtqueue *vq,
 }
 
 static __rte_always_inline int
-virtio_dev_tx_async_single_packed(struct virtio_net *dev,
-			struct vhost_virtqueue *vq,
-			struct rte_mempool *mbuf_pool,
-			struct rte_mbuf *pkts,
-			uint16_t slot_idx,
-			bool legacy_ol_flags)
+virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
+		struct rte_mempool *mbuf_pool, struct rte_mbuf *pkts, uint16_t slot_idx)
 	__rte_requires_shared_capability(&vq->access_lock)
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
-	int err;
-	uint16_t buf_id, desc_count = 0;
-	uint16_t nr_vec = 0;
-	uint32_t buf_len;
+	static bool allocerr_warned;
 	struct buf_vector buf_vec[BUF_VECTOR_MAX];
 	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = async->pkts_info;
-	static bool allocerr_warned;
+	struct virtio_net_hdr *hdr = NULL;
+	uint16_t buf_id, desc_count = 0;
+	struct virtio_net_hdr tmp_hdr;
+	uint16_t nr_vec = 0;
+	uint32_t buf_len;
 
 	if (unlikely(fill_vec_buf_packed(dev, vq, vq->last_avail_idx, &desc_count,
 					 buf_vec, &nr_vec, &buf_id, &buf_len,
@@ -3919,9 +3916,8 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev,
 		return -1;
 	}
 
-	err = desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts, mbuf_pool,
-		legacy_ol_flags, slot_idx, true);
-	if (unlikely(err)) {
+	hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
+	if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts, mbuf_pool, true))) {
 		rte_pktmbuf_free(pkts);
 		if (!allocerr_warned) {
 			VHOST_DATA_LOG(dev->ifname, ERR, "Failed to copy desc to mbuf on.");
@@ -3930,14 +3926,17 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev,
 		return -1;
 	}
 
-	pkts_info[slot_idx].descs = desc_count;
+	if (hdr)
+		async->pkts_info[slot_idx].nethdr = *hdr;
+	async->pkts_info[slot_idx].mbuf = pkts;
+	async->pkts_info[slot_idx].descs = desc_count;
 
 	/* update async shadow packed ring */
 	vhost_async_shadow_dequeue_single_packed(vq, buf_id, desc_count);
 
 	vq_inc_last_avail_packed(vq, desc_count);
 
-	return err;
+	return 0;
 }
 
 static __rte_always_inline int
@@ -4044,7 +4043,7 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		}
 
 		if (unlikely(virtio_dev_tx_async_single_packed(dev, vq, mbuf_pool, pkt,
-				slot_idx, legacy_ol_flags))) {
+				slot_idx))) {
 			rte_pktmbuf_free_bulk(&pkts_prealloc[pkt_idx], count - pkt_idx);
 
 			if (slot_idx == 0)
@@ -4055,7 +4054,6 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			break;
 		}
 
-		pkts_info[slot_idx].mbuf = pkt;
 		pkt_idx++;
 	} while (pkt_idx < count);
 
