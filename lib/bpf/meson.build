@@ -7,13 +7,7 @@ if is_windows
     subdir_done()
 endif
 
-extra_flags = ['-Wno-vla']
-
-foreach arg: extra_flags
-    if cc.has_argument(arg)
-        cflags += arg
-    endif
-endforeach
+cflags += no_vla_cflag
 
 if arch_subdir == 'x86' and dpdk_conf.get('RTE_ARCH_32')
     build = false

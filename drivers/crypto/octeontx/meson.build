@@ -27,6 +27,8 @@ sources = files(
         'otx_cryptodev_ops.c',
 )
 
+cflags += no_vla_cflag
+
 includes += include_directories('../../common/cpt')
 includes += include_directories('../../common/octeontx')
 includes += include_directories('../../event/octeontx')

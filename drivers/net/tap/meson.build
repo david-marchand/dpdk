@@ -35,3 +35,4 @@ if cc.has_header_symbol('linux/pkt_cls.h', 'TCA_FLOWER_ACT')
         sources += tap_rss_skel_h
     endif
 endif
+cflags += no_vla_cflag

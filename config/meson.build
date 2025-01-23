@@ -342,15 +342,22 @@ if cc.get_id() == 'intel'
         warning_flags += '-diag-disable=@0@'.format(i)
     endforeach
 endif
-# no VLAs in code built on Windows
-if is_windows
-    warning_flags += '-Wvla'
-endif
 foreach arg: warning_flags
     if cc.has_argument(arg)
         add_project_arguments(arg, language: 'c')
     endif
 endforeach
+
+if cc.has_argument('-Wvla')
+    add_project_arguments('-Wvla', language: 'c')
+    if not is_windows
+        no_vla_cflag = '-Wno-vla'
+    else
+        no_vla_cflag = []
+    endif
+else
+    no_vla_cflag = []
+endif
 
 # set other values pulled from the build options
 dpdk_conf.set('RTE_MAX_ETHPORTS', get_option('max_ethports'))

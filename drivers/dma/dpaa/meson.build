@@ -12,3 +12,4 @@ sources = files('dpaa_qdma.c')
 if cc.has_argument('-Wno-pointer-arith')
     cflags += '-Wno-pointer-arith'
 endif
+cflags += no_vla_cflag

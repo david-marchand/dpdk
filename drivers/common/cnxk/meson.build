@@ -116,4 +116,6 @@ if dpdk_conf.get('RTE_IOVA_IN_MBUF') == 1 and soc_type in cnxk_socs
             'Set the enable_iova_as_pa option to false to save mbuf space.')
 endif
 
+cflags += no_vla_cflag
+
 annotate_locks = false

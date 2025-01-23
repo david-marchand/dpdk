@@ -334,6 +334,7 @@ foreach flag: extra_flags
         cflags += flag
     endif
 endforeach
+cflags += no_vla_cflag
 
 headers = files('rte_pmd_cnxk.h')
 

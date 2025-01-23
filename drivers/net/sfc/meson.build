@@ -39,6 +39,7 @@ foreach flag: extra_flags
         cflags += flag
     endif
 endforeach
+cflags += no_vla_cflag
 
 # for gcc and old Clang compiles we need -latomic for 128-bit atomic ops
 atomic_check_code = '''

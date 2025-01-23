@@ -34,3 +34,4 @@ if dpdk_conf.has('RTE_HAS_OPENSSL')
     ext_deps += openssl_dep
     cflags += '-DUSE_OPENSSL'
 endif
+cflags += no_vla_cflag

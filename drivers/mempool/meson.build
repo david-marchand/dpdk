@@ -14,11 +14,3 @@ drivers = [
 std_deps = ['mempool']
 
 log_prefix = 'mempool'
-
-extra_flags = ['-Wvla']
-
-foreach arg: extra_flags
-    if cc.has_argument(arg)
-        cflags += arg
-    endif
-endforeach

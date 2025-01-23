@@ -29,3 +29,4 @@ foreach flag:app_cflags
         cflags += flag
     endif
 endforeach
+cflags += no_vla_cflag

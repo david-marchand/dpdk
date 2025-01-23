@@ -309,6 +309,7 @@ foreach flag: extra_flags
         cflags += flag
     endif
 endforeach
+cflags += no_vla_cflag
 
 headers = files('rte_pmd_cnxk_eventdev.h')
 deps += ['bus_pci', 'common_cnxk', 'net_cnxk', 'crypto_cnxk', 'dma_cnxk']

@@ -46,4 +46,5 @@ sources = files(
         'pmd_zuc.c',
 )
 deps += ['bus_vdev', 'net', 'security']
+cflags += no_vla_cflag
 require_iova_in_mbuf = false

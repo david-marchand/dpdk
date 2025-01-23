@@ -33,3 +33,4 @@ endif
 includes += include_directories('base')
 
 install_headers('rte_pmd_txgbe.h')
+cflags += no_vla_cflag

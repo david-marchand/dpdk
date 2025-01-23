@@ -23,6 +23,8 @@ foreach option:cflags_options
         endif
 endforeach
 
+cflags += no_vla_cflag
+
 headers = files('rte_pmd_bnxt.h')
 
 deps += ['hash']

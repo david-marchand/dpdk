@@ -27,3 +27,4 @@ sources = files(
 includes += include_directories('base', 'mc')
 
 headers = files('rte_pmd_dpaa2.h')
+cflags += no_vla_cflag

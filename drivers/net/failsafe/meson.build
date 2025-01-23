@@ -15,6 +15,7 @@ if is_linux
 else
     cflags += '-DBSD'
 endif
+cflags += no_vla_cflag
 
 sources = files(
         'failsafe.c',

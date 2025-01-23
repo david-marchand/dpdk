@@ -111,7 +111,7 @@ default_cflags = machine_args
 default_cflags += ['-DALLOW_EXPERIMENTAL_API']
 default_cflags += ['-DALLOW_INTERNAL_API']
 
-extra_flags = ['-Wno-format-truncation', '-Wvla']
+extra_flags = ['-Wno-format-truncation']
 
 foreach arg: extra_flags
     if cc.has_argument(arg)

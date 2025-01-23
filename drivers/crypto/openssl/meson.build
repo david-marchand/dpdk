@@ -15,4 +15,5 @@ endif
 deps += 'bus_vdev'
 sources = files('rte_openssl_pmd.c', 'rte_openssl_pmd_ops.c')
 ext_deps += dep
+cflags += no_vla_cflag
 require_iova_in_mbuf = false

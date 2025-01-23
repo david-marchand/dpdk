@@ -254,7 +254,6 @@ extra_flags = [
     # Strict-aliasing rules are violated by uint8_t[] to context size casts.
     '-fno-strict-aliasing',
     '-Wno-format-truncation',
-    '-Wno-vla',
 ]
 
 foreach arg: extra_flags
@@ -262,6 +261,8 @@ foreach arg: extra_flags
         cflags += arg
     endif
 endforeach
+
+cflags += no_vla_cflag
 
 # Enable using internal APIs in unit tests
 cflags += '-DALLOW_INTERNAL_API'

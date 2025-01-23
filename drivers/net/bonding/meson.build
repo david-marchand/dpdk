@@ -23,4 +23,5 @@ deps += ['ip_frag']
 
 headers = files('rte_eth_bond.h', 'rte_eth_bond_8023ad.h')
 
+cflags += no_vla_cflag
 require_iova_in_mbuf = false

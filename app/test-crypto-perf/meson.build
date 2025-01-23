@@ -24,10 +24,4 @@ if dpdk_conf.has('RTE_CRYPTO_SCHEDULER')
     deps += 'crypto_scheduler'
 endif
 
-extra_flags = ['-Wno-vla']
-
-foreach arg: extra_flags
-    if cc.has_argument(arg)
-        cflags += arg
-    endif
-endforeach
+cflags += no_vla_cflag

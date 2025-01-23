@@ -63,3 +63,4 @@ if arch_subdir == 'arm' and dpdk_conf.get('RTE_ARCH_64')
         objs += hns3_sve_lib.extract_objects('hns3_rxtx_vec_sve.c')
     endif
 endif
+cflags += no_vla_cflag

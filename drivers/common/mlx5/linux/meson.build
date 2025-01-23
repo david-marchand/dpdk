@@ -3,6 +3,8 @@
 
 includes += include_directories('.')
 
+cflags += no_vla_cflag
+
 static_ibverbs = (get_option('ibverbs_link') == 'static')
 dlopen_ibverbs = (get_option('ibverbs_link') == 'dlopen')
 LIB_GLUE_BASE = 'librte_common_mlx5_glue.so'

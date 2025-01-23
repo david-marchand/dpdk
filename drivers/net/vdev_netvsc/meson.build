@@ -17,3 +17,4 @@ foreach option:cflags_options
                 cflags += option
         endif
 endforeach
+cflags += no_vla_cflag

@@ -119,3 +119,4 @@ if qat_crypto
     deps += ['security']
     cflags += ['-DBUILD_QAT_SYM', '-DBUILD_QAT_ASYM']
 endif
+cflags += no_vla_cflag

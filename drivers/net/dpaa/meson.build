@@ -20,5 +20,6 @@ sources = files(
 if cc.has_argument('-Wno-pointer-arith')
     cflags += '-Wno-pointer-arith'
 endif
+cflags += no_vla_cflag
 
 headers = files('rte_pmd_dpaa.h')

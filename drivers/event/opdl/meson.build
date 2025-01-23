@@ -9,4 +9,5 @@ sources = files(
         'opdl_test.c',
 )
 deps += ['bus_vdev']
+cflags += no_vla_cflag
 require_iova_in_mbuf = false

@@ -83,6 +83,7 @@ if get_option('buildtype').contains('debug')
 else
     cflags += [ '-UPEDANTIC' ]
 endif
+cflags += no_vla_cflag
 # input array for meson member search:
 # [ "MACRO to define if found", "header for the search",
 #   "symbol to search", "struct member to search" ]

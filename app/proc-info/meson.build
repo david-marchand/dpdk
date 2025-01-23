@@ -13,10 +13,4 @@ if dpdk_conf.has('RTE_LIB_METRICS')
     deps += 'metrics'
 endif
 
-extra_flags = ['-Wno-vla']
-
-foreach arg: extra_flags
-    if cc.has_argument(arg)
-        cflags += arg
-    endif
-endforeach
+cflags += no_vla_cflag

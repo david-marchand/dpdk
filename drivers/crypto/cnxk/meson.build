@@ -33,5 +33,6 @@ if get_option('buildtype').contains('debug')
 else
     cflags += [ '-ULA_IPSEC_DEBUG','-UCNXK_CRYPTODEV_DEBUG' ]
 endif
+cflags += no_vla_cflag
 
 require_iova_in_mbuf = false

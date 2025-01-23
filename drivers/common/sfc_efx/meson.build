@@ -26,7 +26,6 @@ extra_flags += [
 extra_flags += [
         '-Waggregate-return',
         '-Wbad-function-cast',
-        '-Wvla',
 ]
 
 foreach flag: extra_flags

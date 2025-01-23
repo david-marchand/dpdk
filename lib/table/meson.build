@@ -1,13 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright(c) 2017 Intel Corporation
 
-extra_flags = ['-Wno-vla']
-
-foreach arg: extra_flags
-    if cc.has_argument(arg)
-        cflags += arg
-    endif
-endforeach
+cflags += no_vla_cflag
 
 sources = files(
         'rte_swx_keycmp.c',

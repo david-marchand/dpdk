@@ -16,6 +16,7 @@ sources = files(
         'octeontx_rxtx.c',
 )
 
+cflags += no_vla_cflag
 deps += ['mempool_octeontx', 'eventdev']
 
 includes += include_directories('base')

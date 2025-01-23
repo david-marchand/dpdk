@@ -9,6 +9,7 @@ endif
 
 deps += ['pci', 'bus_pci', 'net', 'eal', 'kvargs']
 
+cflags += no_vla_cflag
 sources += files(
         'gdma.c',
         'mana.c',
