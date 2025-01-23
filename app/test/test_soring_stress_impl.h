@@ -630,24 +630,27 @@ role_mask_even_odd(uint32_t nb_stage, uint32_t role_mask[RTE_MAX_LCORE])
 static void
 role_mask_div(uint32_t nb_stage, uint32_t role_mask[RTE_MAX_LCORE])
 {
+	const unsigned int msk_size = nb_stage + 1;
 	uint32_t i, lc;
-	uint32_t msk[nb_stage + 1];
+	uint32_t *msk;
+
+	msk = alloca(sizeof (*msk) * msk_size);
 
 	memset(role_mask, 0, sizeof(role_mask[0]) * RTE_MAX_LCORE);
 
-	for (i = 0; i != RTE_DIM(msk); i++) {
+	for (i = 0; i != msk_size; i++) {
 		msk[i] = RTE_BIT32(i);
 	};
 
 	i = 0;
 	RTE_LCORE_FOREACH_WORKER(lc) {
-		role_mask[lc] = msk[i % RTE_DIM(msk)];
+		role_mask[lc] = msk[i % msk_size];
 		i++;
 	}
-	if (i < RTE_DIM(msk)) {
+	if (i < msk_size) {
 		lc = rte_get_next_lcore(-1, 1, 0);
-		for (; i != RTE_DIM(msk); i++)
-			role_mask[lc] |= msk[i % RTE_DIM(msk)];
+		for (; i != msk_size; i++)
+			role_mask[lc] |= msk[i % msk_size];
 	}
 }
 
