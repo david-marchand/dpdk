@@ -422,49 +422,29 @@ int rte_pmd_ice_dump_package(uint16_t port, uint8_t **buff, uint32_t *size)
 	return ice_dump_pkg(dev, buff, size);
 }
 
-static uint16_t
-covert_byte_to_hex(uint8_t **outbuf, const uint8_t *inbuf, uint32_t inbuf_size)
-{
-	uint32_t i;
-	uint8_t *buffer = *outbuf;
-	for (i = 0; i < inbuf_size; ++i)
-		sprintf((char *)(buffer + i * 2), "%02X", inbuf[i]);
-
-	return inbuf_size * 2;
-}
-
 static int
-ice_dump_switch(struct rte_eth_dev *dev, uint8_t **buff2, uint32_t *size)
+ice_dump_switch(struct rte_eth_dev *dev, FILE *stream)
 {
-	struct ice_hw *hw;
 	struct ice_sq_cd *cd = NULL;
-	int i = 0;
-	uint16_t tbl_id = 0;
 	uint16_t tbl_idx = 0;
-	uint8_t *buffer = *buff2;
+	uint16_t tbl_id = 0;
+	struct ice_hw *hw;
+	int i = 0;
 
 	hw = ICE_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 
-	/* table index string format: "0000:" */
-	#define TBL_IDX_STR_SIZE 7
 	for (i = 0; i < ICE_BLK_MAX_COUNT; i++) {
-		int res;
 		uint16_t buff_size;
 		uint8_t *buff;
-		uint32_t offset = 0;
+		int res;
+		int j;
 
 		buff = malloc(ICE_PKG_BUF_SIZE);
 		if (!buff)
 			return -ENOMEM;
 
-		if (tbl_idx == 0) {
-			char tbl_idx_str[TBL_IDX_STR_SIZE];
-			memset(tbl_idx_str, 0, sizeof(tbl_idx_str));
-			sprintf(tbl_idx_str, "%d:", tbl_id);
-			memcpy(buffer, tbl_idx_str, strlen(tbl_idx_str));
-			offset = strlen(tbl_idx_str);
-			buffer += offset;
-		}
+		if (tbl_idx == 0)
+			fprintf(stream, "%d:", tbl_id);
 
 		res = ice_aq_get_internal_data(hw,
 			ICE_AQC_DBG_DUMP_CLUSTER_ID_SW_E810,
@@ -477,27 +457,24 @@ ice_dump_switch(struct rte_eth_dev *dev, uint8_t **buff2, uint32_t *size)
 			return -EINVAL;
 		}
 
-		offset = covert_byte_to_hex(&buffer, buff, buff_size);
-		buffer += offset;
+		for (j = 0; j < buff_size; ++j)
+			fprintf(stream, "%02X", buff[j]);
 
 		free(buff);
 
 		if (tbl_idx == 0xffff) {
 			tbl_idx = 0;
-			memset(buffer, '\n', sizeof(char));
-			buffer++;
-			offset = 0;
+			fprintf(stream, "\n");
 		}
 
 		if (tbl_id == 0xff)
 			break;
 	}
 
-	*size = buffer - *buff2;
 	return 0;
 }
 
-int rte_pmd_ice_dump_switch(uint16_t port, uint8_t **buff, uint32_t *size)
+int rte_pmd_ice_dump_switch(uint16_t port, FILE *stream)
 {
 	struct rte_eth_dev *dev;
 
@@ -507,7 +484,7 @@ int rte_pmd_ice_dump_switch(uint16_t port, uint8_t **buff, uint32_t *size)
 	if (!is_ice_supported(dev))
 		return -ENOTSUP;
 
-	return ice_dump_switch(dev, buff, size);
+	return ice_dump_switch(dev, stream);
 }
 
 static void print_rl_profile(const struct ice_aqc_rl_profile_elem *prof,
