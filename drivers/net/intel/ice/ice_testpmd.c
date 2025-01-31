@@ -105,30 +105,28 @@ cmd_ddp_dump_switch_parsed(void *parsed_result,
 			   __rte_unused void *data)
 {
 	struct cmd_ddp_dump_switch_result *res = parsed_result;
-	uint8_t *buff;
-	uint32_t size;
-	int ret = -ENOTSUP;
+	FILE *fp;
+	int ret;
 
-	size = ICE_SWITCH_BUFF_SIZE;
-	buff = malloc(size);
-	if (buff) {
-		ret = rte_pmd_ice_dump_switch(res->port_id, &buff, &size);
-		switch (ret) {
-		case 0:
-			save_file(res->filepath, buff, size);
-			break;
-		case -ENOTSUP:
-			fprintf(stderr,
-				"Device doesn't support "
-				"dump DDP switch runtime configure.\n");
-			break;
-		default:
-			fprintf(stderr,
-				"Failed to dump DDP switch runtime configure,"
-				" error: (%s)\n", strerror(-ret));
-		}
+	fp = fopen(res->filepath, "wb");
+	if (fp == NULL) {
+		fprintf(stderr, "%s: Failed to open %s\n", __func__, res->filepath);
+		return;
 	}
-	free(buff);
+
+	ret = rte_pmd_ice_dump_switch(res->port_id, fp);
+	fclose(fp);
+	switch (ret) {
+	case 0:
+		break;
+	case -ENOTSUP:
+		fprintf(stderr, "Device doesn't support dump DDP switch runtime configure.\n");
+		break;
+	default:
+		fprintf(stderr, "Failed to dump DDP switch runtime configure, error: (%s)\n",
+			strerror(-ret));
+		break;
+	}
 }
 
 
