@@ -203,7 +203,7 @@ stats_mem_init(struct cluster *cluster,
 	cluster_node_size += cluster->nb_graphs * sizeof(struct rte_node *);
 	cluster_node_size = RTE_ALIGN(cluster_node_size, RTE_CACHE_LINE_SIZE);
 
-	stats = realloc(NULL, sz);
+	stats = aligned_alloc(alignof(struct rte_graph_cluster_stats), sz);
 	if (stats) {
 		memset(stats, 0, sz);
 		stats->fn = fn;
@@ -221,17 +221,17 @@ static int
 stats_mem_populate(struct rte_graph_cluster_stats **stats_in,
 		   struct rte_graph *graph, struct graph_node *graph_node)
 {
-	struct rte_graph_cluster_stats *stats = *stats_in;
+	struct rte_graph_cluster_stats *stats;
 	rte_node_t id = graph_node->node->id;
 	struct cluster_node *cluster;
 	struct rte_node *node;
 	rte_node_t count;
 	uint8_t i;
 
-	cluster = stats->clusters;
+	cluster = (*stats_in)->clusters;
 
 	/* Iterate over cluster node array to find node ID match */
-	for (count = 0; count < stats->max_nodes; count++) {
+	for (count = 0; count < (*stats_in)->max_nodes; count++) {
 		/* Found an existing node in the reel */
 		if (cluster->stat.id == id) {
 			node = graph_node_id_to_ptr(graph, id);
@@ -244,13 +244,17 @@ stats_mem_populate(struct rte_graph_cluster_stats **stats_in,
 			cluster->nodes[cluster->nb_nodes++] = node;
 			return 0;
 		}
-		cluster = RTE_PTR_ADD(cluster, stats->cluster_node_size);
+		cluster = RTE_PTR_ADD(cluster, (*stats_in)->cluster_node_size);
 	}
 
 	/* Hey, it is a new node, allocate space for it in the reel */
-	stats = realloc(stats, stats->sz + stats->cluster_node_size);
+	stats = aligned_alloc(alignof(struct rte_graph_cluster_stats),
+		(*stats_in)->sz + (*stats_in)->cluster_node_size);
 	if (stats == NULL)
 		SET_ERR_JMP(ENOMEM, err, "Realloc failed");
+	memcpy(stats, *stats_in, (*stats_in)->sz);
+	memset(RTE_PTR_ADD(stats, (*stats_in)->sz), 0, (*stats_in)->cluster_node_size);
+	free(*stats_in);
 	*stats_in = NULL;
 
 	/* Clear the new struct cluster_node area */
