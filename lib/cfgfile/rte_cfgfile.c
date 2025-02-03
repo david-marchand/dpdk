@@ -467,12 +467,13 @@ int rte_cfgfile_close(struct rte_cfgfile *cfg)
 
 int
 rte_cfgfile_num_sections(struct rte_cfgfile *cfg, const char *sectionname,
-size_t length)
+	size_t length)
 {
-	int i;
 	int num_sections = 0;
+	int i;
+
 	for (i = 0; i < cfg->num_sections; i++) {
-		if (strncmp(cfg->sections[i].name, sectionname, length) == 0)
+		if (length == 0 || strncmp(cfg->sections[i].name, sectionname, length) == 0)
 			num_sections++;
 	}
 	return num_sections;
