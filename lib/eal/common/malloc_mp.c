@@ -148,14 +148,13 @@ get_unique_id(void)
 static int
 handle_sync(const struct rte_mp_msg *msg, const void *peer)
 {
+	struct malloc_mp_req req;
 	struct rte_mp_msg reply;
-	const struct malloc_mp_req *req =
-			(const struct malloc_mp_req *)msg->param;
-	struct malloc_mp_req *resp =
-			(struct malloc_mp_req *)reply.param;
+	struct malloc_mp_req resp;
 	int ret;
 
-	if (req->t != REQ_TYPE_SYNC) {
+	memcpy(&req, msg->param, sizeof(req));
+	if (req.t != REQ_TYPE_SYNC) {
 		EAL_LOG(ERR, "Unexpected request from primary");
 		return -1;
 	}
@@ -164,13 +163,14 @@ handle_sync(const struct rte_mp_msg *msg, const void *peer)
 
 	reply.num_fds = 0;
 	strlcpy(reply.name, msg->name, sizeof(reply.name));
-	reply.len_param = sizeof(*resp);
+	reply.len_param = sizeof(resp);
 
 	ret = eal_memalloc_sync_with_primary();
 
-	resp->t = REQ_TYPE_SYNC;
-	resp->id = req->id;
-	resp->result = ret == 0 ? REQ_RESULT_SUCCESS : REQ_RESULT_FAIL;
+	resp.t = REQ_TYPE_SYNC;
+	resp.id = req.id;
+	resp.result = ret == 0 ? REQ_RESULT_SUCCESS : REQ_RESULT_FAIL;
+	memcpy(&reply.param, &resp, sizeof(resp));
 
 	return rte_mp_reply(&reply, peer);
 }
@@ -296,16 +296,17 @@ fail:
 static int
 handle_request(const struct rte_mp_msg *msg, const void *peer __rte_unused)
 {
-	const struct malloc_mp_req *m =
-			(const struct malloc_mp_req *)msg->param;
+	struct malloc_mp_req m;
 	struct mp_request *entry;
 	int ret;
+
+	memcpy(&m, msg->param, sizeof(m));
 
 	/* lock access to request */
 	pthread_mutex_lock(&mp_request_list.lock);
 
 	/* make sure it's not a dupe */
-	entry = find_request_by_id(m->id);
+	entry = find_request_by_id(m.id);
 	if (entry != NULL) {
 		EAL_LOG(ERR, "Duplicate request id");
 		goto fail;
@@ -320,10 +321,10 @@ handle_request(const struct rte_mp_msg *msg, const void *peer __rte_unused)
 	/* erase all data */
 	memset(entry, 0, sizeof(*entry));
 
-	if (m->t == REQ_TYPE_ALLOC) {
-		ret = handle_alloc_request(m, entry);
-	} else if (m->t == REQ_TYPE_FREE) {
-		ret = handle_free_request(m);
+	if (m.t == REQ_TYPE_ALLOC) {
+		ret = handle_alloc_request(&m, entry);
+	} else if (m.t == REQ_TYPE_FREE) {
+		ret = handle_free_request(&m);
 	} else {
 		EAL_LOG(ERR, "Unexpected request from secondary");
 		goto fail;
@@ -340,9 +341,9 @@ handle_request(const struct rte_mp_msg *msg, const void *peer __rte_unused)
 		strlcpy(resp_msg.name, MP_ACTION_RESPONSE,
 				sizeof(resp_msg.name));
 
-		resp->t = m->t;
+		resp->t = m.t;
 		resp->result = REQ_RESULT_FAIL;
-		resp->id = m->id;
+		resp->id = m.id;
 
 		if (rte_mp_sendmsg(&resp_msg)) {
 			EAL_LOG(ERR, "Couldn't send response");
@@ -368,7 +369,7 @@ handle_request(const struct rte_mp_msg *msg, const void *peer __rte_unused)
 
 		/* sync requests carry no data */
 		sr->t = REQ_TYPE_SYNC;
-		sr->id = m->id;
+		sr->id = m.id;
 
 		/* there may be stray timeout still waiting */
 		do {
@@ -377,13 +378,13 @@ handle_request(const struct rte_mp_msg *msg, const void *peer __rte_unused)
 		} while (ret != 0 && rte_errno == EEXIST);
 		if (ret != 0) {
 			EAL_LOG(ERR, "Couldn't send sync request");
-			if (m->t == REQ_TYPE_ALLOC)
+			if (m.t == REQ_TYPE_ALLOC)
 				free(entry->alloc_state.ms);
 			goto fail;
 		}
 
 		/* mark request as in progress */
-		memcpy(&entry->user_req, m, sizeof(*m));
+		memcpy(&entry->user_req, &m, sizeof(m));
 		entry->state = REQ_STATE_ACTIVE;
 
 		TAILQ_INSERT_TAIL(&mp_request_list.list, entry, next);
@@ -600,16 +601,17 @@ fail:
 static int
 handle_response(const struct rte_mp_msg *msg, const void *peer  __rte_unused)
 {
-	const struct malloc_mp_req *m =
-			(const struct malloc_mp_req *)msg->param;
+	struct malloc_mp_req m;
 	struct mp_request *entry;
+
+	memcpy(&m, msg->param, sizeof(m));
 
 	pthread_mutex_lock(&mp_request_list.lock);
 
-	entry = find_request_by_id(m->id);
+	entry = find_request_by_id(m.id);
 	if (entry != NULL) {
 		/* update request status */
-		entry->user_req.result = m->result;
+		entry->user_req.result = m.result;
 
 		entry->state = REQ_STATE_COMPLETE;
 
