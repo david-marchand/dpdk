@@ -4,6 +4,7 @@
  * All rights reserved.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,10 +36,11 @@ parse_ports(cmdline_portlist_t *pl, const char *str)
 	const char *first, *last;
 	char *end;
 
-	for (first = str, last = first;
-	    first != NULL && last != NULL;
-	    first = last + 1) {
+	if (str == NULL)
+		return 0;
 
+	last = first = str;
+	do {
 		last = strchr(first, ',');
 
 		errno = 0;
@@ -63,7 +65,10 @@ parse_ports(cmdline_portlist_t *pl, const char *str)
 			return -1;
 
 		parse_set_list(pl, ps, pe);
-	}
+		if (last == NULL)
+			break;
+		first = last + 1;
+	} while (true);
 
 	return 0;
 }
