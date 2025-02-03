@@ -707,11 +707,13 @@ dsw_port_flush_no_longer_paused_events(struct dsw_evdev *dsw,
 				       struct dsw_port *source_port)
 {
 	uint16_t paused_events_len = source_port->paused_events_len;
-	struct rte_event paused_events[paused_events_len];
+	struct rte_event *paused_events;
 	uint16_t i;
 
 	if (paused_events_len == 0)
 		return;
+
+	paused_events = alloca(sizeof(paused_events[0]) * paused_events_len);
 
 	rte_memcpy(paused_events, source_port->paused_events,
 		   paused_events_len * sizeof(struct rte_event));
@@ -837,13 +839,15 @@ dsw_port_consider_emigration(struct dsw_evdev *dsw,
 	struct dsw_queue_flow_burst bursts[DSW_MAX_EVENTS_RECORDED];
 	uint16_t num_bursts;
 	int16_t source_port_load;
-	int16_t port_loads[dsw->num_ports];
+	int16_t *port_loads;
 
 	if (now < source_port->next_emigration)
 		return;
 
 	if (dsw->num_ports == 1)
 		return;
+
+	port_loads = alloca(sizeof(port_loads[0]) * dsw->num_ports);
 
 	DSW_LOG_DP_PORT_LINE(DEBUG, source_port->id, "Considering emigration.");
 
