@@ -46,7 +46,7 @@ rte_event_ring_lookup(const char *name)
 void
 rte_event_ring_free(struct rte_event_ring *r)
 {
-	rte_eventdev_trace_ring_free(r->r.name);
+	rte_eventdev_trace_ring_free(r != NULL ? r->r.name : "<null>");
 
 	rte_ring_free((struct rte_ring *)r);
 }
