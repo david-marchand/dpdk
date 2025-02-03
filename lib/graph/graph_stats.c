@@ -466,30 +466,32 @@ cluster_node_arregate_stats(struct cluster_node *cluster, bool dispatch)
 	uint64_t calls = 0, cycles = 0, objs = 0, realloc_count = 0;
 	struct rte_graph_cluster_node_stats *stat = &cluster->stat;
 	uint64_t sched_objs = 0, sched_fail = 0;
-	struct rte_node *node;
-	rte_node_t count;
-	uint64_t *xstat;
-	uint8_t i;
 
-	memset(stat->xstat_count, 0, sizeof(uint64_t) * stat->xstat_cntrs);
-	for (count = 0; count < cluster->nb_nodes; count++) {
-		node = cluster->nodes[count];
+	if (stat->xstat_cntrs != 0) {
+		rte_node_t count;
+		uint64_t *xstat;
 
-		if (dispatch) {
-			sched_objs += node->dispatch.total_sched_objs;
-			sched_fail += node->dispatch.total_sched_fail;
+		memset(stat->xstat_count, 0, sizeof(uint64_t) * stat->xstat_cntrs);
+		for (count = 0; count < cluster->nb_nodes; count++) {
+			struct rte_node *node = cluster->nodes[count];
+			uint8_t i;
+
+			if (dispatch) {
+				sched_objs += node->dispatch.total_sched_objs;
+				sched_fail += node->dispatch.total_sched_fail;
+			}
+
+			calls += node->total_calls;
+			objs += node->total_objs;
+			cycles += node->total_cycles;
+			realloc_count += node->realloc_count;
+
+			if (node->xstat_off == 0)
+				continue;
+			xstat = RTE_PTR_ADD(node, node->xstat_off);
+			for (i = 0; i < stat->xstat_cntrs; i++)
+				stat->xstat_count[i] += xstat[i];
 		}
-
-		calls += node->total_calls;
-		objs += node->total_objs;
-		cycles += node->total_cycles;
-		realloc_count += node->realloc_count;
-
-		if (node->xstat_off == 0)
-			continue;
-		xstat = RTE_PTR_ADD(node, node->xstat_off);
-		for (i = 0; i < stat->xstat_cntrs; i++)
-			stat->xstat_count[i] += xstat[i];
 	}
 
 	stat->calls = calls;
