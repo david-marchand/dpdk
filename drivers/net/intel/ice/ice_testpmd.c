@@ -117,9 +117,6 @@ cmd_ddp_dump_switch_parsed(void *parsed_result,
 		case 0:
 			save_file(res->filepath, buff, size);
 			break;
-		case -EINVAL:
-			fprintf(stderr, "Invalid buffer size\n");
-			break;
 		case -ENOTSUP:
 			fprintf(stderr,
 				"Device doesn't support "

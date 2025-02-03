@@ -455,7 +455,7 @@ ice_dump_switch(struct rte_eth_dev *dev, uint8_t **buff2, uint32_t *size)
 
 		buff = malloc(ICE_PKG_BUF_SIZE);
 		if (!buff)
-			return ICE_ERR_NO_MEMORY;
+			return -ENOMEM;
 
 		if (tbl_idx == 0) {
 			char tbl_idx_str[TBL_IDX_STR_SIZE];
@@ -474,7 +474,7 @@ ice_dump_switch(struct rte_eth_dev *dev, uint8_t **buff2, uint32_t *size)
 
 		if (res) {
 			free(buff);
-			return res;
+			return -EINVAL;
 		}
 
 		offset = covert_byte_to_hex(&buffer, buff, buff_size);
