@@ -241,7 +241,7 @@ static int bpf_convert_filter(const struct bpf_insn *prog, size_t len,
 {
 	unsigned int pass = 0;
 	size_t new_flen = 0, target, i;
-	struct ebpf_insn *new_insn;
+	size_t offset;
 	const struct bpf_insn *fp;
 	int *addrs = NULL;
 	uint8_t bpf_src;
@@ -260,24 +260,24 @@ static int bpf_convert_filter(const struct bpf_insn *prog, size_t len,
 	}
 
 do_pass:
-	new_insn = new_prog;
+	offset = 0;
 	fp = prog;
 
 	/* Classic BPF related prologue emission. */
-	if (new_insn) {
+	if (new_prog != NULL) {
 		/* Classic BPF expects A and X to be reset first. These need
 		 * to be guaranteed to be the first two instructions.
 		 */
-		*new_insn++ = EBPF_ALU64_REG(BPF_XOR, BPF_REG_A, BPF_REG_A);
-		*new_insn++ = EBPF_ALU64_REG(BPF_XOR, BPF_REG_X, BPF_REG_X);
+		*(new_prog + offset++) = EBPF_ALU64_REG(BPF_XOR, BPF_REG_A, BPF_REG_A);
+		*(new_prog + offset++) = EBPF_ALU64_REG(BPF_XOR, BPF_REG_X, BPF_REG_X);
 
 		/* All programs must keep CTX in callee saved BPF_REG_CTX.
 		 * In eBPF case it's done by the compiler, here we need to
 		 * do this ourself. Initial CTX is present in BPF_REG_ARG1.
 		 */
-		*new_insn++ = BPF_MOV64_REG(BPF_REG_CTX, BPF_REG_ARG1);
+		*(new_prog + offset++) = BPF_MOV64_REG(BPF_REG_CTX, BPF_REG_ARG1);
 	} else {
-		new_insn += 3;
+		offset += 3;
 	}
 
 	for (i = 0; i < len; fp++, i++) {
@@ -285,7 +285,7 @@ do_pass:
 		struct ebpf_insn *insn = tmp_insns;
 
 		if (addrs)
-			addrs[i] = new_insn - new_prog;
+			addrs[i] = offset;
 
 		switch (fp->code) {
 			/* Absolute loads are how classic BPF accesses skb */
@@ -490,20 +490,20 @@ do_pass:
 
 		insn++;
 		if (new_prog)
-			memcpy(new_insn, tmp_insns,
+			memcpy(new_prog + offset, tmp_insns,
 			       sizeof(*insn) * (insn - tmp_insns));
-		new_insn += insn - tmp_insns;
+		offset += insn - tmp_insns;
 	}
 
 	if (!new_prog) {
 		/* Only calculating new length. */
-		*new_len = new_insn - new_prog;
+		*new_len = offset;
 		return 0;
 	}
 
 	pass++;
-	if ((ptrdiff_t)new_flen != new_insn - new_prog) {
-		new_flen = new_insn - new_prog;
+	if (new_flen != offset) {
+		new_flen = offset;
 		if (pass > 2)
 			goto err;
 		goto do_pass;
