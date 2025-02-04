@@ -103,6 +103,7 @@ uint32_t ip_dst_addr = (172U << 24) | (168U << 16) | (2 << 8) | 2;
 struct bpf_test {
 	const char *name;
 	size_t arg_sz;
+	size_t arg_align;
 	struct rte_bpf_prm prm;
 	void (*prepare)(void *);
 	int (*check_result)(uint64_t, const void *);
@@ -3164,6 +3165,7 @@ static const struct bpf_test tests[] = {
 	{
 		.name = "test_ld_mbuf1",
 		.arg_sz = sizeof(struct dummy_mbuf),
+		.arg_align = alignof(struct rte_mbuf),
 		.prm = {
 			.ins = test_ld_mbuf1_prog,
 			.nb_ins = RTE_DIM(test_ld_mbuf1_prog),
@@ -3180,6 +3182,7 @@ static const struct bpf_test tests[] = {
 	{
 		.name = "test_ld_mbuf2",
 		.arg_sz = sizeof(struct dummy_mbuf),
+		.arg_align = alignof(struct rte_mbuf),
 		.prm = {
 			.ins = test_ld_mbuf1_prog,
 			.nb_ins = RTE_DIM(test_ld_mbuf1_prog),
@@ -3196,6 +3199,7 @@ static const struct bpf_test tests[] = {
 	{
 		.name = "test_ld_mbuf3",
 		.arg_sz = sizeof(struct dummy_mbuf),
+		.arg_align = alignof(struct rte_mbuf),
 		.prm = {
 			.ins = test_ld_mbuf3_prog,
 			.nb_ins = RTE_DIM(test_ld_mbuf3_prog),
@@ -3218,7 +3222,13 @@ run_test(const struct bpf_test *tst)
 	int64_t rc;
 	struct rte_bpf *bpf;
 	struct rte_bpf_jit jit;
-	uint8_t tbuf[tst->arg_sz];
+	uint8_t buf[tst->arg_sz + tst->arg_align];
+	uint8_t *tbuf;
+
+	if (tst->arg_align != 0)
+		tbuf = RTE_PTR_ALIGN((uint8_t *)buf, tst->arg_align);
+	else
+		tbuf = buf;
 
 	printf("%s(%s) start\n", __func__, tst->name);
 
