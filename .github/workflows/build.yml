@@ -76,6 +76,7 @@ jobs:
             checks: asan+doc+tests
           - os: ubuntu-22.04
             compiler: clang
+            library: shared
             checks: tests+ubsan
           - os: ubuntu-22.04
             compiler: gcc
