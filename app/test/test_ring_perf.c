@@ -34,7 +34,11 @@ struct lcore_pair {
 	unsigned c1, c2;
 };
 
-static volatile unsigned lcore_count = 0;
+#ifdef RTE_USE_C11_MEM_MODEL
+static RTE_ATOMIC(unsigned int) lcore_count;
+#else
+static volatile unsigned int lcore_count;
+#endif
 
 static void
 test_ring_print_test_string(unsigned int api_type, int esize,
