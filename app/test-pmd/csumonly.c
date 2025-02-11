@@ -1070,7 +1070,7 @@ tunnel_update:
 				info.l2_len, rte_be_to_cpu_16(info.ethertype),
 				info.l3_len, info.l4_proto, info.l4_len, buf);
 			if (rx_ol_flags & RTE_MBUF_F_RX_LRO)
-				printf("rx: m->lro_segsz=%u\n", m->tso_segsz);
+				printf("rx: m->lro_segsz=%d\n", (int)m->tso_segsz);
 			if (info.is_tunnel == 1)
 				printf("rx: outer_l2_len=%d outer_ethertype=%x "
 					"outer_l3_len=%d\n", info.outer_l2_len,
@@ -1084,7 +1084,7 @@ tunnel_update:
 				info.tso_segsz != 0)
 				printf("tx: m->l2_len=%d m->l3_len=%d "
 					"m->l4_len=%d\n",
-					m->l2_len, m->l3_len, m->l4_len);
+					(int)m->l2_len, (int)m->l3_len, (int)m->l4_len);
 			if (info.is_tunnel == 1) {
 				if ((tx_offloads &
 				    RTE_ETH_TX_OFFLOAD_OUTER_IPV4_CKSUM) ||
@@ -1093,17 +1093,17 @@ tunnel_update:
 				    (tx_ol_flags & RTE_MBUF_F_TX_OUTER_IPV6))
 					printf("tx: m->outer_l2_len=%d "
 						"m->outer_l3_len=%d\n",
-						m->outer_l2_len,
-						m->outer_l3_len);
+						(int)m->outer_l2_len,
+						(int)m->outer_l3_len);
 				if (info.tunnel_tso_segsz != 0 &&
 						(m->ol_flags & (RTE_MBUF_F_TX_TCP_SEG |
 							RTE_MBUF_F_TX_UDP_SEG)))
 					printf("tx: m->tso_segsz=%d\n",
-						m->tso_segsz);
+						(int)m->tso_segsz);
 			} else if (info.tso_segsz != 0 &&
 					(m->ol_flags & (RTE_MBUF_F_TX_TCP_SEG |
 						RTE_MBUF_F_TX_UDP_SEG)))
-				printf("tx: m->tso_segsz=%d\n", m->tso_segsz);
+				printf("tx: m->tso_segsz=%d\n", (int)m->tso_segsz);
 			rte_get_tx_ol_flag_list(m->ol_flags, buf, sizeof(buf));
 			printf("tx: flags=%s", buf);
 			printf("\n");
