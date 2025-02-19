@@ -96,4 +96,36 @@
  */
 #endif
 
+#ifdef RTE_BUILD_SHARED_LIB
+
+#define RTE_VERSION_SYMBOL(ver, type, name, args) \
+__asm__(".symver " RTE_STR(name) "_v" RTE_STR(ver) ", " RTE_STR(name) "@DPDK_" RTE_STR(ver)); \
+__rte_used type name ## _v ## ver args; \
+type name ## _v ## ver args
+
+#define RTE_VERSION_EXPERIMENTAL_SYMBOL(type, name, args) \
+__asm__(".symver " RTE_STR(name) "_exp, " RTE_STR(name) "@EXPERIMENTAL") \
+__rte_used type name ## _exp args; \
+type name ## _exp args
+
+#define RTE_DEFAULT_SYMBOL(ver, type, name, args) \
+__asm__(".symver " RTE_STR(name) "_v" RTE_STR(ver) ", " RTE_STR(name) "@@DPDK_" RTE_STR(ver)); \
+__rte_used type name ## _v ## ver args; \
+type name ## _v ## ver args
+
+#else /* !RTE_BUILD_SHARED_LIB */
+
+#define RTE_VERSION_SYMBOL(ver, type, name, args) \
+type name ## _v ## ver args; \
+type name ## _v ## ver args
+
+#define RTE_VERSION_EXPERIMENTAL_SYMBOL(type, name, args) \
+type name ## _exp args; \
+type name ## _exp args
+
+#define RTE_DEFAULT_SYMBOL(ver, type, name, args) \
+type name args
+
+#endif /* RTE_BUILD_SHARED_LIB */
+
 #endif /* _RTE_FUNCTION_VERSIONING_H_ */
