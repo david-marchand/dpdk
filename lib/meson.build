@@ -254,6 +254,9 @@ foreach l:libraries
             include_directories: includes,
             dependencies: static_deps)
 
+    version_map = '@0@/@1@/version.map'.format(meson.current_source_dir(), l)
+    lk_deps = []
+
     if not use_function_versioning or is_windows
         # use pre-build objects to build shared lib
         sources = []
@@ -262,10 +265,19 @@ foreach l:libraries
         # for compat we need to rebuild with
         # RTE_BUILD_SHARED_LIB defined
         cflags += '-DRTE_BUILD_SHARED_LIB'
-    endif
 
-    version_map = '@0@/@1@/version.map'.format(meson.current_source_dir(), l)
-    lk_deps = [version_map]
+        # POC: generate version.map if absent.
+        if not fs.is_file(version_map)
+            map_file = custom_target(libname + '_map',
+                    command: [gen_version_map, '@OUTPUT@', '@INPUT@'],
+                    input: sources,
+                    output: '@0@_version.map'.format(libname))
+            version_map = map_file.full_path()
+            lk_deps += [map_file]
+        else
+            lk_deps += [version_map]
+        endif
+    endif
 
     if is_ms_linker
         def_file = custom_target(libname + '_def',

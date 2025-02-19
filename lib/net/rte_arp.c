@@ -3,10 +3,10 @@
  */
 
 #include <rte_arp.h>
+#include <rte_function_versioning.h>
 
 #define RARP_PKT_SIZE	64
-struct rte_mbuf *
-rte_net_make_rarp_packet(struct rte_mempool *mpool,
+RTE_EXPORT_SYMBOL(struct rte_mbuf *, rte_net_make_rarp_packet, (struct rte_mempool *mpool,
 		const struct rte_ether_addr *mac)
 {
 	struct rte_ether_hdr *eth_hdr;
@@ -46,4 +46,4 @@ rte_net_make_rarp_packet(struct rte_mempool *mpool,
 	memset(&rarp->arp_data.arp_tip, 0x00, 4);
 
 	return mbuf;
-}
+})

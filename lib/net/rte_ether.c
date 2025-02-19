@@ -6,9 +6,9 @@
 
 #include <rte_ether.h>
 #include <rte_errno.h>
+#include <rte_function_versioning.h>
 
-void
-rte_eth_random_addr(uint8_t *addr)
+RTE_EXPORT_SYMBOL(void, rte_eth_random_addr, (uint8_t *addr)
 {
 	uint64_t rand = rte_rand();
 	uint8_t *p = (uint8_t *)&rand;
@@ -16,15 +16,14 @@ rte_eth_random_addr(uint8_t *addr)
 	rte_memcpy(addr, p, RTE_ETHER_ADDR_LEN);
 	addr[0] &= (uint8_t)~RTE_ETHER_GROUP_ADDR;	/* clear multicast bit */
 	addr[0] |= RTE_ETHER_LOCAL_ADMIN_ADDR;	/* set local assignment bit */
-}
+})
 
-void
-rte_ether_format_addr(char *buf, uint16_t size,
+RTE_EXPORT_SYMBOL(void, rte_ether_format_addr, (char *buf, uint16_t size,
 		      const struct rte_ether_addr *eth_addr)
 {
 	snprintf(buf, size, RTE_ETHER_ADDR_PRT_FMT,
 		RTE_ETHER_ADDR_BYTES(eth_addr));
-}
+})
 
 static int8_t get_xdigit(char ch)
 {
@@ -130,8 +129,7 @@ static unsigned int get_ether_sep(const char *s, char *sep)
  *  - Windows format six groups separated by hyphen
  *  - two groups hexadecimal digits
  */
-int
-rte_ether_unformat_addr(const char *s, struct rte_ether_addr *ea)
+RTE_EXPORT_SYMBOL(int, rte_ether_unformat_addr, (const char *s, struct rte_ether_addr *ea)
 {
 	unsigned int count;
 	char sep = '\0';
@@ -152,4 +150,4 @@ rte_ether_unformat_addr(const char *s, struct rte_ether_addr *ea)
 
 	rte_errno = EINVAL;
 	return -1;
-}
+})
