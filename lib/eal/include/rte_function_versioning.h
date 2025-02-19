@@ -61,6 +61,8 @@
  */
 #define BIND_DEFAULT_SYMBOL(b, e, n) __asm__(".symver " RTE_STR(b) RTE_STR(e) ", " RTE_STR(b) "@@DPDK_" RTE_STR(n))
 
+#define DEFAULT_SYMBOL(b, e, n) b ## e
+
 /*
  * __vsym
  * Annotation to be used in declaration of the internal symbol <b><e> to signal
@@ -90,6 +92,7 @@
 #define VERSION_SYMBOL_EXPERIMENTAL(b, e)
 #define __vsym
 #define BIND_DEFAULT_SYMBOL(b, e, n)
+#define DEFAULT_SYMBOL(b, e, n) b
 #define MAP_STATIC_SYMBOL(f, p) f __attribute__((alias(RTE_STR(p))))
 /*
  * RTE_BUILD_SHARED_LIB=n
