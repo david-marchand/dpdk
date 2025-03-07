@@ -46,7 +46,9 @@ static char *safe_itoa(long val, char *buf, size_t len, unsigned int radix)
  * Most of libc is therefore not safe, include RTE_LOG (calls syslog);
  * backtrace_symbols (calls malloc), etc.
  */
-void rte_dump_stack(void)
+RTE_EXPORT_SYMBOL(rte_dump_stack)
+void
+rte_dump_stack(void)
 {
 	void *func[BACKTRACE_SIZE];
 	Dl_info info;

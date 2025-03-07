@@ -77,7 +77,9 @@ int eal_create_runtime_dir(void)
 }
 
 /* parse a sysfs (or other) file containing one integer value */
-int eal_parse_sysfs_value(const char *filename, unsigned long *val)
+RTE_EXPORT_SYMBOL(eal_parse_sysfs_value)
+int
+eal_parse_sysfs_value(const char *filename, unsigned long *val)
 {
 	FILE *f;
 	char buf[BUFSIZ];

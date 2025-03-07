@@ -18,8 +18,10 @@
 static uint64_t eal_tsc_resolution_hz;
 
 /* Pointer to user delay function */
+RTE_EXPORT_SYMBOL(rte_delay_us)
 void (*rte_delay_us)(unsigned int) = NULL;
 
+RTE_EXPORT_SYMBOL(rte_delay_us_block)
 void
 rte_delay_us_block(unsigned int us)
 {
@@ -29,6 +31,7 @@ rte_delay_us_block(unsigned int us)
 		rte_pause();
 }
 
+RTE_EXPORT_SYMBOL(rte_get_tsc_hz)
 uint64_t
 rte_get_tsc_hz(void)
 {
@@ -75,7 +78,9 @@ set_tsc_freq(void)
 	mcfg->tsc_hz = freq;
 }
 
-void rte_delay_us_callback_register(void (*userfunc)(unsigned int))
+RTE_EXPORT_SYMBOL(rte_delay_us_callback_register)
+void
+rte_delay_us_callback_register(void (*userfunc)(unsigned int))
 {
 	rte_delay_us = userfunc;
 }

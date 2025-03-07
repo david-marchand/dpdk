@@ -29,7 +29,9 @@
 #define RTE_INTR_INSTANCE_USES_RTE_MEMORY(flags) \
 	(!!(flags & RTE_INTR_INSTANCE_F_SHARED))
 
-struct rte_intr_handle *rte_intr_instance_alloc(uint32_t flags)
+RTE_EXPORT_SYMBOL(rte_intr_instance_alloc)
+struct rte_intr_handle *
+rte_intr_instance_alloc(uint32_t flags)
 {
 	struct rte_intr_handle *intr_handle;
 	bool uses_rte_memory;
@@ -96,7 +98,9 @@ fail:
 	return NULL;
 }
 
-struct rte_intr_handle *rte_intr_instance_dup(const struct rte_intr_handle *src)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_instance_dup)
+struct rte_intr_handle *
+rte_intr_instance_dup(const struct rte_intr_handle *src)
 {
 	struct rte_intr_handle *intr_handle;
 
@@ -121,7 +125,9 @@ struct rte_intr_handle *rte_intr_instance_dup(const struct rte_intr_handle *src)
 	return intr_handle;
 }
 
-int rte_intr_event_list_update(struct rte_intr_handle *intr_handle, int size)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_event_list_update)
+int
+rte_intr_event_list_update(struct rte_intr_handle *intr_handle, int size)
 {
 	struct rte_epoll_event *tmp_elist;
 	bool uses_rte_memory;
@@ -171,7 +177,9 @@ fail:
 	return -rte_errno;
 }
 
-void rte_intr_instance_free(struct rte_intr_handle *intr_handle)
+RTE_EXPORT_SYMBOL(rte_intr_instance_free)
+void
+rte_intr_instance_free(struct rte_intr_handle *intr_handle)
 {
 	if (intr_handle == NULL)
 		return;
@@ -186,7 +194,9 @@ void rte_intr_instance_free(struct rte_intr_handle *intr_handle)
 	}
 }
 
-int rte_intr_fd_set(struct rte_intr_handle *intr_handle, int fd)
+RTE_EXPORT_SYMBOL(rte_intr_fd_set)
+int
+rte_intr_fd_set(struct rte_intr_handle *intr_handle, int fd)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -197,7 +207,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_fd_get(const struct rte_intr_handle *intr_handle)
+RTE_EXPORT_SYMBOL(rte_intr_fd_get)
+int
+rte_intr_fd_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -206,7 +218,9 @@ fail:
 	return -1;
 }
 
-int rte_intr_type_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_SYMBOL(rte_intr_type_set)
+int
+rte_intr_type_set(struct rte_intr_handle *intr_handle,
 	enum rte_intr_handle_type type)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -218,7 +232,9 @@ fail:
 	return -rte_errno;
 }
 
-enum rte_intr_handle_type rte_intr_type_get(
+RTE_EXPORT_SYMBOL(rte_intr_type_get)
+enum rte_intr_handle_type
+rte_intr_type_get(
 	const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -228,7 +244,9 @@ fail:
 	return RTE_INTR_HANDLE_UNKNOWN;
 }
 
-int rte_intr_dev_fd_set(struct rte_intr_handle *intr_handle, int fd)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_dev_fd_set)
+int
+rte_intr_dev_fd_set(struct rte_intr_handle *intr_handle, int fd)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -239,7 +257,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_dev_fd_get(const struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_dev_fd_get)
+int
+rte_intr_dev_fd_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -248,7 +268,9 @@ fail:
 	return -1;
 }
 
-int rte_intr_max_intr_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_max_intr_set)
+int
+rte_intr_max_intr_set(struct rte_intr_handle *intr_handle,
 				 int max_intr)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -268,7 +290,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_max_intr_get(const struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_max_intr_get)
+int
+rte_intr_max_intr_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -277,7 +301,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_nb_efd_set(struct rte_intr_handle *intr_handle, int nb_efd)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_nb_efd_set)
+int
+rte_intr_nb_efd_set(struct rte_intr_handle *intr_handle, int nb_efd)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -288,7 +314,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_nb_efd_get(const struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_nb_efd_get)
+int
+rte_intr_nb_efd_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -297,7 +325,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_nb_intr_get(const struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_nb_intr_get)
+int
+rte_intr_nb_intr_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -306,7 +336,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_efd_counter_size_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_efd_counter_size_set)
+int
+rte_intr_efd_counter_size_set(struct rte_intr_handle *intr_handle,
 	uint8_t efd_counter_size)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -318,7 +350,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_efd_counter_size_get(const struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_efd_counter_size_get)
+int
+rte_intr_efd_counter_size_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -327,7 +361,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_efds_index_get(const struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_efds_index_get)
+int
+rte_intr_efds_index_get(const struct rte_intr_handle *intr_handle,
 	int index)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -344,7 +380,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_efds_index_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_efds_index_set)
+int
+rte_intr_efds_index_set(struct rte_intr_handle *intr_handle,
 	int index, int fd)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -363,7 +401,9 @@ fail:
 	return -rte_errno;
 }
 
-struct rte_epoll_event *rte_intr_elist_index_get(
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_elist_index_get)
+struct rte_epoll_event *
+rte_intr_elist_index_get(
 	struct rte_intr_handle *intr_handle, int index)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -380,7 +420,9 @@ fail:
 	return NULL;
 }
 
-int rte_intr_elist_index_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_elist_index_set)
+int
+rte_intr_elist_index_set(struct rte_intr_handle *intr_handle,
 	int index, struct rte_epoll_event elist)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -399,7 +441,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_vec_list_alloc(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_vec_list_alloc)
+int
+rte_intr_vec_list_alloc(struct rte_intr_handle *intr_handle,
 	const char *name, int size)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -432,7 +476,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_vec_list_index_get(const struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_vec_list_index_get)
+int
+rte_intr_vec_list_index_get(const struct rte_intr_handle *intr_handle,
 				int index)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -449,7 +495,9 @@ fail:
 	return -rte_errno;
 }
 
-int rte_intr_vec_list_index_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_vec_list_index_set)
+int
+rte_intr_vec_list_index_set(struct rte_intr_handle *intr_handle,
 				int index, int vec)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -468,7 +516,9 @@ fail:
 	return -rte_errno;
 }
 
-void rte_intr_vec_list_free(struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_vec_list_free)
+void
+rte_intr_vec_list_free(struct rte_intr_handle *intr_handle)
 {
 	if (intr_handle == NULL)
 		return;
@@ -480,7 +530,9 @@ void rte_intr_vec_list_free(struct rte_intr_handle *intr_handle)
 	intr_handle->vec_list_size = 0;
 }
 
-void *rte_intr_instance_windows_handle_get(struct rte_intr_handle *intr_handle)
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_instance_windows_handle_get)
+void *
+rte_intr_instance_windows_handle_get(struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
 
@@ -489,7 +541,9 @@ fail:
 	return NULL;
 }
 
-int rte_intr_instance_windows_handle_set(struct rte_intr_handle *intr_handle,
+RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_instance_windows_handle_set)
+int
+rte_intr_instance_windows_handle_set(struct rte_intr_handle *intr_handle,
 	void *windows_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);

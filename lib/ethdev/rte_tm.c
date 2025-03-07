@@ -58,6 +58,7 @@ __extension__ ({					\
 })
 
 /* Get number of leaf nodes */
+RTE_EXPORT_SYMBOL(rte_tm_get_number_of_leaf_nodes)
 int
 rte_tm_get_number_of_leaf_nodes(uint16_t port_id,
 	uint32_t *n_leaf_nodes,
@@ -87,6 +88,7 @@ rte_tm_get_number_of_leaf_nodes(uint16_t port_id,
 }
 
 /* Check node type (leaf or non-leaf) */
+RTE_EXPORT_SYMBOL(rte_tm_node_type_get)
 int
 rte_tm_node_type_get(uint16_t port_id,
 	uint32_t node_id,
@@ -104,7 +106,9 @@ rte_tm_node_type_get(uint16_t port_id,
 }
 
 /* Get capabilities */
-int rte_tm_capabilities_get(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_capabilities_get)
+int
+rte_tm_capabilities_get(uint16_t port_id,
 	struct rte_tm_capabilities *cap,
 	struct rte_tm_error *error)
 {
@@ -119,7 +123,9 @@ int rte_tm_capabilities_get(uint16_t port_id,
 }
 
 /* Get level capabilities */
-int rte_tm_level_capabilities_get(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_level_capabilities_get)
+int
+rte_tm_level_capabilities_get(uint16_t port_id,
 	uint32_t level_id,
 	struct rte_tm_level_capabilities *cap,
 	struct rte_tm_error *error)
@@ -135,7 +141,9 @@ int rte_tm_level_capabilities_get(uint16_t port_id,
 }
 
 /* Get node capabilities */
-int rte_tm_node_capabilities_get(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_capabilities_get)
+int
+rte_tm_node_capabilities_get(uint16_t port_id,
 	uint32_t node_id,
 	struct rte_tm_node_capabilities *cap,
 	struct rte_tm_error *error)
@@ -151,7 +159,9 @@ int rte_tm_node_capabilities_get(uint16_t port_id,
 }
 
 /* Add WRED profile */
-int rte_tm_wred_profile_add(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_wred_profile_add)
+int
+rte_tm_wred_profile_add(uint16_t port_id,
 	uint32_t wred_profile_id,
 	const struct rte_tm_wred_params *profile,
 	struct rte_tm_error *error)
@@ -167,7 +177,9 @@ int rte_tm_wred_profile_add(uint16_t port_id,
 }
 
 /* Delete WRED profile */
-int rte_tm_wred_profile_delete(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_wred_profile_delete)
+int
+rte_tm_wred_profile_delete(uint16_t port_id,
 	uint32_t wred_profile_id,
 	struct rte_tm_error *error)
 {
@@ -182,7 +194,9 @@ int rte_tm_wred_profile_delete(uint16_t port_id,
 }
 
 /* Add/update shared WRED context */
-int rte_tm_shared_wred_context_add_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_shared_wred_context_add_update)
+int
+rte_tm_shared_wred_context_add_update(uint16_t port_id,
 	uint32_t shared_wred_context_id,
 	uint32_t wred_profile_id,
 	struct rte_tm_error *error)
@@ -200,7 +214,9 @@ int rte_tm_shared_wred_context_add_update(uint16_t port_id,
 }
 
 /* Delete shared WRED context */
-int rte_tm_shared_wred_context_delete(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_shared_wred_context_delete)
+int
+rte_tm_shared_wred_context_delete(uint16_t port_id,
 	uint32_t shared_wred_context_id,
 	struct rte_tm_error *error)
 {
@@ -216,7 +232,9 @@ int rte_tm_shared_wred_context_delete(uint16_t port_id,
 }
 
 /* Add shaper profile */
-int rte_tm_shaper_profile_add(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_shaper_profile_add)
+int
+rte_tm_shaper_profile_add(uint16_t port_id,
 	uint32_t shaper_profile_id,
 	const struct rte_tm_shaper_params *profile,
 	struct rte_tm_error *error)
@@ -233,7 +251,9 @@ int rte_tm_shaper_profile_add(uint16_t port_id,
 }
 
 /* Delete WRED profile */
-int rte_tm_shaper_profile_delete(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_shaper_profile_delete)
+int
+rte_tm_shaper_profile_delete(uint16_t port_id,
 	uint32_t shaper_profile_id,
 	struct rte_tm_error *error)
 {
@@ -248,7 +268,9 @@ int rte_tm_shaper_profile_delete(uint16_t port_id,
 }
 
 /* Add shared shaper */
-int rte_tm_shared_shaper_add_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_shared_shaper_add_update)
+int
+rte_tm_shared_shaper_add_update(uint16_t port_id,
 	uint32_t shared_shaper_id,
 	uint32_t shaper_profile_id,
 	struct rte_tm_error *error)
@@ -265,7 +287,9 @@ int rte_tm_shared_shaper_add_update(uint16_t port_id,
 }
 
 /* Delete shared shaper */
-int rte_tm_shared_shaper_delete(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_shared_shaper_delete)
+int
+rte_tm_shared_shaper_delete(uint16_t port_id,
 	uint32_t shared_shaper_id,
 	struct rte_tm_error *error)
 {
@@ -280,7 +304,9 @@ int rte_tm_shared_shaper_delete(uint16_t port_id,
 }
 
 /* Add node to port traffic manager hierarchy */
-int rte_tm_node_add(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_add)
+int
+rte_tm_node_add(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t parent_node_id,
 	uint32_t priority,
@@ -301,7 +327,9 @@ int rte_tm_node_add(uint16_t port_id,
 	return ret;
 }
 
-int rte_tm_node_query(uint16_t port_id,
+RTE_EXPORT_EXPERIMENTAL_SYMBOL(rte_tm_node_query, 24.11)
+int
+rte_tm_node_query(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t *parent_node_id,
 	uint32_t *priority,
@@ -324,7 +352,9 @@ int rte_tm_node_query(uint16_t port_id,
 }
 
 /* Delete node from traffic manager hierarchy */
-int rte_tm_node_delete(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_delete)
+int
+rte_tm_node_delete(uint16_t port_id,
 	uint32_t node_id,
 	struct rte_tm_error *error)
 {
@@ -339,7 +369,9 @@ int rte_tm_node_delete(uint16_t port_id,
 }
 
 /* Suspend node */
-int rte_tm_node_suspend(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_suspend)
+int
+rte_tm_node_suspend(uint16_t port_id,
 	uint32_t node_id,
 	struct rte_tm_error *error)
 {
@@ -354,7 +386,9 @@ int rte_tm_node_suspend(uint16_t port_id,
 }
 
 /* Resume node */
-int rte_tm_node_resume(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_resume)
+int
+rte_tm_node_resume(uint16_t port_id,
 	uint32_t node_id,
 	struct rte_tm_error *error)
 {
@@ -369,7 +403,9 @@ int rte_tm_node_resume(uint16_t port_id,
 }
 
 /* Commit the initial port traffic manager hierarchy */
-int rte_tm_hierarchy_commit(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_hierarchy_commit)
+int
+rte_tm_hierarchy_commit(uint16_t port_id,
 	int clear_on_fail,
 	struct rte_tm_error *error)
 {
@@ -384,7 +420,9 @@ int rte_tm_hierarchy_commit(uint16_t port_id,
 }
 
 /* Update node parent  */
-int rte_tm_node_parent_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_parent_update)
+int
+rte_tm_node_parent_update(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t parent_node_id,
 	uint32_t priority,
@@ -403,7 +441,9 @@ int rte_tm_node_parent_update(uint16_t port_id,
 }
 
 /* Update node private shaper */
-int rte_tm_node_shaper_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_shaper_update)
+int
+rte_tm_node_shaper_update(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t shaper_profile_id,
 	struct rte_tm_error *error)
@@ -420,7 +460,9 @@ int rte_tm_node_shaper_update(uint16_t port_id,
 }
 
 /* Update node shared shapers */
-int rte_tm_node_shared_shaper_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_shared_shaper_update)
+int
+rte_tm_node_shared_shaper_update(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t shared_shaper_id,
 	int add,
@@ -438,7 +480,9 @@ int rte_tm_node_shared_shaper_update(uint16_t port_id,
 }
 
 /* Update node stats */
-int rte_tm_node_stats_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_stats_update)
+int
+rte_tm_node_stats_update(uint16_t port_id,
 	uint32_t node_id,
 	uint64_t stats_mask,
 	struct rte_tm_error *error)
@@ -454,7 +498,9 @@ int rte_tm_node_stats_update(uint16_t port_id,
 }
 
 /* Update WFQ weight mode */
-int rte_tm_node_wfq_weight_mode_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_wfq_weight_mode_update)
+int
+rte_tm_node_wfq_weight_mode_update(uint16_t port_id,
 	uint32_t node_id,
 	int *wfq_weight_mode,
 	uint32_t n_sp_priorities,
@@ -473,7 +519,9 @@ int rte_tm_node_wfq_weight_mode_update(uint16_t port_id,
 }
 
 /* Update node congestion management mode */
-int rte_tm_node_cman_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_cman_update)
+int
+rte_tm_node_cman_update(uint16_t port_id,
 	uint32_t node_id,
 	enum rte_tm_cman_mode cman,
 	struct rte_tm_error *error)
@@ -489,7 +537,9 @@ int rte_tm_node_cman_update(uint16_t port_id,
 }
 
 /* Update node private WRED context */
-int rte_tm_node_wred_context_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_wred_context_update)
+int
+rte_tm_node_wred_context_update(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t wred_profile_id,
 	struct rte_tm_error *error)
@@ -506,7 +556,9 @@ int rte_tm_node_wred_context_update(uint16_t port_id,
 }
 
 /* Update node shared WRED context */
-int rte_tm_node_shared_wred_context_update(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_shared_wred_context_update)
+int
+rte_tm_node_shared_wred_context_update(uint16_t port_id,
 	uint32_t node_id,
 	uint32_t shared_wred_context_id,
 	int add,
@@ -525,7 +577,9 @@ int rte_tm_node_shared_wred_context_update(uint16_t port_id,
 }
 
 /* Read and/or clear stats counters for specific node */
-int rte_tm_node_stats_read(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_node_stats_read)
+int
+rte_tm_node_stats_read(uint16_t port_id,
 	uint32_t node_id,
 	struct rte_tm_node_stats *stats,
 	uint64_t *stats_mask,
@@ -544,7 +598,9 @@ int rte_tm_node_stats_read(uint16_t port_id,
 }
 
 /* Packet marking - VLAN DEI */
-int rte_tm_mark_vlan_dei(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_mark_vlan_dei)
+int
+rte_tm_mark_vlan_dei(uint16_t port_id,
 	int mark_green,
 	int mark_yellow,
 	int mark_red,
@@ -562,7 +618,9 @@ int rte_tm_mark_vlan_dei(uint16_t port_id,
 }
 
 /* Packet marking - IPv4/IPv6 ECN */
-int rte_tm_mark_ip_ecn(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_mark_ip_ecn)
+int
+rte_tm_mark_ip_ecn(uint16_t port_id,
 	int mark_green,
 	int mark_yellow,
 	int mark_red,
@@ -580,7 +638,9 @@ int rte_tm_mark_ip_ecn(uint16_t port_id,
 }
 
 /* Packet marking - IPv4/IPv6 DSCP */
-int rte_tm_mark_ip_dscp(uint16_t port_id,
+RTE_EXPORT_SYMBOL(rte_tm_mark_ip_dscp)
+int
+rte_tm_mark_ip_dscp(uint16_t port_id,
 	int mark_green,
 	int mark_yellow,
 	int mark_red,

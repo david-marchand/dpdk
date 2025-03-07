@@ -16,12 +16,16 @@
 #include "eal_private.h"
 
 /* require calling thread tid by gettid() */
-int rte_sys_gettid(void)
+RTE_EXPORT_SYMBOL(rte_sys_gettid)
+int
+rte_sys_gettid(void)
 {
 	return (int)syscall(SYS_gettid);
 }
 
-void rte_thread_set_name(rte_thread_t thread_id, const char *thread_name)
+RTE_EXPORT_SYMBOL(rte_thread_set_name)
+void
+rte_thread_set_name(rte_thread_t thread_id, const char *thread_name)
 {
 	int ret = ENOSYS;
 #if defined(__GLIBC__) && defined(__GLIBC_PREREQ)

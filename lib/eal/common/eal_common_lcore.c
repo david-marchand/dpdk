@@ -18,17 +18,23 @@
 #include "eal_private.h"
 #include "eal_thread.h"
 
-unsigned int rte_get_main_lcore(void)
+RTE_EXPORT_SYMBOL(rte_get_main_lcore)
+unsigned int
+rte_get_main_lcore(void)
 {
 	return rte_eal_get_configuration()->main_lcore;
 }
 
-unsigned int rte_lcore_count(void)
+RTE_EXPORT_SYMBOL(rte_lcore_count)
+unsigned int
+rte_lcore_count(void)
 {
 	return rte_eal_get_configuration()->lcore_count;
 }
 
-int rte_lcore_index(int lcore_id)
+RTE_EXPORT_SYMBOL(rte_lcore_index)
+int
+rte_lcore_index(int lcore_id)
 {
 	if (unlikely(lcore_id >= RTE_MAX_LCORE))
 		return -1;
@@ -43,7 +49,9 @@ int rte_lcore_index(int lcore_id)
 	return lcore_config[lcore_id].core_index;
 }
 
-int rte_lcore_to_cpu_id(int lcore_id)
+RTE_EXPORT_SYMBOL(rte_lcore_to_cpu_id)
+int
+rte_lcore_to_cpu_id(int lcore_id)
 {
 	if (unlikely(lcore_id >= RTE_MAX_LCORE))
 		return -1;
@@ -58,11 +66,14 @@ int rte_lcore_to_cpu_id(int lcore_id)
 	return lcore_config[lcore_id].core_id;
 }
 
-rte_cpuset_t rte_lcore_cpuset(unsigned int lcore_id)
+RTE_EXPORT_SYMBOL(rte_lcore_cpuset)
+rte_cpuset_t
+rte_lcore_cpuset(unsigned int lcore_id)
 {
 	return lcore_config[lcore_id].cpuset;
 }
 
+RTE_EXPORT_SYMBOL(rte_eal_lcore_role)
 enum rte_lcore_role_t
 rte_eal_lcore_role(unsigned int lcore_id)
 {
@@ -73,6 +84,7 @@ rte_eal_lcore_role(unsigned int lcore_id)
 	return cfg->lcore_role[lcore_id];
 }
 
+RTE_EXPORT_SYMBOL(rte_lcore_has_role)
 int
 rte_lcore_has_role(unsigned int lcore_id, enum rte_lcore_role_t role)
 {
@@ -84,7 +96,9 @@ rte_lcore_has_role(unsigned int lcore_id, enum rte_lcore_role_t role)
 	return cfg->lcore_role[lcore_id] == role;
 }
 
-int rte_lcore_is_enabled(unsigned int lcore_id)
+RTE_EXPORT_SYMBOL(rte_lcore_is_enabled)
+int
+rte_lcore_is_enabled(unsigned int lcore_id)
 {
 	struct rte_config *cfg = rte_eal_get_configuration();
 
@@ -93,7 +107,9 @@ int rte_lcore_is_enabled(unsigned int lcore_id)
 	return cfg->lcore_role[lcore_id] == ROLE_RTE;
 }
 
-unsigned int rte_get_next_lcore(unsigned int i, int skip_main, int wrap)
+RTE_EXPORT_SYMBOL(rte_get_next_lcore)
+unsigned int
+rte_get_next_lcore(unsigned int i, int skip_main, int wrap)
 {
 	i++;
 	if (wrap)
@@ -112,6 +128,7 @@ unsigned int rte_get_next_lcore(unsigned int i, int skip_main, int wrap)
 	return i;
 }
 
+RTE_EXPORT_SYMBOL(rte_lcore_to_socket_id)
 unsigned int
 rte_lcore_to_socket_id(unsigned int lcore_id)
 {
@@ -213,6 +230,7 @@ rte_eal_cpu_init(void)
 	return 0;
 }
 
+RTE_EXPORT_SYMBOL(rte_socket_count)
 unsigned int
 rte_socket_count(void)
 {
@@ -220,6 +238,7 @@ rte_socket_count(void)
 	return config->numa_node_count;
 }
 
+RTE_EXPORT_SYMBOL(rte_socket_id_by_idx)
 int
 rte_socket_id_by_idx(unsigned int idx)
 {
@@ -269,6 +288,7 @@ free_callback(struct lcore_callback *callback)
 	free(callback);
 }
 
+RTE_EXPORT_SYMBOL(rte_lcore_callback_register)
 void *
 rte_lcore_callback_register(const char *name, rte_lcore_init_cb init,
 	rte_lcore_uninit_cb uninit, void *arg)
@@ -319,6 +339,7 @@ out:
 	return callback;
 }
 
+RTE_EXPORT_SYMBOL(rte_lcore_callback_unregister)
 void
 rte_lcore_callback_unregister(void *handle)
 {
@@ -404,6 +425,7 @@ out:
 	rte_rwlock_write_unlock(&lcore_lock);
 }
 
+RTE_EXPORT_SYMBOL(rte_lcore_iterate)
 int
 rte_lcore_iterate(rte_lcore_iterate_cb cb, void *arg)
 {
@@ -440,6 +462,7 @@ lcore_role_str(enum rte_lcore_role_t role)
 
 static rte_lcore_usage_cb lcore_usage_cb;
 
+RTE_EXPORT_SYMBOL(rte_lcore_register_usage_cb)
 void
 rte_lcore_register_usage_cb(rte_lcore_usage_cb cb)
 {
@@ -486,6 +509,7 @@ lcore_dump_cb(unsigned int lcore_id, void *arg)
 	return 0;
 }
 
+RTE_EXPORT_SYMBOL(rte_lcore_dump)
 void
 rte_lcore_dump(FILE *f)
 {

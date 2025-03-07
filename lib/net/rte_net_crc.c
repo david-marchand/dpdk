@@ -413,7 +413,9 @@ RTE_DEFAULT_SYMBOL(26, struct rte_net_crc *, rte_net_crc_set_alg, (enum rte_net_
 	return crc;
 }
 
-void rte_net_crc_free(struct rte_net_crc *crc)
+RTE_EXPORT_SYMBOL(rte_net_crc_free)
+void
+rte_net_crc_free(struct rte_net_crc *crc)
 {
 	rte_free(crc);
 }

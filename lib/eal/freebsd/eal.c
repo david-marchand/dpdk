@@ -72,6 +72,7 @@ static struct flock wr_lock = {
 struct lcore_config lcore_config[RTE_MAX_LCORE];
 
 /* used by rte_rdtsc() */
+RTE_EXPORT_SYMBOL(rte_cycles_vmware_tsc_map)
 int rte_cycles_vmware_tsc_map;
 
 
@@ -514,6 +515,7 @@ sync_func(__rte_unused void *arg)
 	return 0;
 }
 /* Abstraction for port I/0 privilege */
+RTE_EXPORT_SYMBOL(rte_eal_iopl_init)
 int
 rte_eal_iopl_init(void)
 {
@@ -534,6 +536,7 @@ static void rte_eal_init_alert(const char *msg)
 }
 
 /* Launch threads, called at application init(). */
+RTE_EXPORT_SYMBOL(rte_eal_init)
 int
 rte_eal_init(int argc, char **argv)
 {
@@ -883,6 +886,7 @@ rte_eal_init(int argc, char **argv)
 	return fctret;
 }
 
+RTE_EXPORT_SYMBOL(rte_eal_cleanup)
 int
 rte_eal_cleanup(void)
 {
@@ -911,19 +915,23 @@ rte_eal_cleanup(void)
 	return 0;
 }
 
-int rte_eal_create_uio_dev(void)
+RTE_EXPORT_SYMBOL(rte_eal_create_uio_dev)
+int
+rte_eal_create_uio_dev(void)
 {
 	const struct internal_config *internal_conf =
 		eal_get_internal_configuration();
 	return internal_conf->create_uio_dev;
 }
 
+RTE_EXPORT_SYMBOL(rte_eal_vfio_intr_mode)
 enum rte_intr_mode
 rte_eal_vfio_intr_mode(void)
 {
 	return RTE_INTR_MODE_NONE;
 }
 
+RTE_EXPORT_SYMBOL(rte_eal_vfio_get_vf_token)
 void
 rte_eal_vfio_get_vf_token(__rte_unused rte_uuid_t vf_token)
 {
@@ -968,6 +976,7 @@ int rte_vfio_clear_group(__rte_unused int vfio_group_fd)
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_get_group_num)
 int
 rte_vfio_get_group_num(__rte_unused const char *sysfs_base,
 		       __rte_unused const char *dev_addr,
@@ -977,6 +986,7 @@ rte_vfio_get_group_num(__rte_unused const char *sysfs_base,
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_get_container_fd)
 int
 rte_vfio_get_container_fd(void)
 {
@@ -984,6 +994,7 @@ rte_vfio_get_container_fd(void)
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_get_group_fd)
 int
 rte_vfio_get_group_fd(__rte_unused int iommu_group_num)
 {
@@ -991,6 +1002,7 @@ rte_vfio_get_group_fd(__rte_unused int iommu_group_num)
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_container_create)
 int
 rte_vfio_container_create(void)
 {
@@ -998,6 +1010,7 @@ rte_vfio_container_create(void)
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_container_destroy)
 int
 rte_vfio_container_destroy(__rte_unused int container_fd)
 {
@@ -1005,6 +1018,7 @@ rte_vfio_container_destroy(__rte_unused int container_fd)
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_container_group_bind)
 int
 rte_vfio_container_group_bind(__rte_unused int container_fd,
 		__rte_unused int iommu_group_num)
@@ -1013,6 +1027,7 @@ rte_vfio_container_group_bind(__rte_unused int container_fd,
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_container_group_unbind)
 int
 rte_vfio_container_group_unbind(__rte_unused int container_fd,
 		__rte_unused int iommu_group_num)
@@ -1021,6 +1036,7 @@ rte_vfio_container_group_unbind(__rte_unused int container_fd,
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_container_dma_map)
 int
 rte_vfio_container_dma_map(__rte_unused int container_fd,
 			__rte_unused uint64_t vaddr,
@@ -1031,6 +1047,7 @@ rte_vfio_container_dma_map(__rte_unused int container_fd,
 	return -1;
 }
 
+RTE_EXPORT_SYMBOL(rte_vfio_container_dma_unmap)
 int
 rte_vfio_container_dma_unmap(__rte_unused int container_fd,
 			__rte_unused uint64_t vaddr,

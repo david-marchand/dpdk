@@ -262,6 +262,7 @@ ptype_tunnel_with_udp(uint16_t *proto, const struct rte_mbuf *m,
 }
 
 /* parse ipv6 extended headers, update offset and return next proto */
+RTE_EXPORT_SYMBOL(rte_net_skip_ip6_ext)
 int
 rte_net_skip_ip6_ext(uint16_t proto, const struct rte_mbuf *m, uint32_t *off,
 	int *frag)
@@ -308,7 +309,9 @@ rte_net_skip_ip6_ext(uint16_t proto, const struct rte_mbuf *m, uint32_t *off,
 }
 
 /* parse mbuf data to get packet type */
-uint32_t rte_net_get_ptype(const struct rte_mbuf *m,
+RTE_EXPORT_SYMBOL(rte_net_get_ptype)
+uint32_t
+rte_net_get_ptype(const struct rte_mbuf *m,
 	struct rte_net_hdr_lens *hdr_lens, uint32_t layers)
 {
 	struct rte_net_hdr_lens local_hdr_lens;
