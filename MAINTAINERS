@@ -96,7 +96,6 @@ F: devtools/check-forbidden-tokens.awk
 F: devtools/check-git-log.sh
 F: devtools/check-spdx-tag.sh
 F: devtools/check-symbol-change.sh
-F: devtools/check-symbol-maps.sh
 F: devtools/checkpatches.sh
 F: devtools/get-maintainer.sh
 F: devtools/git-log-fixes.sh
@@ -165,7 +164,6 @@ M: Tyler Retzlaff <roretzla@linux.microsoft.com>
 F: lib/eal/common/
 F: lib/eal/unix/
 F: lib/eal/include/
-F: lib/eal/version.map
 F: doc/guides/prog_guide/env_abstraction_layer.rst
 F: app/test/test_alarm.c
 F: app/test/test_atomic.c
@@ -395,7 +393,6 @@ Windows support
 M: Dmitry Kozlyuk <dmitry.kozliuk@gmail.com>
 M: Tyler Retzlaff <roretzla@linux.microsoft.com>
 F: lib/eal/windows/
-F: buildtools/map_to_win.py
 F: doc/guides/windows_gsg/
 
 Windows memory allocation
