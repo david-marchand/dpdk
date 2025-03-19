@@ -2,8 +2,11 @@
  * Copyright(c) 2010-2014 Intel Corporation
  */
 
-#include <unistd.h>
+#include <errno.h>
+#include <glob.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <rte_log.h>
 
@@ -40,14 +43,17 @@ eal_cpu_detected(unsigned lcore_id)
 unsigned
 eal_cpu_socket_id(unsigned lcore_id)
 {
-	unsigned socket;
+	char pattern[PATH_MAX];
+	glob_t gl;
 
-	for (socket = 0; socket < RTE_MAX_NUMA_NODES; socket++) {
-		char path[PATH_MAX];
+	snprintf(pattern, sizeof(pattern), "%s/node*/cpu%u", NUMA_NODE_PATH, lcore_id);
+	if (glob(pattern, 0, NULL, &gl) == 0) {
+		long socket;
 
-		snprintf(path, sizeof(path), "%s/node%u/cpu%u", NUMA_NODE_PATH,
-				socket, lcore_id);
-		if (access(path, F_OK) == 0)
+		errno = 0;
+		socket = strtol(gl.gl_pathv[0] + strlen(NUMA_NODE_PATH) + strlen("/node"),
+			NULL, 10);
+		if (errno == 0)
 			return socket;
 	}
 	return 0;
