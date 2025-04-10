@@ -3985,6 +3985,7 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	uint32_t pkt_idx = 0;
 	uint16_t slot_idx = 0;
 	uint16_t nr_done_pkts = 0;
+	uint32_t pkt_err;
 	uint32_t n_xfer;
 	uint16_t i;
 	struct vhost_async *async = vq->async;
@@ -4035,36 +4036,8 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			async->iov_iter, pkt_idx);
 
 	if (unlikely(pkt_idx != n_xfer)) {
-		uint16_t pkt_err = pkt_idx - n_xfer;
-		uint16_t descs_err = 0;
-
-		pkt_idx = n_xfer;
-
-		/**
-		 * recover DMA-copy related structures and free pktmbuf for DMA-error pkts.
-		 */
-		if (async->buffer_idx_packed >= pkt_err)
-			async->buffer_idx_packed -= pkt_err;
-		else
-			async->buffer_idx_packed += vq->size - pkt_err;
-
-		while (pkt_err-- > 0) {
-			descs_err += pkts_info[slot_idx].descs;
-
-			if (slot_idx == 0)
-				slot_idx = vq->size - 1;
-			else
-				slot_idx--;
-		}
-
-		/* recover available ring */
-		if (vq->last_avail_idx >= descs_err) {
-			vq->last_avail_idx -= descs_err;
-		} else {
-			vq->last_avail_idx += vq->size - descs_err;
-			vq->avail_wrap_counter ^= 1;
-		}
-		vhost_virtqueue_reconnect_log_packed(vq);
+		pkt_err = pkt_idx - n_xfer;
+		dma_error_handler_packed(vq, slot_idx, pkt_err, &pkt_idx);
 	}
 
 	async->pkts_inflight_n += pkt_idx;
