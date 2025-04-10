@@ -1820,15 +1820,12 @@ virtio_dev_rx_async_submit_split(struct virtio_net *dev, struct vhost_virtqueue 
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
 	struct buf_vector buf_vec[BUF_VECTOR_MAX];
+	struct vhost_async *async = vq->async;
 	uint32_t pkt_idx = 0;
 	uint16_t num_buffers;
 	uint16_t avail_head;
-
-	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = async->pkts_info;
-	uint32_t pkt_err = 0;
+	uint16_t slot_idx;
 	uint16_t n_xfer;
-	uint16_t slot_idx = 0;
 
 	/*
 	 * The ordering between avail index and desc reads need to be enforced.
@@ -1862,8 +1859,8 @@ virtio_dev_rx_async_submit_split(struct virtio_net *dev, struct vhost_virtqueue 
 		}
 
 		slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
-		pkts_info[slot_idx].descs = num_buffers;
-		pkts_info[slot_idx].mbuf = pkts[pkt_idx];
+		async->pkts_info[slot_idx].descs = num_buffers;
+		async->pkts_info[slot_idx].mbuf = pkts[pkt_idx];
 
 		vq->last_avail_idx += num_buffers;
 		vhost_virtqueue_reconnect_log_split(vq);
@@ -1875,21 +1872,17 @@ virtio_dev_rx_async_submit_split(struct virtio_net *dev, struct vhost_virtqueue 
 	n_xfer = vhost_async_dma_transfer(dev, vq, dma_ctx, async->pkts_idx,
 			async->iov_iter, pkt_idx);
 
-	pkt_err = pkt_idx - n_xfer;
-	if (unlikely(pkt_err)) {
+	if (unlikely(n_xfer != pkt_idx)) {
 		uint16_t num_descs = 0;
 
 		VHOST_DATA_LOG(dev->ifname, DEBUG,
 			"%s: failed to transfer %u packets for queue %u.",
-			__func__, pkt_err, vq->index);
-
-		/* update number of completed packets */
-		pkt_idx = n_xfer;
+			__func__, pkt_idx - n_xfer, vq->index);
 
 		/* calculate the sum of descriptors to revert */
-		while (pkt_err-- > 0) {
-			num_descs += pkts_info[slot_idx & (vq->size - 1)].descs;
-			slot_idx--;
+		for (; pkt_idx > n_xfer; pkt_idx--) {
+			slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
+			num_descs += async->pkts_info[slot_idx].descs;
 		}
 
 		/* recover shadow used ring and available ring */
@@ -2086,21 +2079,19 @@ virtio_dev_rx_async_packed_batch(struct virtio_net *dev, struct vhost_virtqueue 
 }
 
 static __rte_always_inline void
-dma_error_handler_packed(struct vhost_virtqueue *vq, uint16_t slot_idx,
-			uint32_t nr_err, uint32_t *pkt_idx)
+dma_error_handler_packed(struct vhost_virtqueue *vq, uint16_t pkt_idx, uint32_t n_xfer)
 	__rte_requires_shared_capability(&vq->access_lock)
 {
-	uint16_t descs_err = 0;
-	uint16_t buffers_err = 0;
 	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = vq->async->pkts_info;
+	uint16_t buffers_err = 0;
+	uint16_t descs_err = 0;
+	uint16_t slot_idx;
 
-	*pkt_idx -= nr_err;
 	/* calculate the sum of buffers and descs of DMA-error packets. */
-	while (nr_err-- > 0) {
-		descs_err += pkts_info[slot_idx % vq->size].descs;
-		buffers_err += pkts_info[slot_idx % vq->size].nr_buffers;
-		slot_idx--;
+	for (; pkt_idx > n_xfer; pkt_idx--) {
+		slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
+		descs_err += async->pkts_info[slot_idx].descs;
+		buffers_err += async->pkts_info[slot_idx].nr_buffers;
 	}
 
 	if (vq->last_avail_idx >= descs_err) {
@@ -2123,15 +2114,12 @@ virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue
 	__rte_requires_shared_capability(&vq->access_lock)
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
+	struct vhost_async *async = vq->async;
 	uint32_t pkt_idx = 0;
-	uint16_t n_xfer;
 	uint16_t num_buffers;
 	uint16_t num_descs;
-
-	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = async->pkts_info;
-	uint32_t pkt_err = 0;
-	uint16_t slot_idx = 0;
+	uint16_t slot_idx;
+	uint16_t n_xfer;
 	uint16_t i;
 
 	do {
@@ -2141,9 +2129,9 @@ virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue
 			if (!virtio_dev_rx_async_packed_batch(dev, vq, &pkts[pkt_idx], dma_ctx)) {
 				for (i = 0; i < PACKED_BATCH_SIZE; i++) {
 					slot_idx = (async->pkts_idx + pkt_idx) % vq->size;
-					pkts_info[slot_idx].descs = 1;
-					pkts_info[slot_idx].nr_buffers = 1;
-					pkts_info[slot_idx].mbuf = pkts[pkt_idx];
+					async->pkts_info[slot_idx].descs = 1;
+					async->pkts_info[slot_idx].nr_buffers = 1;
+					async->pkts_info[slot_idx].mbuf = pkts[pkt_idx];
 					pkt_idx++;
 				}
 				continue;
@@ -2156,11 +2144,10 @@ virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue
 						&num_descs, &num_buffers) < 0))
 			break;
 
-		slot_idx = (async->pkts_idx + pkt_idx) % vq->size;
-
-		pkts_info[slot_idx].descs = num_descs;
-		pkts_info[slot_idx].nr_buffers = num_buffers;
-		pkts_info[slot_idx].mbuf = pkts[pkt_idx];
+		slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
+		async->pkts_info[slot_idx].descs = num_descs;
+		async->pkts_info[slot_idx].nr_buffers = num_buffers;
+		async->pkts_info[slot_idx].mbuf = pkts[pkt_idx];
 
 		pkt_idx++;
 		vq_inc_last_avail_packed(vq, num_descs);
@@ -2173,13 +2160,12 @@ virtio_dev_rx_async_submit_packed(struct virtio_net *dev, struct vhost_virtqueue
 			async->iov_iter, pkt_idx);
 
 	async_iter_reset(async);
-
-	pkt_err = pkt_idx - n_xfer;
-	if (unlikely(pkt_err)) {
+	if (unlikely(pkt_idx != n_xfer)) {
 		VHOST_DATA_LOG(dev->ifname, DEBUG,
 			"%s: failed to transfer %u packets for queue %u.",
-			__func__, pkt_err, vq->index);
-		dma_error_handler_packed(vq, slot_idx, pkt_err, &pkt_idx);
+			__func__, pkt_idx - n_xfer, vq->index);
+		dma_error_handler_packed(vq, pkt_idx, n_xfer);
+		pkt_idx = n_xfer;
 	}
 
 	async->pkts_idx += pkt_idx;
@@ -3694,7 +3680,7 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 {
 	static bool allocerr_warned;
 	uint16_t avail_entries;
-	uint16_t pkt_idx, slot_idx = 0;
+	uint16_t pkt_idx, slot_idx;
 	uint16_t nr_done_pkts = 0;
 	uint16_t n_xfer;
 	struct vhost_async *async = vq->async;
@@ -3754,11 +3740,9 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 					__func__, buf_len, mbuf_pool->name);
 				allocerr_warned = true;
 			}
-			slot_idx--;
 			break;
 		}
 
-		slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
 		hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
 		if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkt, mbuf_pool, true))) {
 			if (!allocerr_warned) {
@@ -3767,10 +3751,10 @@ virtio_dev_tx_async_split(struct virtio_net *dev, struct vhost_virtqueue *vq,
 					__func__);
 				allocerr_warned = true;
 			}
-			slot_idx--;
 			break;
 		}
 
+		slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
 		if (hdr)
 			async->pkts_info[slot_idx].nethdr = *hdr;
 		async->pkts_info[slot_idx].mbuf = pkt;
@@ -3858,7 +3842,7 @@ vhost_async_shadow_dequeue_single_packed(struct vhost_virtqueue *vq,
 
 static __rte_always_inline int
 virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mempool *mbuf_pool, struct rte_mbuf *pkts, uint16_t slot_idx)
+		struct rte_mempool *mbuf_pool, struct rte_mbuf *pkts[], uint16_t pkt_idx)
 	__rte_requires_shared_capability(&vq->access_lock)
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
@@ -3869,6 +3853,7 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue
 	uint16_t buf_id, desc_count = 0;
 	struct virtio_net_hdr tmp_hdr;
 	uint16_t nr_vec = 0;
+	uint16_t slot_idx;
 	uint32_t buf_len;
 
 	if (unlikely(fill_vec_buf_packed(dev, vq, vq->last_avail_idx, &desc_count,
@@ -3886,7 +3871,7 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue
 
 	buf_len -= dev->vhost_hlen;
 
-	if (unlikely(virtio_dev_pktmbuf_prep(dev, pkts, buf_len))) {
+	if (unlikely(virtio_dev_pktmbuf_prep(dev, pkts[pkt_idx], buf_len))) {
 		if (!allocerr_warned) {
 			VHOST_DATA_LOG(dev->ifname, ERR, "Failed mbuf alloc of size %d from %s.",
 				buf_len, mbuf_pool->name);
@@ -3897,7 +3882,7 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue
 	}
 
 	hdr = desc_extract_hdr(dev, buf_vec, &tmp_hdr);
-	if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts, mbuf_pool, true))) {
+	if (unlikely(desc_to_mbuf(dev, vq, buf_vec, nr_vec, pkts[pkt_idx], mbuf_pool, true))) {
 		if (!allocerr_warned) {
 			VHOST_DATA_LOG(dev->ifname, ERR, "Failed to copy desc to mbuf on.");
 			allocerr_warned = true;
@@ -3905,9 +3890,10 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue
 		return -1;
 	}
 
+	slot_idx = (async->pkts_idx + pkt_idx) & (vq->size - 1);
 	if (hdr)
 		async->pkts_info[slot_idx].nethdr = *hdr;
-	async->pkts_info[slot_idx].mbuf = pkts;
+	async->pkts_info[slot_idx].mbuf = pkts[pkt_idx];
 	async->pkts_info[slot_idx].descs = desc_count;
 
 	/* update async shadow packed ring */
@@ -3920,14 +3906,13 @@ virtio_dev_tx_async_single_packed(struct virtio_net *dev, struct vhost_virtqueue
 
 static __rte_always_inline int
 virtio_dev_tx_async_packed_batch(struct virtio_net *dev, struct vhost_virtqueue *vq,
-		struct rte_mbuf **pkts, uint16_t slot_idx, struct async_dma_context *dma_ctx)
+		struct rte_mbuf *pkts[], uint16_t pkt_idx, struct async_dma_context *dma_ctx)
 	__rte_requires_shared_capability(&vq->access_lock)
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
 	uint16_t avail_idx = vq->last_avail_idx;
 	uint32_t buf_offset = sizeof(struct virtio_net_hdr_mrg_rxbuf);
 	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = async->pkts_info;
 	struct virtio_net_hdr *hdr;
 	uint32_t mbuf_offset = 0;
 	uintptr_t desc_addrs[PACKED_BATCH_SIZE];
@@ -3936,6 +3921,7 @@ virtio_dev_tx_async_packed_batch(struct virtio_net *dev, struct vhost_virtqueue 
 	void *host_iova[PACKED_BATCH_SIZE];
 	uint64_t mapped_len[PACKED_BATCH_SIZE];
 	uint16_t ids[PACKED_BATCH_SIZE];
+	uint16_t slot_idx;
 	uint16_t i;
 
 	if (vhost_async_tx_batch_packed_check(dev, vq, pkts, avail_idx, desc_addrs, lens, ids,
@@ -3961,10 +3947,11 @@ virtio_dev_tx_async_packed_batch(struct virtio_net *dev, struct vhost_virtqueue 
 
 	if (virtio_net_with_host_offload(dev)) {
 		vhost_for_each_try_unroll(i, 0, PACKED_BATCH_SIZE) {
+			slot_idx = (async->pkts_idx + pkt_idx) % vq->size;
 			desc_vva = vhost_iova_to_vva(dev, vq, desc_addrs[i],
 						&lens[i], VHOST_ACCESS_RO);
 			hdr = (struct virtio_net_hdr *)(uintptr_t)desc_vva;
-			pkts_info[slot_idx + i].nethdr = *hdr;
+			async->pkts_info[slot_idx + i].nethdr = *hdr;
 		}
 	}
 
@@ -3983,13 +3970,11 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	__rte_requires_shared_capability(&vq->iotlb_lock)
 {
 	uint32_t pkt_idx = 0;
-	uint16_t slot_idx = 0;
 	uint16_t nr_done_pkts = 0;
-	uint32_t pkt_err;
+	uint16_t slot_idx;
 	uint32_t n_xfer;
 	uint16_t i;
 	struct vhost_async *async = vq->async;
-	struct async_inflight_info *pkts_info = async->pkts_info;
 	struct rte_mbuf *pkts_prealloc[MAX_PKT_BURST];
 
 	VHOST_DATA_LOG(dev->ifname, DEBUG, "(%d) about to dequeue %u buffers", dev->vid, count);
@@ -4004,15 +3989,14 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	do {
 		rte_prefetch0(&vq->desc_packed[vq->last_avail_idx]);
 
-		slot_idx = (async->pkts_idx + pkt_idx) % vq->size;
 		if (count - pkt_idx >= PACKED_BATCH_SIZE) {
-			if (!virtio_dev_tx_async_packed_batch(dev, vq, &pkts_prealloc[pkt_idx],
-					slot_idx, dma_ctx)) {
+			if (!virtio_dev_tx_async_packed_batch(dev, vq, pkts_prealloc, pkt_idx,
+					dma_ctx)) {
 				for (i = 0; i < PACKED_BATCH_SIZE; i++) {
 					slot_idx = (async->pkts_idx + pkt_idx) % vq->size;
-					pkts_info[slot_idx].descs = 1;
-					pkts_info[slot_idx].nr_buffers = 1;
-					pkts_info[slot_idx].mbuf = pkts_prealloc[pkt_idx];
+					async->pkts_info[slot_idx].descs = 1;
+					async->pkts_info[slot_idx].nr_buffers = 1;
+					async->pkts_info[slot_idx].mbuf = pkts_prealloc[pkt_idx];
 					pkt_idx++;
 				}
 				continue;
@@ -4020,14 +4004,8 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 		}
 
 		if (unlikely(virtio_dev_tx_async_single_packed(dev, vq, mbuf_pool,
-				pkts_prealloc[pkt_idx], slot_idx))) {
-			if (slot_idx == 0)
-				slot_idx = vq->size - 1;
-			else
-				slot_idx--;
-
+				pkts_prealloc, pkt_idx)))
 			break;
-		}
 
 		pkt_idx++;
 	} while (pkt_idx < count);
@@ -4036,8 +4014,8 @@ virtio_dev_tx_async_packed(struct virtio_net *dev, struct vhost_virtqueue *vq,
 			async->iov_iter, pkt_idx);
 
 	if (unlikely(pkt_idx != n_xfer)) {
-		pkt_err = pkt_idx - n_xfer;
-		dma_error_handler_packed(vq, slot_idx, pkt_err, &pkt_idx);
+		dma_error_handler_packed(vq, pkt_idx, n_xfer);
+		pkt_idx = n_xfer;
 	}
 
 	async->pkts_inflight_n += pkt_idx;
