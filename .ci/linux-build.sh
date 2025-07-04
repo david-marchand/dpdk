@@ -116,7 +116,11 @@ elif [ "$UBSAN" != "true" ]; then
 fi
 if [ "$MINI" = "true" ]; then
     OPTS="$OPTS -Denable_drivers=net/null"
-    OPTS="$OPTS -Ddisable_libs=*"
+    if [ "$UBSAN" = "true" ]; then
+        OPTS="$OPTS -Denable_libs=graph,pcapng"
+    else
+        OPTS="$OPTS -Ddisable_libs=*"
+    fi
     if [ "$DEF_LIB" = "static" ]; then
         OPTS="$OPTS -Dexamples=l2fwd"
     fi
