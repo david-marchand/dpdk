@@ -21,6 +21,7 @@ no_license_list=\
 ':^*/Kbuild :^kernel/linux/uapi/version :^.coderabbit.yaml '\
 ':^*.ini :^*.data :^*.json :^*.cfg :^*.txt :^*.svg :^*.png'
 
+# check_spdx identifies files (excluding patterns in $no_license_list) that lack an `SPDX-License-Identifier` tag, writes their paths to `$tmpfile`, sets the global `missing_spdx` counter to the number found, and prints the list unless quiet mode is enabled.
 check_spdx() {
     if $verbose ; then
 	echo "Files without SPDX License"

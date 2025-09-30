@@ -12,6 +12,14 @@ import shutil
 from pathlib import Path
 
 def main():
+    """
+    Stage header files into a staging directory or clean the staging directory and update a Meson stamp file.
+    
+    When invoked with "--cleanup <staging_dir> <meson_stamp>", removes and recreates the staging directory and updates the Meson stamp file's timestamp. Otherwise, creates the staging directory (if needed), copies the listed header files into it (preserving filenames and metadata), and updates the Meson stamp file's timestamp.
+    
+    Usage:
+        stage-headers.py [--cleanup] <staging_dir> <meson_stamp> [headers...]
+    """
     if len(sys.argv) < 4:
         print("Usage: stage-headers.py [--cleanup] <staging_dir> <meson_stamp> [headers...]")
         sys.exit(1)

@@ -27,6 +27,12 @@ extern "C" {
 
 #ifdef RTE_ARCH_ARM_NEON_MEMCPY
 
+/**
+ * Copy 16 bytes from src to dst.
+ *
+ * @param dst Destination buffer; must be valid for at least 16 bytes.
+ * @param src Source buffer; must contain at least 16 bytes to read.
+ */
 static inline void
 rte_mov16(uint8_t *dst, const uint8_t *src)
 {
@@ -129,6 +135,18 @@ rte_mov256(uint8_t *dst, const uint8_t *src)
 	memcpy((dst), (src), (n)) :          \
 	rte_memcpy_func((dst), (src), (n)); })
 
+/**
+ * Copy n bytes from src to dst.
+ *
+ * Copies exactly n bytes from the memory region pointed to by `src` into the
+ * memory region pointed to by `dst`.
+ *
+ * @param dst Destination buffer.
+ * @param src Source buffer.
+ * @param n Number of bytes to copy.
+ * @returns Original value of `dst`.
+ * @note Behavior is undefined if source and destination memory regions overlap.
+ */
 static inline void *
 rte_memcpy_func(void *dst, const void *src, size_t n)
 {
@@ -256,7 +274,12 @@ rte_memcpy_func(void *dst, const void *src, size_t n)
 	return ret;
 }
 
-#else /* ! RTE_ARCH_ARM_NEON_MEMCPY */
+#else /**
+ * Copy exactly 16 bytes from src to dst.
+ *
+ * @param dst Destination buffer that will receive 16 bytes.
+ * @param src Source buffer from which 16 bytes are copied.
+ */
 
 static inline void
 rte_mov16(uint8_t *dst, const uint8_t *src)

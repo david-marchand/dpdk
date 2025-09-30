@@ -72,6 +72,20 @@ struct rte_gpu_mpshared {
 	RTE_ATOMIC(uint16_t) process_refcnt; /* Updated by this library. */
 };
 
+/**
+ * Primary driver-side GPU device structure containing per-process and shared state.
+ *
+ * Holds the backing rte_device, a pointer to shared multi-process data, the
+ * driver's operation table, the registered event-callback list, the current
+ * per-process lifecycle state, and driver-specific per-process private data.
+ *
+ * @var device Backing device.
+ * @var mpshared Data shared between processes.
+ * @var ops Driver function table.
+ * @var callbacks Tail queue of registered event callbacks.
+ * @var process_state Current state of the device in the running process; updated by the library.
+ * @var process_private Driver-specific private data for the running process.
+ */
 struct __rte_cache_aligned rte_gpu {
 	/* Backing device. */
 	struct rte_device *device;

@@ -50,6 +50,7 @@ print_usage () {
 	END_OF_HELP
 }
 
+# check_forbidden_additions checks a patch file for disallowed tokens and patterns (forbidden APIs, headers, pragmas, formats, etc.) and returns non-zero when violations are detected.
 check_forbidden_additions() { # <patch>
 	res=0
 

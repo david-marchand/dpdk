@@ -176,11 +176,16 @@ rte_pmd_ifd_dynf_proto_xtr_metadata_get(struct rte_mbuf *m)
 }
 
 /**
- * Dump the mbuf dynamic field for flexible descriptor's extraction metadata.
+ * Print flexible-descriptor protocol-extraction metadata from an mbuf.
+ *
+ * If the protocol-extraction dynamic field is registered and a supported
+ * proto_xtr flag is set in the mbuf, prints a single formatted line to
+ * stdout describing the available extraction metadata (VLAN, IPv4, IPv6,
+ * IPv6 flow, TCP, or IP offset). If the dynamic field is not registered,
+ * the function produces no output.
  *
  * @param m
- *    The pointer to the mbuf.
- */
+ *    Pointer to the rte_mbuf containing the extraction metadata. */
 __rte_experimental
 static inline void
 rte_pmd_ifd_dump_proto_xtr_metadata(struct rte_mbuf *m)
