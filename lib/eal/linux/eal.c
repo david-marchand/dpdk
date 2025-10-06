@@ -991,6 +991,7 @@ rte_eal_cleanup(void)
 	eal_cleanup_config(internal_conf);
 	eal_lcore_var_cleanup();
 	rte_eal_log_cleanup();
+	eal_clean_saved_args();
 	return 0;
 }
 

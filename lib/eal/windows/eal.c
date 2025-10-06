@@ -149,6 +149,7 @@ rte_eal_cleanup(void)
 	rte_eal_memory_detach();
 	eal_cleanup_config(internal_conf);
 	eal_lcore_var_cleanup();
+	eal_clean_saved_args();
 	return 0;
 }
 
