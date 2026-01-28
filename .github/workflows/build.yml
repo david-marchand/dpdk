@@ -182,11 +182,9 @@ jobs:
         python3-sphinx-rtd-theme
     - name: Run setup
       run: |
-        .ci/linux-setup.sh
-        # Workaround on $HOME permissions as EAL checks them for plugin loading
-        chmod o-w $HOME
+        sudo -E .ci/linux-setup.sh
     - name: Build and test
-      run: .ci/linux-build.sh
+      run: sudo -E .ci/linux-build.sh
     - name: Save ccache on failure
       if: failure()
       uses: actions/cache/save@v4

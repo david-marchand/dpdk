@@ -6,9 +6,6 @@ if [ -z "${DEF_LIB:-}" ]; then
     exit
 fi
 
-# Builds are run as root in containers, no need for sudo
-[ "$(id -u)" != '0' ] || alias sudo=
-
 install_libabigail() {
     version=$1
     instdir=$2
@@ -28,15 +25,15 @@ configure_coredump() {
     # No point in configuring coredump without gdb
     which gdb >/dev/null || return 0
     ulimit -c unlimited
-    sudo sysctl -w kernel.core_pattern=/tmp/dpdk-core.%e.%p
+    sysctl -w kernel.core_pattern=/tmp/dpdk-core.%e.%p
 }
 
 catch_coredump() {
     ls /tmp/dpdk-core.*.* 2>/dev/null || return 0
     for core in /tmp/dpdk-core.*.*; do
-        binary=$(sudo readelf -n $core |grep $(pwd)/build/ 2>/dev/null |head -n1)
+        binary=$(readelf -n $core |grep $(pwd)/build/ 2>/dev/null |head -n1)
         [ -x $binary ] || binary=
-        sudo gdb $binary -c $core \
+        gdb $binary -c $core \
             -ex 'info threads' \
             -ex 'thread apply all bt full' \
             -ex 'quit'
@@ -53,9 +50,9 @@ catch_ubsan() {
 
 check_traces() {
     which babeltrace >/dev/null || return 0
-    for file in $(sudo find $HOME -name metadata); do
-        ! sudo babeltrace $(dirname $file) >/dev/null 2>&1 || continue
-        sudo babeltrace $(dirname $file)
+    for file in $(find $HOME -name metadata); do
+        ! babeltrace $(dirname $file) >/dev/null 2>&1 || continue
+        babeltrace $(dirname $file)
     done
 }
 
@@ -218,7 +215,7 @@ fi
 if [ "$RUN_TESTS" = "true" ]; then
     failed=
     configure_coredump
-    sudo meson test -C build --suite fast-tests -t 3 --no-stdsplit --print-errorlogs || failed="true"
+    meson test -C build --suite fast-tests -t 3 --no-stdsplit --print-errorlogs || failed="true"
     catch_coredump
     catch_ubsan DPDK:fast-tests build/meson-logs/testlog.txt
     check_traces
