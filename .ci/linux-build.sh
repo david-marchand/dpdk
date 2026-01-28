@@ -133,6 +133,7 @@ fi
 
 if [ "$UBSAN" = "true" ]; then
     sanitizer=${sanitizer:+$sanitizer,}undefined
+    export UBSAN_OPTIONS=print_stacktrace=1
     if [ "$RUN_TESTS" = "true" ]; then
         # UBSan takes too much memory with -O2
         buildtype=plain
