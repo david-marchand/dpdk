@@ -233,6 +233,10 @@ eal_collate_args(int argc, char **argv)
 		EAL_LOG(ERR, "Options allow (-a) and block (-b) can't be used at the same time");
 		return -1;
 	}
+	if ((!TAILQ_EMPTY(&args.allow) || !TAILQ_EMPTY(&args.block)) && args.no_device_probe) {
+		EAL_LOG(ERR, "Options allow (-a) and block (-b) don't make sense without device probing");
+		return -1;
+	}
 
 	/* for non-list args, we can just check for zero/null values using macro */
 	if (CONFLICTING_OPTIONS(args, coremask, lcores) ||
@@ -517,6 +521,8 @@ eal_reset_internal_config(struct internal_config *internal_cfg)
 	internal_cfg->vfio_intr_mode = RTE_INTR_MODE_NONE;
 	memset(internal_cfg->vfio_vf_token, 0,
 			sizeof(internal_cfg->vfio_vf_token));
+
+	internal_cfg->no_device_probe = 0;
 
 #ifdef RTE_LIBEAL_USE_HPET
 	internal_cfg->no_hpet = 0;
@@ -2210,6 +2216,8 @@ eal_parse_args(void)
 	 * Only set these to 1, as we don't want to set them to 0 in case
 	 * other options above have already set them.
 	 */
+	if (args.no_device_probe)
+		int_cfg->no_device_probe = 1;
 	if (args.no_pci)
 		int_cfg->no_pci = 1;
 	if (args.no_hpet)

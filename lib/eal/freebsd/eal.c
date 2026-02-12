@@ -718,7 +718,7 @@ rte_eal_init(int argc, char **argv)
 	}
 
 	/* Probe all the buses and devices/drivers on them */
-	if (rte_bus_probe()) {
+	if (!internal_conf->no_device_probe && rte_bus_probe()) {
 		rte_eal_init_alert("Cannot probe devices");
 		rte_errno = ENOTSUP;
 		goto err_out;
