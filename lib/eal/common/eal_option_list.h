@@ -53,6 +53,7 @@ STR_ARG("--memory-ranks", "-r", "Force number of memory ranks (don't detect)", m
 STR_ARG("--memory-size", "-m", "Total size of memory to allocate initially", memory_size)
 BOOL_ARG("--no-hpet", NULL, "Disable HPET timer", no_hpet)
 BOOL_ARG("--no-huge", NULL, "Disable hugetlbfs support", no_huge)
+BOOL_ARG("--no-initial-probing", NULL, "Change EAL device probing to consider only allowed devices", no_initial_probing)
 BOOL_ARG("--no-pci", NULL, "Disable all PCI devices", no_pci)
 BOOL_ARG("--no-shconf", NULL, "Disable shared config file generation", no_shconf)
 BOOL_ARG("--no-telemetry", NULL, "Disable telemetry", no_telemetry)
