@@ -1747,7 +1747,7 @@ virtio_xmit_pkts_prepare(void *tx_queue __rte_unused, struct rte_mbuf **tx_pkts,
 
 		/* Do VLAN tag insertion */
 		if (unlikely(m->ol_flags & RTE_MBUF_F_TX_VLAN)) {
-			error = rte_vlan_insert(&m);
+			error = rte_vlan_insert(&m, true);
 			/* rte_vlan_insert() may change pointer
 			 * even in the case of failure
 			 */

@@ -541,7 +541,7 @@ repoll:
 				RTE_MBUF_F_RX_VLAN | RTE_MBUF_F_RX_VLAN_STRIPPED;
 			mbuf->vlan_tci = oob->rx_vlan_id;
 
-			if (!priv->vlan_strip && rte_vlan_insert(&mbuf)) {
+			if (!priv->vlan_strip && rte_vlan_insert(&mbuf, false)) {
 				DRV_LOG(ERR, "vlan insert failed");
 				rxq->stats.errors++;
 				rte_pktmbuf_free(mbuf);

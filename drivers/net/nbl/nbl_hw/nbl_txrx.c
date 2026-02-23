@@ -570,7 +570,7 @@ nbl_res_txrx_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts, u16 nb_pkts, u
 
 		if (tx_pkt->ol_flags & RTE_MBUF_F_TX_VLAN) {
 			if (likely(can_push)) {
-				if (rte_vlan_insert(&tx_pkt)) {
+				if (rte_vlan_insert(&tx_pkt, false)) {
 					can_push = 0;
 					u = (union nbl_tx_extend_head *)(&tx_region[desc_index]);
 				}

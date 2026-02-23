@@ -651,7 +651,7 @@ static void hn_rxpkt(struct hn_rx_queue *rxq, struct hn_rx_bufinfo *rxb,
 		m->ol_flags |= RTE_MBUF_F_RX_VLAN_STRIPPED | RTE_MBUF_F_RX_VLAN;
 
 		/* NDIS always strips tag, put it back if necessary */
-		if (!hv->vlan_strip && rte_vlan_insert(&m)) {
+		if (!hv->vlan_strip && rte_vlan_insert(&m, false)) {
 			PMD_DRV_LOG(DEBUG, "vlan insert failed");
 			++rxq->stats.errors;
 			if (use_extbuf)

@@ -13,6 +13,7 @@
 
 #include <assert.h>
 #include <stdalign.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -384,32 +385,60 @@ static inline int rte_vlan_strip(struct rte_mbuf *m)
  * Software version of VLAN unstripping
  *
  * @param m
- *   The packet mbuf.
+ *   The packet mbuf (may be updated to point to new mbuf head).
+ * @param allow_multi_seg
+ *   If true, allows allocating a new header segment when in-place insertion
+ *   is not possible. If false, returns error.
  * @return
  *   - 0: On success
- *   -EPERM: mbuf is shared overwriting would be unsafe
- *   -ENOSPC: not enough headroom in mbuf
+ *   -EINVAL: mbuf is shared
+ *   -ENOSPC: in-place insertion not possible and allow_multi_seg is false,
+ *            or allocation failed
  */
-static inline int rte_vlan_insert(struct rte_mbuf **m)
+static inline int rte_vlan_insert(struct rte_mbuf **m, bool allow_multi_seg)
 {
 	struct rte_ether_hdr *oh, *nh;
 	struct rte_vlan_hdr *vh;
+	struct rte_mbuf *hdr;
+	bool writable;
 
-	/* Can't insert header if mbuf is shared */
-	if (!RTE_MBUF_DIRECT(*m) || rte_mbuf_refcnt_read(*m) > 1)
-		return -EINVAL;
-
-	/* Can't insert header if the first segment is too short */
-	if (rte_pktmbuf_data_len(*m) < 2 * RTE_ETHER_ADDR_LEN)
+	if (rte_mbuf_refcnt_read(*m) > 1)
 		return -EINVAL;
 
 	oh = rte_pktmbuf_mtod(*m, struct rte_ether_hdr *);
-	nh = (struct rte_ether_hdr *)(void *)
-		rte_pktmbuf_prepend(*m, sizeof(struct rte_vlan_hdr));
-	if (nh == NULL)
-		return -ENOSPC;
 
-	memmove(nh, oh, 2 * RTE_ETHER_ADDR_LEN);
+	writable = RTE_MBUF_DIRECT(*m) &&
+		   rte_pktmbuf_data_len(*m) >= 2 * RTE_ETHER_ADDR_LEN &&
+		   rte_pktmbuf_headroom(*m) >= sizeof(struct rte_vlan_hdr);
+
+	if (writable) {
+		nh = (struct rte_ether_hdr *)(void *)
+			rte_pktmbuf_prepend(*m, sizeof(struct rte_vlan_hdr));
+		memmove(nh, oh, 2 * RTE_ETHER_ADDR_LEN);
+	} else {
+		if (!allow_multi_seg)
+			return -ENOSPC;
+
+		hdr = rte_pktmbuf_alloc((*m)->pool);
+		if (hdr == NULL)
+			return -ENOSPC;
+
+		nh = (struct rte_ether_hdr *)rte_pktmbuf_append(hdr,
+				sizeof(struct rte_ether_hdr) + sizeof(struct rte_vlan_hdr));
+		rte_memcpy(nh, oh, 2 * RTE_ETHER_ADDR_LEN);
+
+		hdr->next = *m;
+		hdr->nb_segs = (*m)->nb_segs + 1;
+		hdr->pkt_len = (*m)->pkt_len + sizeof(struct rte_vlan_hdr);
+		hdr->ol_flags = (*m)->ol_flags;
+		hdr->vlan_tci = (*m)->vlan_tci;
+
+		(*m)->data_off += 2 * RTE_ETHER_ADDR_LEN;
+		(*m)->data_len -= 2 * RTE_ETHER_ADDR_LEN;
+
+		*m = hdr;
+	}
+
 	nh->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_VLAN);
 
 	vh = (struct rte_vlan_hdr *) (nh + 1);

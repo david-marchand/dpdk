@@ -473,7 +473,7 @@ eth_vhost_tx(void *q, struct rte_mbuf **bufs, uint16_t nb_bufs)
 
 		/* Do VLAN tag insertion */
 		if (m->ol_flags & RTE_MBUF_F_TX_VLAN) {
-			int error = rte_vlan_insert(&m);
+			int error = rte_vlan_insert(&m, true);
 			if (unlikely(error)) {
 				rte_pktmbuf_free(m);
 				continue;

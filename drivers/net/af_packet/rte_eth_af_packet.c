@@ -164,7 +164,7 @@ eth_af_packet_rx(void *queue, struct rte_mbuf **bufs, uint16_t nb_pkts)
 			mbuf->vlan_tci = ppd->tp_vlan_tci;
 			mbuf->ol_flags |= (RTE_MBUF_F_RX_VLAN | RTE_MBUF_F_RX_VLAN_STRIPPED);
 
-			if (!pkt_q->vlan_strip && rte_vlan_insert(&mbuf))
+			if (!pkt_q->vlan_strip && rte_vlan_insert(&mbuf, false))
 				PMD_LOG(ERR, "Failed to reinsert VLAN tag");
 		}
 
@@ -253,7 +253,7 @@ eth_af_packet_tx(void *queue, struct rte_mbuf **bufs, uint16_t nb_pkts)
 
 		/* insert vlan info if necessary */
 		if (mbuf->ol_flags & RTE_MBUF_F_TX_VLAN) {
-			if (rte_vlan_insert(&mbuf)) {
+			if (rte_vlan_insert(&mbuf, true)) {
 				rte_pktmbuf_free(mbuf);
 				continue;
 			}
