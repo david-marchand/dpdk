@@ -863,10 +863,6 @@ eth_dev_close(struct rte_eth_dev *dev)
 		}
 	}
 
-	if (internals->phy_mac == 0)
-		/* not dynamically allocated, must not be freed */
-		dev->data->mac_addrs = NULL;
-
 	return 0;
 }
 
@@ -1225,10 +1221,12 @@ pmd_init_internals(struct rte_vdev_device *vdev,
 
 	/* reserve an ethdev entry */
 	*eth_dev = rte_eth_vdev_allocate(vdev, sizeof(**internals));
-	if (!(*eth_dev)) {
-		rte_free(pp);
-		return -1;
-	}
+	if (!(*eth_dev))
+		goto fail;
+
+	if (rte_eth_dev_allocate_macs(*eth_dev, 1, numa_node) != 0)
+		goto fail;
+
 	(*eth_dev)->process_private = pp;
 	/* now put it all together
 	 * - store queue data in internals,
@@ -1242,7 +1240,7 @@ pmd_init_internals(struct rte_vdev_device *vdev,
 	 * derived from: 'locally administered':'p':'c':'a':'p':'iface_idx'
 	 * where the middle 4 characters are converted to hex.
 	 */
-	(*internals)->eth_addr = (struct rte_ether_addr) {
+	(*eth_dev)->data->mac_addrs[0] = (struct rte_ether_addr) {
 		.addr_bytes = { 0x02, 0x70, 0x63, 0x61, 0x70, iface_idx++ }
 	};
 	(*internals)->phy_mac = 0;
@@ -1250,7 +1248,6 @@ pmd_init_internals(struct rte_vdev_device *vdev,
 	data->nb_rx_queues = (uint16_t)nb_rx_queues;
 	data->nb_tx_queues = (uint16_t)nb_tx_queues;
 	data->dev_link = pmd_link;
-	data->mac_addrs = &(*internals)->eth_addr;
 	data->promiscuous = 1;
 	data->all_multicast = 1;
 	data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
@@ -1265,25 +1262,25 @@ pmd_init_internals(struct rte_vdev_device *vdev,
 			ETH_PCAP_ARG_MAXLEN);
 
 	return 0;
+
+fail:
+	rte_free(pp);
+	rte_eth_dev_release_port(*eth_dev);
+	*eth_dev = NULL;
+
+	return -1;
 }
 
 static int
-eth_pcap_update_mac(const char *if_name, struct rte_eth_dev *eth_dev,
-		const unsigned int numa_node)
+eth_pcap_update_mac(const char *if_name, struct rte_eth_dev *eth_dev)
 {
-	void *mac_addrs;
 	struct rte_ether_addr mac;
 
 	if (osdep_iface_mac_get(if_name, &mac) < 0)
 		return -1;
 
-	mac_addrs = rte_zmalloc_socket(NULL, RTE_ETHER_ADDR_LEN, 0, numa_node);
-	if (mac_addrs == NULL)
-		return -1;
-
 	PMD_LOG(INFO, "Setting phy MAC for %s", if_name);
-	rte_memcpy(mac_addrs, mac.addr_bytes, RTE_ETHER_ADDR_LEN);
-	eth_dev->data->mac_addrs = mac_addrs;
+	rte_ether_addr_copy(&mac, &eth_dev->data->mac_addrs[0]);
 	return 0;
 }
 
@@ -1351,8 +1348,7 @@ eth_from_pcaps(struct rte_vdev_device *vdev,
 
 		/* phy_mac arg is applied only if "iface" devarg is provided */
 		if (rx_queues->phy_mac) {
-			if (eth_pcap_update_mac(rx_queues->queue[0].name,
-					eth_dev, vdev->device.numa_node) == 0)
+			if (eth_pcap_update_mac(rx_queues->queue[0].name, eth_dev) == 0)
 				internals->phy_mac = 1;
 		}
 	}

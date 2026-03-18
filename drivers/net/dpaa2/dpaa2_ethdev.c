@@ -3042,25 +3042,14 @@ dpaa2_dev_init(struct rte_eth_dev *eth_dev)
 		goto init_err;
 	}
 
-	/* Allocate memory for storing MAC addresses.
-	 * Table of mac_filter_entries size is allocated so that RTE ether lib
-	 * can add MAC entries when rte_eth_dev_mac_addr_add is called.
-	 */
-	eth_dev->data->mac_addrs = rte_zmalloc("dpni",
-		RTE_ETHER_ADDR_LEN * attr.mac_filter_entries, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		DPAA2_PMD_ERR(
-		   "Failed to allocate %d bytes needed to store MAC addresses",
-		   RTE_ETHER_ADDR_LEN * attr.mac_filter_entries);
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, attr.mac_filter_entries, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto init_err;
-	}
 
 	ret = populate_mac_addr(dpni_dev, priv, &eth_dev->data->mac_addrs[0]);
 	if (ret) {
 		DPAA2_PMD_ERR("Unable to fetch MAC Address for device");
-		rte_free(eth_dev->data->mac_addrs);
-		eth_dev->data->mac_addrs = NULL;
+		rte_eth_dev_free_macs(eth_dev);
 		goto init_err;
 	}
 

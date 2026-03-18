@@ -838,15 +838,10 @@ nfb_eth_dev_init(struct rte_eth_dev *dev, void *init_data)
 
 		priv->frame_len_max_cap = nfb_mac_read_frame_len_max_cap(internals);
 
-		/* Allocate space for MAC addresses */
 		mac_count = nfb_eth_get_max_mac_address_count(dev);
-		data->mac_addrs = rte_zmalloc(data->name,
-			sizeof(struct rte_ether_addr) * mac_count, RTE_CACHE_LINE_SIZE);
-		if (data->mac_addrs == NULL) {
-			NFB_LOG(ERR, "Could not alloc space for MAC address");
-			ret = -ENOMEM;
+		ret = rte_eth_dev_allocate_macs(dev, mac_count, SOCKET_ID_ANY);
+		if (ret != 0)
 			goto err_malloc_mac_addrs;
-		}
 
 		ret = nc_ifc_get_default_mac(internals->nfb, ifc->id, eth_addr_init.addr_bytes,
 			sizeof(eth_addr_init.addr_bytes));

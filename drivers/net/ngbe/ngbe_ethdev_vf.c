@@ -247,25 +247,16 @@ eth_ngbevf_dev_init(struct rte_eth_dev *eth_dev)
 	/* Get Rx/Tx queue count via mailbox, which is ready after reset_hw */
 	ngbevf_get_queues(hw, &tcs, &tc);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("ngbevf", RTE_ETHER_ADDR_LEN *
-					       hw->mac.num_rar_entries, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate %u bytes needed to store MAC addresses",
-			     RTE_ETHER_ADDR_LEN * hw->mac.num_rar_entries);
-		return -ENOMEM;
-	}
+	err = rte_eth_dev_allocate_macs(eth_dev, hw->mac.num_rar_entries, SOCKET_ID_ANY);
+	if (err != 0)
+		return err;
 
 	/* Generate a random MAC address, if none was assigned by PF. */
 	if (rte_is_zero_ether_addr(perm_addr)) {
 		generate_random_mac_addr(perm_addr);
 		err = ngbe_set_rar_vf(hw, 1, perm_addr->addr_bytes, 0, 1);
-		if (err) {
-			rte_free(eth_dev->data->mac_addrs);
-			eth_dev->data->mac_addrs = NULL;
+		if (err)
 			return err;
-		}
 		PMD_INIT_LOG(INFO, "\tVF MAC address not assigned by Host PF");
 		PMD_INIT_LOG(INFO, "\tAssign randomly generated MAC address "
 			     "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -748,9 +739,6 @@ ngbevf_dev_close(struct rte_eth_dev *dev)
 
 	/* Disable the interrupts for VF */
 	ngbevf_intr_disable(dev);
-
-	rte_free(dev->data->mac_addrs);
-	dev->data->mac_addrs = NULL;
 
 	rte_intr_disable(intr_handle);
 	rte_intr_callback_unregister(intr_handle,

@@ -3670,15 +3670,8 @@ bond_alloc(struct rte_vdev_device *dev, uint8_t mode)
 	eth_dev->data->nb_rx_queues = (uint16_t)1;
 	eth_dev->data->nb_tx_queues = (uint16_t)1;
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc_socket(name, RTE_ETHER_ADDR_LEN *
-			BOND_MAX_MAC_ADDRS, 0, socket_id);
-	if (eth_dev->data->mac_addrs == NULL) {
-		RTE_BOND_LOG(ERR,
-			     "Failed to allocate %u bytes needed to store MAC addresses",
-			     RTE_ETHER_ADDR_LEN * BOND_MAX_MAC_ADDRS);
+	if (rte_eth_dev_allocate_macs(eth_dev, BOND_MAX_MAC_ADDRS, socket_id) != 0)
 		goto err;
-	}
 
 	eth_dev->dev_ops = &default_dev_ops;
 	eth_dev->data->dev_flags = RTE_ETH_DEV_INTR_LSC |

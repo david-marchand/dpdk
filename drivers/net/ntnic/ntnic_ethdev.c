@@ -2553,8 +2553,10 @@ nthw_pci_dev_init(struct rte_pci_device *pci_dev)
 		/* connect structs */
 		internals->p_drv = p_drv;
 		eth_dev->data->dev_private = internals;
-		eth_dev->data->mac_addrs = rte_malloc(NULL,
-					NUM_MAC_ADDRS_PER_PORT * sizeof(struct rte_ether_addr), 0);
+		if (rte_eth_dev_allocate_macs(eth_dev, NUM_MAC_ADDRS_PER_PORT, SOCKET_ID_ANY) != 0) {
+			NT_LOG(ERR, NTNIC, "Error allocating MAC addresses");
+			return -1;
+		}
 		rte_memcpy(&eth_dev->data->mac_addrs[0],
 					&internals->eth_addrs[0], RTE_ETHER_ADDR_LEN);
 

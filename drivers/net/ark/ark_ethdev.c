@@ -378,12 +378,9 @@ ark_dev_init(struct rte_eth_dev *dev)
 	dev->dev_ops = &ark_eth_dev_ops;
 	dev->rx_queue_count = ark_dev_rx_queue_count;
 
-	dev->data->mac_addrs = rte_zmalloc("ark", RTE_ETHER_ADDR_LEN, 0);
-	if (!dev->data->mac_addrs) {
-		ARK_PMD_LOG(ERR,
-			    "Failed to allocated memory for storing mac address"
-			    );
-	}
+	ret = rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return -1;
 
 	if (ark->user_ext.dev_init) {
 		ark->user_data[dev->data->port_id] =
@@ -458,14 +455,9 @@ ark_dev_init(struct rte_eth_dev *dev)
 		rte_eth_copy_pci_info(eth_dev, pci_dev);
 		eth_dev->data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
 
-		eth_dev->data->mac_addrs = rte_zmalloc(name,
-						RTE_ETHER_ADDR_LEN, 0);
-		if (!eth_dev->data->mac_addrs) {
-			ARK_PMD_LOG(ERR,
-				    "Memory allocation for MAC failed!"
-				    " Exiting.\n");
+		ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+		if (ret != 0)
 			goto error;
-		}
 
 		if (ark->user_ext.dev_init) {
 			ark->user_data[eth_dev->data->port_id] =
@@ -478,8 +470,7 @@ ark_dev_init(struct rte_eth_dev *dev)
 	return ret;
 
 error:
-	rte_free(dev->data->mac_addrs);
-	dev->data->mac_addrs = NULL;
+	rte_eth_dev_free_macs(dev);
 	return -1;
 }
 

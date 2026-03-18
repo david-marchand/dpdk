@@ -84,8 +84,7 @@ cnxk_rep_dev_uninit(struct rte_eth_dev *ethdev)
 		return 0;
 
 	plt_rep_dbg("Representor port:%d uninit", ethdev->data->port_id);
-	rte_free(ethdev->data->mac_addrs);
-	ethdev->data->mac_addrs = NULL;
+	rte_eth_dev_free_macs(ethdev);
 
 	rep_dev->parent_dev->repr_cnt.nb_repr_probed--;
 
@@ -467,6 +466,7 @@ cnxk_rep_dev_init(struct rte_eth_dev *eth_dev, void *params)
 {
 	struct cnxk_rep_dev *rep_params = (struct cnxk_rep_dev *)params;
 	struct cnxk_rep_dev *rep_dev = cnxk_rep_pmd_priv(eth_dev);
+	int ret;
 
 	rep_dev->port_id = rep_params->port_id;
 	rep_dev->switch_domain_id = rep_params->switch_domain_id;
@@ -478,11 +478,9 @@ cnxk_rep_dev_init(struct rte_eth_dev *eth_dev, void *params)
 	eth_dev->data->representor_id = rep_params->port_id;
 	eth_dev->data->backer_port_id = eth_dev->data->port_id;
 
-	eth_dev->data->mac_addrs = plt_zmalloc(RTE_ETHER_ADDR_LEN, 0);
-	if (!eth_dev->data->mac_addrs) {
-		plt_err("Failed to allocate memory for mac addr");
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	rte_eth_random_addr(rep_dev->mac_addr);
 	memcpy(eth_dev->data->mac_addrs, rep_dev->mac_addr, RTE_ETHER_ADDR_LEN);

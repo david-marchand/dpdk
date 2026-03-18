@@ -768,16 +768,9 @@ eth_txgbe_dev_init(struct rte_eth_dev *eth_dev, void *init_params __rte_unused)
 	/* disable interrupt */
 	txgbe_disable_intr(hw);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("txgbe", RTE_ETHER_ADDR_LEN *
-					       hw->mac.num_rar_entries, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate %u bytes needed to store "
-			     "MAC addresses",
-			     RTE_ETHER_ADDR_LEN * hw->mac.num_rar_entries);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, hw->mac.num_rar_entries, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.perm_addr,

@@ -1017,11 +1017,9 @@ sfc_repr_eth_dev_init(struct rte_eth_dev *dev, void *init_params)
 	dev->data->representor_id = srs->repr_id;
 	dev->data->backer_port_id = srs->pf_port_id;
 
-	dev->data->mac_addrs = rte_zmalloc("sfcr", RTE_ETHER_ADDR_LEN, 0);
-	if (dev->data->mac_addrs == NULL) {
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto fail_mac_addrs;
-	}
 
 	rte_eth_random_addr(dev->data->mac_addrs[0].addr_bytes);
 

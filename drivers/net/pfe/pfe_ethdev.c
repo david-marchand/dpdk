@@ -802,15 +802,9 @@ pfe_eth_init(struct rte_vdev_device *vdev, struct pfe *pfe, int id)
 
 	rte_spinlock_init(&priv->lock);
 
-	/* Copy the station address into the dev structure, */
-	eth_dev->data->mac_addrs = rte_zmalloc("mac_addr",
-			ETHER_ADDR_LEN * PFE_MAX_MACS, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PFE_PMD_ERR("Failed to allocate mem %d to store MAC addresses",
-			ETHER_ADDR_LEN * PFE_MAX_MACS);
-		err = -ENOMEM;
+	err = rte_eth_dev_allocate_macs(eth_dev, PFE_MAX_MACS, SOCKET_ID_ANY);
+	if (err != 0)
 		goto err0;
-	}
 
 	memcpy(addr.addr_bytes, priv->einfo->mac_addr,
 		       ETH_ALEN);

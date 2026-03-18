@@ -3324,15 +3324,9 @@ hinic3_func_init(struct rte_eth_dev *eth_dev)
 		pci_dev->addr.bus, pci_dev->addr.devid,
 		pci_dev->addr.function);
 
-	/* Alloc mac_addrs. */
-	eth_dev->data->mac_addrs = rte_zmalloc("hinic3_mac",
-		HINIC3_MAX_UC_MAC_ADDRS * sizeof(struct rte_ether_addr), 0);
-	if (!eth_dev->data->mac_addrs) {
-		PMD_DRV_LOG(ERR, "Allocate  MAC addresses failed, dev_name: %s",
-			    eth_dev->data->name);
-		err = -ENOMEM;
+	err = rte_eth_dev_allocate_macs(eth_dev, HINIC3_MAX_UC_MAC_ADDRS, SOCKET_ID_ANY);
+	if (err != 0)
 		goto alloc_eth_addr_fail;
-	}
 
 	nic_dev->mc_list = rte_zmalloc("hinic3_mc",
 		HINIC3_MAX_MC_MAC_ADDRS * sizeof(struct rte_ether_addr), 0);
@@ -3475,8 +3469,7 @@ alloc_hwdev_mem_fail:
 	nic_dev->mc_list = NULL;
 
 alloc_mc_list_fail:
-	rte_free(eth_dev->data->mac_addrs);
-	eth_dev->data->mac_addrs = NULL;
+	rte_eth_dev_free_macs(eth_dev);
 
 alloc_eth_addr_fail:
 	PMD_DRV_LOG(ERR, "Initialize %s in primary failed",

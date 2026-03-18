@@ -2820,16 +2820,9 @@ iavf_dev_init(struct rte_eth_dev *eth_dev)
 	/* set default ptype table */
 	iavf_set_default_ptype_table(eth_dev);
 
-	/* copy mac addr */
-	eth_dev->data->mac_addrs = rte_zmalloc(
-		"iavf_mac", RTE_ETHER_ADDR_LEN * IAVF_NUM_MACADDR_MAX, 0);
-	if (!eth_dev->data->mac_addrs) {
-		PMD_INIT_LOG(ERR, "Failed to allocate %d bytes needed to"
-			     " store MAC addresses",
-			     RTE_ETHER_ADDR_LEN * IAVF_NUM_MACADDR_MAX);
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, IAVF_NUM_MACADDR_MAX, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto init_vf_err;
-	}
 	/* If the MAC address is not configured by host,
 	 * generate a random one.
 	 */
@@ -2912,9 +2905,6 @@ flow_init_err:
 	} else {
 		rte_eal_alarm_cancel(iavf_dev_alarm_handler, eth_dev);
 	}
-
-	rte_free(eth_dev->data->mac_addrs);
-	eth_dev->data->mac_addrs = NULL;
 
 init_vf_err:
 	iavf_uninit_vf(eth_dev);

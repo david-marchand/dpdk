@@ -329,16 +329,9 @@ eth_txgbevf_dev_init(struct rte_eth_dev *eth_dev)
 	/* Get Rx/Tx queue count via mailbox, which is ready after reset_hw */
 	txgbevf_get_queues(hw, &tcs, &tc);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("txgbevf", RTE_ETHER_ADDR_LEN *
-					       hw->mac.num_rar_entries, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate %u bytes needed to store "
-			     "MAC addresses",
-			     RTE_ETHER_ADDR_LEN * hw->mac.num_rar_entries);
-		return -ENOMEM;
-	}
+	err = rte_eth_dev_allocate_macs(eth_dev, hw->mac.num_rar_entries, SOCKET_ID_ANY);
+	if (err != 0)
+		return err;
 
 	/* Generate a random MAC address, if none was assigned by PF. */
 	if (rte_is_zero_ether_addr(perm_addr)) {

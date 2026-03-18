@@ -704,21 +704,15 @@ hns3_init_mac_addrs(struct rte_eth_dev *dev)
 {
 	struct hns3_hw *hw = HNS3_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 	struct hns3_adapter *hns = HNS3_DEV_HW_TO_ADAPTER(hw);
-	const char *memory_name = hns->is_vf ? "hns3vf-mac" : "hns3-mac";
 	uint16_t mac_addrs_capa = hns->is_vf ? HNS3_VF_UC_MACADDR_NUM :
 						HNS3_UC_MACADDR_NUM;
 	char mac_str[RTE_ETHER_ADDR_FMT_SIZE];
 	struct rte_ether_addr *eth_addr;
+	int ret;
 
-	/* Allocate memory for storing MAC addresses */
-	dev->data->mac_addrs = rte_zmalloc(memory_name,
-				sizeof(struct rte_ether_addr) * mac_addrs_capa,
-				0);
-	if (dev->data->mac_addrs == NULL) {
-		hns3_err(hw, "failed to allocate %zx bytes needed to store MAC addresses",
-			 sizeof(struct rte_ether_addr) * mac_addrs_capa);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(dev, mac_addrs_capa, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	eth_addr = (struct rte_ether_addr *)hw->mac.mac_addr;
 	if (!hns->is_vf) {

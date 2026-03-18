@@ -1005,14 +1005,9 @@ eth_avp_dev_init(struct rte_eth_dev *eth_dev)
 		return ret;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("avp_ethdev",
-					RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_DRV_LOG_LINE(ERR, "Failed to allocate %d bytes needed to store MAC addresses",
-			    RTE_ETHER_ADDR_LEN);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	/* Get a mac from device config */
 	rte_ether_addr_copy(&avp->ethaddr, &eth_dev->data->mac_addrs[0]);

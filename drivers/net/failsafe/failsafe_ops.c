@@ -711,8 +711,6 @@ failsafe_eth_dev_close(struct rte_eth_dev *dev)
 	failsafe_args_free(dev);
 	rte_free(PRIV(dev)->subs);
 	rte_free(PRIV(dev)->mcast_addrs);
-	/* mac_addrs must not be freed alone because part of dev_private */
-	dev->data->mac_addrs = NULL;
 	fs_unlock(dev, 0);
 	err = pthread_mutex_destroy(&PRIV(dev)->hotplug_mutex);
 	if (err) {

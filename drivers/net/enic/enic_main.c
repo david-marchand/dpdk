@@ -1856,13 +1856,9 @@ static int enic_dev_init(struct enic *enic)
 		return -1;
 	}
 
-	eth_dev->data->mac_addrs = rte_zmalloc("enic_mac_addr",
-					sizeof(struct rte_ether_addr) *
-					ENIC_UNICAST_PERFECT_FILTERS, 0);
-	if (!eth_dev->data->mac_addrs) {
-		dev_err(enic, "mac addr storage alloc failed, aborting.\n");
+	err = rte_eth_dev_allocate_macs(eth_dev, ENIC_UNICAST_PERFECT_FILTERS, SOCKET_ID_ANY);
+	if (err != 0)
 		return -1;
-	}
 
 	/*
 	 * If PF has not assigned any MAC address for VF, generate a random one.

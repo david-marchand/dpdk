@@ -167,8 +167,6 @@ cpfl_repr_uninit(struct rte_eth_dev *eth_dev)
 	struct cpfl_repr *repr = CPFL_DEV_TO_REPR(eth_dev);
 	struct cpfl_adapter_ext *adapter = repr->itf.adapter;
 
-	eth_dev->data->mac_addrs = NULL;
-
 	cpfl_repr_allowlist_del(adapter, &repr->repr_id);
 
 	return 0;
@@ -413,6 +411,10 @@ cpfl_repr_init(struct rte_eth_dev *eth_dev, void *init_param)
 	struct cpfl_adapter_ext *adapter = param->adapter;
 	int ret;
 
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
+
 	repr->repr_id = param->repr_id;
 	repr->vport_info = param->vport_info;
 	repr->itf.type = CPFL_ITF_TYPE_REPRESENTOR;
@@ -440,9 +442,7 @@ cpfl_repr_init(struct rte_eth_dev *eth_dev, void *init_param)
 				    repr->repr_id.pf_id,
 				    repr->repr_id.vf_id);
 
-	eth_dev->data->mac_addrs = &repr->mac_addr;
-
-	rte_eth_random_addr(repr->mac_addr.addr_bytes);
+	rte_eth_random_addr(eth_dev->data->mac_addrs[0].addr_bytes);
 
 	return cpfl_repr_allowlist_update(adapter, &repr->repr_id, eth_dev);
 }

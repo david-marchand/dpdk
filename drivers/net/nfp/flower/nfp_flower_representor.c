@@ -753,6 +753,7 @@ static int
 nfp_flower_pf_repr_init(struct rte_eth_dev *eth_dev,
 		void *init_params)
 {
+	int ret;
 	struct nfp_flower_representor *repr;
 	struct nfp_flower_representor *init_repr_data;
 
@@ -781,12 +782,9 @@ nfp_flower_pf_repr_init(struct rte_eth_dev *eth_dev,
 	/* This backer port is that of the eth_device created for the PF vNIC */
 	eth_dev->data->backer_port_id = 0;
 
-	/* Allocating memory for mac addr */
-	eth_dev->data->mac_addrs = rte_zmalloc("mac_addr", RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to allocate memory for repr MAC.");
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	rte_ether_addr_copy(&init_repr_data->mac_addr, &repr->mac_addr);
 	rte_ether_addr_copy(&init_repr_data->mac_addr, eth_dev->data->mac_addrs);
@@ -822,12 +820,9 @@ nfp_flower_repr_base_init(struct rte_eth_dev *eth_dev,
 	/* This backer port is that of the eth_device created for the PF vNIC */
 	eth_dev->data->backer_port_id = 0;
 
-	/* Allocating memory for mac addr */
-	eth_dev->data->mac_addrs = rte_zmalloc("mac_addr", RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to allocate memory for repr MAC.");
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	rte_ether_addr_copy(&init_repr_data->mac_addr, &repr->mac_addr);
 	rte_ether_addr_copy(&init_repr_data->mac_addr, eth_dev->data->mac_addrs);

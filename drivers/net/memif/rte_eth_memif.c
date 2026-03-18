@@ -1673,7 +1673,6 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	     uint16_t pkt_buffer_size, const char *secret,
 	     struct rte_ether_addr *ether_addr)
 {
-	int ret = 0;
 	struct rte_eth_dev *eth_dev;
 	struct rte_eth_dev_data *data;
 	struct pmd_internals *pmd;
@@ -1684,8 +1683,11 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	eth_dev = rte_eth_vdev_allocate(vdev, sizeof(*pmd));
 	if (eth_dev == NULL) {
 		MIF_LOG(ERR, "%s: Unable to allocate device struct.", name);
-		return -1;
+		goto fail;
 	}
+
+	if (rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY) != 0)
+		goto fail;
 
 	process_private = (struct pmd_process_private *)
 		rte_zmalloc(name, sizeof(struct pmd_process_private),
@@ -1693,7 +1695,7 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 
 	if (process_private == NULL) {
 		MIF_LOG(ERR, "Failed to alloc memory for process private");
-		return -1;
+		goto fail;
 	}
 	eth_dev->process_private = process_private;
 
@@ -1710,9 +1712,8 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	pmd->owner_uid = owner_uid;
 	pmd->owner_gid = owner_gid;
 
-	ret = memif_socket_init(eth_dev, socket_filename);
-	if (ret < 0)
-		return ret;
+	if (memif_socket_init(eth_dev, socket_filename) < 0)
+		goto fail;
 
 	memset(pmd->secret, 0, sizeof(char) * ETH_MEMIF_SECRET_SIZE);
 	if (secret != NULL)
@@ -1730,7 +1731,7 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	data->dev_private = pmd;
 	data->numa_node = numa_node;
 	data->dev_link = pmd_link;
-	data->mac_addrs = ether_addr;
+	rte_ether_addr_copy(ether_addr, &data->mac_addrs[0]);
 	data->promiscuous = 1;
 	data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
 
@@ -1747,6 +1748,10 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	rte_eth_dev_probing_finish(eth_dev);
 
 	return 0;
+
+fail:
+	rte_eth_dev_release_port(eth_dev);
+	return -1;
 }
 
 static int
@@ -1956,11 +1961,10 @@ rte_pmd_memif_probe(struct rte_vdev_device *vdev)
 	gid_t owner_gid = -1;
 	uint32_t flags = 0;
 	const char *secret = NULL;
-	struct rte_ether_addr *ether_addr = rte_zmalloc("",
-		sizeof(struct rte_ether_addr), 0);
+	struct rte_ether_addr ether_addr;
 	struct rte_eth_dev *eth_dev;
 
-	rte_eth_random_addr(ether_addr->addr_bytes);
+	rte_eth_random_addr(ether_addr.addr_bytes);
 
 	MIF_LOG(INFO, "Initialize MEMIF: %s.", name);
 
@@ -2046,7 +2050,7 @@ rte_pmd_memif_probe(struct rte_vdev_device *vdev)
 		if (ret < 0)
 			goto exit;
 		ret = rte_kvargs_process(kvlist, ETH_MEMIF_MAC_ARG,
-					 &memif_set_mac, ether_addr);
+					 &memif_set_mac, &ether_addr);
 		if (ret < 0)
 			goto exit;
 		ret = rte_kvargs_process(kvlist, ETH_MEMIF_ZC_ARG,
@@ -2067,7 +2071,7 @@ rte_pmd_memif_probe(struct rte_vdev_device *vdev)
 
 	/* create interface */
 	ret = memif_create(vdev, role, id, flags, socket_filename, owner_uid, owner_gid,
-			   log2_ring_size, pkt_buffer_size, secret, ether_addr);
+			   log2_ring_size, pkt_buffer_size, secret, &ether_addr);
 
 exit:
 	rte_kvargs_free(kvlist);

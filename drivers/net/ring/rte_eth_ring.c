@@ -57,7 +57,6 @@ struct pmd_internals {
 	struct ring_queue rx_ring_queues[RTE_PMD_RING_MAX_RX_RINGS];
 	struct ring_queue tx_ring_queues[RTE_PMD_RING_MAX_TX_RINGS];
 
-	struct rte_ether_addr address;
 	enum dev_action action;
 };
 
@@ -305,9 +304,6 @@ eth_dev_close(struct rte_eth_dev *dev)
 		}
 	}
 
-	/* mac_addrs must not be freed alone because part of dev_private */
-	dev->data->mac_addrs = NULL;
-
 	return ret;
 }
 
@@ -403,6 +399,9 @@ do_eth_dev_ring_create(const char *name,
 		goto error;
 	}
 
+	if (rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY) != 0)
+		goto error;
+
 	/* now put it all together
 	 * - store EAL device in eth_dev,
 	 * - store queue data in internals,
@@ -435,7 +434,6 @@ do_eth_dev_ring_create(const char *name,
 	data->nb_rx_queues = (uint16_t)nb_rx_queues;
 	data->nb_tx_queues = (uint16_t)nb_tx_queues;
 	data->dev_link = pmd_link;
-	data->mac_addrs = &internals->address;
 	data->promiscuous = 1;
 	data->all_multicast = 1;
 	data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;

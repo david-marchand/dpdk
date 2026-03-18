@@ -3141,14 +3141,9 @@ mrvl_eth_dev_create(struct rte_vdev_device *vdev, const char *name)
 	}
 	eth_dev->data->dev_private = priv;
 
-	eth_dev->data->mac_addrs =
-		rte_zmalloc("mac_addrs",
-			    RTE_ETHER_ADDR_LEN * MRVL_MAC_ADDRS_MAX, 0);
-	if (!eth_dev->data->mac_addrs) {
-		MRVL_LOG(ERR, "Failed to allocate space for eth addrs");
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, MRVL_MAC_ADDRS_MAX, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto out_free;
-	}
 
 	memset(&req, 0, sizeof(req));
 	strcpy(req.ifr_name, name);

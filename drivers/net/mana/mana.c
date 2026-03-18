@@ -1361,13 +1361,9 @@ mana_probe_port(struct ibv_device *ibdev, struct ibv_device_attr_ex *dev_attr,
 		goto failed;
 	}
 
-	eth_dev->data->mac_addrs =
-		rte_calloc("mana_mac", 1,
-			   sizeof(struct rte_ether_addr), 0);
-	if (!eth_dev->data->mac_addrs) {
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto failed;
-	}
 
 	rte_ether_addr_copy(addr, eth_dev->data->mac_addrs);
 

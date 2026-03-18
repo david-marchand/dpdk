@@ -966,12 +966,6 @@ static int ena_close(struct rte_eth_dev *dev)
 	ena_com_mmio_reg_read_request_destroy(ena_dev);
 	ena_com_delete_customer_metrics_buffer(ena_dev);
 
-	/*
-	 * MAC is not allocated dynamically. Setting NULL should prevent from
-	 * release of the resource in the rte_eth_dev_release_port().
-	 */
-	dev->data->mac_addrs = NULL;
-
 	return ret;
 }
 
@@ -2532,16 +2526,17 @@ static int eth_ena_dev_init(struct rte_eth_dev *eth_dev)
 
 	ena_set_offloads(&adapter->offloads, &get_feat_ctx.offload);
 
-	/* Copy MAC address and point DPDK to it */
-	eth_dev->data->mac_addrs = (struct rte_ether_addr *)adapter->mac_addr;
-	rte_ether_addr_copy((struct rte_ether_addr *)
-			get_feat_ctx.dev_attr.mac_addr,
-			(struct rte_ether_addr *)adapter->mac_addr);
+	rc = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (rc != 0)
+		goto err_delete_debug_area;
+
+	rte_ether_addr_copy((struct rte_ether_addr *)get_feat_ctx.dev_attr.mac_addr,
+		&eth_dev->data->mac_addrs[0]);
 
 	rc = ena_com_rss_init(ena_dev);
 	if (unlikely(rc != 0)) {
 		PMD_DRV_LOG_LINE(ERR, "Failed to initialize RSS in ENA device");
-		goto err_delete_debug_area;
+		goto err_free_mac;
 	}
 
 	indirect_table_size = ena_rss_get_indirection_table_size(adapter);
@@ -2611,6 +2606,8 @@ err_indirect_table_destroy:
 	ena_indirect_table_release(adapter);
 err_rss_destroy:
 	ena_com_rss_destroy(ena_dev);
+err_free_mac:
+	rte_eth_dev_free_macs(eth_dev);
 err_delete_debug_area:
 	ena_com_delete_debug_area(ena_dev);
 

@@ -197,6 +197,8 @@ int bnxt_representor_init(struct rte_eth_dev *eth_dev, void *params)
 	vf_rep_bp->rep_fc_r2f = rep_params->rep_fc_r2f;
 	vf_rep_bp->rep_fc_f2r = rep_params->rep_fc_f2r;
 
+	parent_bp = vf_rep_bp->parent_dev->data->dev_private;
+
 	eth_dev->data->dev_flags |= RTE_ETH_DEV_REPRESENTOR |
 					RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
 	eth_dev->data->representor_id = rep_params->vf_id;
@@ -205,8 +207,11 @@ int bnxt_representor_init(struct rte_eth_dev *eth_dev, void *params)
 	rte_eth_random_addr(vf_rep_bp->dflt_mac_addr);
 	memcpy(vf_rep_bp->mac_addr, vf_rep_bp->dflt_mac_addr,
 	       sizeof(vf_rep_bp->mac_addr));
-	eth_dev->data->mac_addrs =
-		(struct rte_ether_addr *)&vf_rep_bp->mac_addr;
+	rc = rte_eth_dev_allocate_macs(eth_dev, parent_bp->max_l2_ctx, SOCKET_ID_ANY);
+	if (rc != 0)
+		return rc;
+	rte_ether_addr_copy((struct rte_ether_addr *)&vf_rep_bp->mac_addr,
+		&eth_dev->data->mac_addrs[0]);
 	eth_dev->dev_ops = &bnxt_rep_dev_ops;
 
 	/* No data-path, but need stub Rx/Tx functions to avoid crash
@@ -215,7 +220,6 @@ int bnxt_representor_init(struct rte_eth_dev *eth_dev, void *params)
 	eth_dev->rx_pkt_burst = bnxt_rep_rx_burst;
 	eth_dev->tx_pkt_burst = bnxt_rep_tx_burst;
 	/* Link state. Inherited from PF or trusted VF */
-	parent_bp = vf_rep_bp->parent_dev->data->dev_private;
 	link = &parent_bp->eth_dev->data->dev_link;
 
 	eth_dev->data->dev_link.link_speed = link->link_speed;
@@ -273,7 +277,6 @@ int bnxt_representor_uninit(struct rte_eth_dev *eth_dev)
 		return 0;
 
 	PMD_DRV_LOG_LINE(DEBUG, "BNXT Port:%d VFR uninit", eth_dev->data->port_id);
-	eth_dev->data->mac_addrs = NULL;
 
 	if (!bnxt_rep_check_parent(rep)) {
 		PMD_DRV_LOG_LINE(DEBUG, "BNXT Port:%d already freed",

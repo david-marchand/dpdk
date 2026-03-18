@@ -2244,13 +2244,9 @@ cnxk_eth_dev_init(struct rte_eth_dev *eth_dev)
 		goto dev_fini;
 	}
 
-	eth_dev->data->mac_addrs =
-		rte_zmalloc("mac_addr", max_entries * RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		plt_err("Failed to allocate memory for mac addr");
-		rc = -ENOMEM;
+	rc = rte_eth_dev_allocate_macs(eth_dev, max_entries, SOCKET_ID_ANY);
+	if (rc != 0)
 		goto dev_fini;
-	}
 
 	dev->dmac_idx_map = rte_zmalloc("dmac_idx_map", max_entries * sizeof(int), 0);
 	if (dev->dmac_idx_map == NULL) {
@@ -2327,7 +2323,7 @@ cnxk_eth_dev_init(struct rte_eth_dev *eth_dev)
 	return 0;
 
 free_mac_addrs:
-	rte_free(eth_dev->data->mac_addrs);
+	rte_eth_dev_free_macs(eth_dev);
 	rte_free(dev->dmac_addrs);
 	dev->dmac_addrs = NULL;
 	rte_free(dev->dmac_idx_map);
@@ -2469,8 +2465,7 @@ cnxk_eth_dev_uninit(struct rte_eth_dev *eth_dev, bool reset)
 	rte_free(dev->dmac_addrs);
 	dev->dmac_addrs = NULL;
 
-	rte_free(eth_dev->data->mac_addrs);
-	eth_dev->data->mac_addrs = NULL;
+	rte_eth_dev_free_macs(eth_dev);
 
 	rc = roc_nix_dev_fini(nix);
 	/* Can be freed later by PMD if NPA LF is in use */

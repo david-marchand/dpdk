@@ -1523,10 +1523,9 @@ eth_dev_vhost_create(struct rte_vdev_device *dev, char *iface_name,
 		goto error;
 	data = eth_dev->data;
 
-	eth_addr = rte_zmalloc_socket(name, sizeof(*eth_addr), 0, numa_node);
-	if (eth_addr == NULL)
+	if (rte_eth_dev_allocate_macs(eth_dev, 1, numa_node) != 0)
 		goto error;
-	data->mac_addrs = eth_addr;
+	eth_addr = data->mac_addrs;
 	*eth_addr = base_eth_addr;
 	eth_addr->addr_bytes[5] = eth_dev->data->port_id;
 

@@ -1248,17 +1248,9 @@ eth_ixgbe_dev_init(struct rte_eth_dev *eth_dev, void *init_params __rte_unused)
 	/* reset mappings for queue statistics hw counters*/
 	ixgbe_reset_qstat_mappings(hw);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("ixgbe", RTE_ETHER_ADDR_LEN *
-					       hw->mac.num_rar_entries, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate %u bytes needed to store "
-			     "MAC addresses",
-			     RTE_ETHER_ADDR_LEN * hw->mac.num_rar_entries);
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, hw->mac.num_rar_entries, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto err_exit;
-	}
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.perm_addr,
 			&eth_dev->data->mac_addrs[0]);
@@ -1270,8 +1262,6 @@ eth_ixgbe_dev_init(struct rte_eth_dev *eth_dev, void *init_params __rte_unused)
 		PMD_INIT_LOG(ERR,
 			     "Failed to allocate %d bytes needed to store MAC addresses",
 			     RTE_ETHER_ADDR_LEN * IXGBE_VMDQ_NUM_UC_MAC);
-		rte_free(eth_dev->data->mac_addrs);
-		eth_dev->data->mac_addrs = NULL;
 		ret = -ENOMEM;
 		goto err_exit;
 	}
@@ -1353,8 +1343,6 @@ err_fdir_filter_init:
 		ixgbe_dev_interrupt_handler, eth_dev);
 	ixgbe_pf_host_uninit(eth_dev);
 err_pf_host_init:
-	rte_free(eth_dev->data->mac_addrs);
-	eth_dev->data->mac_addrs = NULL;
 	rte_free(eth_dev->data->hash_mac_addrs);
 	eth_dev->data->hash_mac_addrs = NULL;
 err_exit:
@@ -1698,26 +1686,16 @@ eth_ixgbevf_dev_init(struct rte_eth_dev *eth_dev)
 	/* Get Rx/Tx queue count via mailbox, which is ready after reset_hw */
 	ixgbevf_get_queues(hw, &tcs, &tc);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("ixgbevf", RTE_ETHER_ADDR_LEN *
-					       hw->mac.num_rar_entries, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate %u bytes needed to store "
-			     "MAC addresses",
-			     RTE_ETHER_ADDR_LEN * hw->mac.num_rar_entries);
-		return -ENOMEM;
-	}
+	diag = rte_eth_dev_allocate_macs(eth_dev, hw->mac.num_rar_entries, SOCKET_ID_ANY);
+	if (diag != 0)
+		return diag;
 
 	/* Generate a random MAC address, if none was assigned by PF. */
 	if (rte_is_zero_ether_addr(perm_addr)) {
 		generate_random_mac_addr(perm_addr);
 		diag = ixgbe_set_rar_vf(hw, 1, perm_addr->addr_bytes, 0, 1);
-		if (diag) {
-			rte_free(eth_dev->data->mac_addrs);
-			eth_dev->data->mac_addrs = NULL;
+		if (diag)
 			return diag;
-		}
 		PMD_INIT_LOG(INFO, "\tVF MAC address not assigned by Host PF");
 		PMD_INIT_LOG(INFO, "\tAssign randomly generated MAC address "
 			     RTE_ETHER_ADDR_PRT_FMT,
@@ -1735,8 +1713,6 @@ eth_ixgbevf_dev_init(struct rte_eth_dev *eth_dev)
 
 	default:
 		PMD_INIT_LOG(ERR, "VF Initialization Failure: %d", diag);
-		rte_free(eth_dev->data->mac_addrs);
-		eth_dev->data->mac_addrs = NULL;
 		return -EIO;
 	}
 

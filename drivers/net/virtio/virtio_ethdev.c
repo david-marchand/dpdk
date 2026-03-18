@@ -2064,15 +2064,9 @@ eth_virtio_dev_init(struct rte_eth_dev *eth_dev)
 	hw->speed = speed;
 	hw->duplex = DUPLEX_UNKNOWN;
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("virtio",
-				VIRTIO_MAX_MAC_ADDRS * RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			"Failed to allocate %d bytes needed to store MAC addresses",
-			VIRTIO_MAX_MAC_ADDRS * RTE_ETHER_ADDR_LEN);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, VIRTIO_MAX_MAC_ADDRS, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	rte_spinlock_init(&hw->state_lock);
 

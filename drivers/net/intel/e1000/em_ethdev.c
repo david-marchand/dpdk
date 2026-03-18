@@ -281,6 +281,7 @@ eth_em_dev_init(struct rte_eth_dev *eth_dev)
 		E1000_DEV_PRIVATE_TO_HW(eth_dev->data->dev_private);
 	struct e1000_vfta * shadow_vfta =
 		E1000_DEV_PRIVATE_TO_VFTA(eth_dev->data->dev_private);
+	int ret;
 
 	eth_dev->dev_ops = &eth_em_ops;
 	eth_dev->rx_queue_count = eth_em_rx_queue_count;
@@ -319,15 +320,9 @@ eth_em_dev_init(struct rte_eth_dev *eth_dev)
 		return -ENODEV;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("e1000", RTE_ETHER_ADDR_LEN *
-			hw->mac.rar_entry_count, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to allocate %d bytes needed to "
-			"store MAC addresses",
-			RTE_ETHER_ADDR_LEN * hw->mac.rar_entry_count);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, hw->mac.rar_entry_count, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.addr,

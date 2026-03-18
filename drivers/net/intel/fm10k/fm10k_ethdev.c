@@ -3125,13 +3125,9 @@ eth_fm10k_dev_init(struct rte_eth_dev *dev)
 		return -EIO;
 	}
 
-	/* Initialize MAC address(es) */
-	dev->data->mac_addrs = rte_zmalloc("fm10k",
-			RTE_ETHER_ADDR_LEN * FM10K_MAX_MACADDR_NUM, 0);
-	if (dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Cannot allocate memory for MAC addresses");
-		return -ENOMEM;
-	}
+	diag = rte_eth_dev_allocate_macs(dev, FM10K_MAX_MACADDR_NUM, SOCKET_ID_ANY);
+	if (diag != 0)
+		return diag;
 
 	diag = fm10k_read_mac_addr(hw);
 
@@ -3272,9 +3268,6 @@ err_switch_ready:
 err_mbx:
 err_reset_hw:
 err_stat:
-	rte_free(dev->data->mac_addrs);
-	dev->data->mac_addrs = NULL;
-
 	return ret;
 }
 

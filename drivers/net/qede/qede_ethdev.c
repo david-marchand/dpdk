@@ -2655,19 +2655,13 @@ static int qede_common_dev_init(struct rte_eth_dev *eth_dev, bool is_vf)
 		ecore_vf_get_num_mac_filters(ECORE_LEADING_HWFN(edev),
 				(uint32_t *)&adapter->dev_info.num_mac_filters);
 
-	/* Allocate memory for storing MAC addr */
-	eth_dev->data->mac_addrs = rte_zmalloc(edev->name,
-					(RTE_ETHER_ADDR_LEN *
-					adapter->dev_info.num_mac_filters),
-					RTE_CACHE_LINE_SIZE);
-
-	if (eth_dev->data->mac_addrs == NULL) {
-		DP_ERR(edev, "Failed to allocate MAC address\n");
+	rc = rte_eth_dev_allocate_macs(eth_dev, adapter->dev_info.num_mac_filters, SOCKET_ID_ANY);
+	if (rc != 0) {
 		qed_ops->common->slowpath_stop(edev);
 		qed_ops->common->remove(edev);
 		rte_eal_alarm_cancel(qede_poll_sp_sb_cb,
 				     (void *)eth_dev);
-		return -ENOMEM;
+		return rc;
 	}
 
 	if (!is_vf) {

@@ -564,7 +564,6 @@ enetfec_eth_init(struct rte_eth_dev *dev)
 static int
 pmd_enetfec_probe(struct rte_vdev_device *vdev)
 {
-	char eth_name[ENETFEC_ETH_NAMESIZE];
 	struct rte_eth_dev *dev = NULL;
 	struct enetfec_private *fep;
 	uint16_t *mac, high_mac = 0;
@@ -613,18 +612,9 @@ pmd_enetfec_probe(struct rte_vdev_device *vdev)
 		fep->bd_addr_p = fep->bd_addr_p + bdsize;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	snprintf(eth_name, sizeof(eth_name), "enetfec_eth_mac_%d",
-		 dev->data->port_id);
-
-	/* Copy the station address into the dev structure, */
-	dev->data->mac_addrs = rte_zmalloc(eth_name, RTE_ETHER_ADDR_LEN, 0);
-	if (dev->data->mac_addrs == NULL) {
-		ENETFEC_PMD_ERR("Failed to allocate mem %d to store MAC addresses",
-			RTE_ETHER_ADDR_LEN);
-		rc = -ENOMEM;
+	rc = rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY);
+	if (rc != 0)
 		goto err;
-	}
 
 	/* Set mac address */
 	mac = (uint16_t *)addr.addr_bytes;

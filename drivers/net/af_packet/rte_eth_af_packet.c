@@ -82,7 +82,6 @@ struct pmd_internals {
 
 	int if_index;
 	char *if_name;
-	struct rte_ether_addr eth_addr;
 
 	struct tpacket_req req;
 
@@ -543,8 +542,6 @@ eth_dev_close(struct rte_eth_dev *dev)
 	rte_free(internals->rx_queue);
 	rte_free(internals->tx_queue);
 
-	/* mac_addrs must not be freed alone because part of dev_private */
-	dev->data->mac_addrs = NULL;
 	return 0;
 }
 
@@ -815,6 +812,7 @@ rte_pmd_init_internals(struct rte_vdev_device *dev,
 	const unsigned int numa_node = dev->device.numa_node;
 	struct rte_eth_dev_data *data = NULL;
 	struct rte_kvargs_pair *pair = NULL;
+	struct rte_ether_addr eth_addr;
 	struct ifreq ifr;
 	size_t ifnamelen;
 	unsigned k_idx;
@@ -899,7 +897,7 @@ rte_pmd_init_internals(struct rte_vdev_device *dev,
 		PMD_LOG_ERRNO(ERR, "%s: ioctl failed (SIOCGIFHWADDR)", name);
 		goto free_internals;
 	}
-	memcpy(&(*internals)->eth_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+	memcpy(&eth_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 
 	memset(&sockaddr, 0, sizeof(sockaddr));
 	sockaddr.sll_family = AF_PACKET;
@@ -1039,6 +1037,9 @@ rte_pmd_init_internals(struct rte_vdev_device *dev,
 	if (*eth_dev == NULL)
 		goto error;
 
+	if (rte_eth_dev_allocate_macs(*eth_dev, 1, SOCKET_ID_ANY) != 0)
+		goto error_free_port;
+
 	/*
 	 * now put it all together
 	 * - store queue data in internals,
@@ -1054,13 +1055,16 @@ rte_pmd_init_internals(struct rte_vdev_device *dev,
 	data->nb_rx_queues = (uint16_t)nb_queues;
 	data->nb_tx_queues = (uint16_t)nb_queues;
 	data->dev_link = pmd_link;
-	data->mac_addrs = &(*internals)->eth_addr;
+	rte_ether_addr_copy(&eth_addr, &data->mac_addrs[0]);
 	data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
 
 	(*eth_dev)->dev_ops = &ops;
 
 	return 0;
 
+error_free_port:
+	rte_eth_dev_release_port(*eth_dev);
+	*eth_dev = NULL;
 error:
 	if (qsockfd != -1)
 		close(qsockfd);

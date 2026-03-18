@@ -1731,6 +1731,14 @@ struct rte_eth_dev *rte_eth_dev_allocate(const char *name);
 __rte_internal
 struct rte_eth_dev *rte_eth_dev_attach_secondary(const char *name);
 
+__rte_internal
+int
+rte_eth_dev_allocate_macs(struct rte_eth_dev *dev, unsigned int max, int socket_id);
+
+__rte_internal
+void
+rte_eth_dev_free_macs(struct rte_eth_dev *dev);
+
 /**
  * @internal
  * Notify RTE_ETH_EVENT_DESTROY and release the specified ethdev port.

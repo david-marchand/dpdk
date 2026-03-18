@@ -2874,6 +2874,7 @@ ipn3ke_rpst_xmit_pkts(__rte_unused void *tx_queue,
 int
 ipn3ke_rpst_init(struct rte_eth_dev *ethdev, void *init_params)
 {
+	int ret;
 	struct ipn3ke_rpst *rpst = IPN3KE_DEV_PRIVATE_TO_RPST(ethdev);
 	struct ipn3ke_rpst *representor_param =
 			(struct ipn3ke_rpst *)init_params;
@@ -2894,12 +2895,9 @@ ipn3ke_rpst_init(struct rte_eth_dev *ethdev, void *init_params)
 		ipn3ke_bridge_func.set_i40e_sw_dev(rpst->i40e_pf_eth_port_id,
 					    rpst->ethdev);
 
-	ethdev->data->mac_addrs = rte_zmalloc("ipn3ke", RTE_ETHER_ADDR_LEN, 0);
-	if (!ethdev->data->mac_addrs) {
-		IPN3KE_AFU_PMD_ERR("Failed to "
-			"allocated memory for storing mac address");
+	ret = rte_eth_dev_allocate_macs(ethdev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
 		return -ENODEV;
-	}
 
 	if (rpst->hw->tm_hw_enable)
 		ipn3ke_tm_init(rpst);
@@ -2916,14 +2914,9 @@ ipn3ke_rpst_init(struct rte_eth_dev *ethdev, void *init_params)
 	ethdev->data->nb_rx_queues = 1;
 	ethdev->data->nb_tx_queues = 1;
 
-	ethdev->data->mac_addrs = rte_zmalloc("ipn3ke_afu_representor",
-						RTE_ETHER_ADDR_LEN,
-						0);
-	if (!ethdev->data->mac_addrs) {
-		IPN3KE_AFU_PMD_ERR("Failed to "
-			"allocated memory for storing mac address");
+	ret = rte_eth_dev_allocate_macs(ethdev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
 		return -ENODEV;
-	}
 
 	ethdev->data->dev_flags |= RTE_ETH_DEV_REPRESENTOR;
 

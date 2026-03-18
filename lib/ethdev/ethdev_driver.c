@@ -199,6 +199,46 @@ unlock:
 	return eth_dev;
 }
 
+RTE_EXPORT_INTERNAL_SYMBOL(rte_eth_dev_allocate_macs)
+int
+rte_eth_dev_allocate_macs(struct rte_eth_dev *dev, unsigned int max, int socket_id)
+{
+	unsigned int count;
+
+	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
+		return 0;
+
+	if (max > RTE_ETH_NUM_RECEIVE_MAC_ADDR) {
+		RTE_ETHDEV_LOG_LINE(INFO,
+			"Device %s supports up to %u mac addresses, but limiting to %u",
+			dev->data->name, max, RTE_ETH_NUM_RECEIVE_MAC_ADDR);
+		count = RTE_ETH_NUM_RECEIVE_MAC_ADDR;
+	} else {
+		count = max;
+	}
+
+	dev->data->mac_addrs = rte_calloc_socket("eth_dev_mac_addrs",
+		count, sizeof(dev->data->mac_addrs[0]), 0, socket_id);
+	if (dev->data->mac_addrs == NULL) {
+		RTE_ETHDEV_LOG_LINE(ERR, "Device %s: failed to allocate mac address array",
+			dev->data->name);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+RTE_EXPORT_INTERNAL_SYMBOL(rte_eth_dev_free_macs)
+void
+rte_eth_dev_free_macs(struct rte_eth_dev *dev)
+{
+	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
+		return;
+
+	rte_free(dev->data->mac_addrs);
+	dev->data->mac_addrs = NULL;
+}
+
 RTE_EXPORT_INTERNAL_SYMBOL(rte_eth_dev_callback_process)
 int
 rte_eth_dev_callback_process(struct rte_eth_dev *dev,
@@ -290,7 +330,7 @@ rte_eth_dev_release_port(struct rte_eth_dev *eth_dev)
 	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
 		rte_free(eth_dev->data->rx_queues);
 		rte_free(eth_dev->data->tx_queues);
-		rte_free(eth_dev->data->mac_addrs);
+		rte_eth_dev_free_macs(eth_dev);
 		rte_free(eth_dev->data->hash_mac_addrs);
 		rte_free(eth_dev->data->dev_private);
 		pthread_mutex_destroy(&eth_dev->data->flow_ops_mutex);

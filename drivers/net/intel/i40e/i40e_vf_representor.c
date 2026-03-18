@@ -478,6 +478,7 @@ int
 i40e_vf_representor_init(struct rte_eth_dev *ethdev, void *init_params)
 {
 	struct i40e_vf_representor *representor = ethdev->data->dev_private;
+	int ret;
 
 	struct i40e_pf *pf;
 	struct i40e_pf_vf *vf;
@@ -520,7 +521,10 @@ i40e_vf_representor_init(struct rte_eth_dev *ethdev, void *init_params)
 	ethdev->data->nb_rx_queues = vf->vsi->nb_qps;
 	ethdev->data->nb_tx_queues = vf->vsi->nb_qps;
 
-	ethdev->data->mac_addrs = &vf->mac_addr;
+	ret = rte_eth_dev_allocate_macs(ethdev, I40E_NUM_MACADDR_MAX, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
+	rte_ether_addr_copy(&vf->mac_addr, &ethdev->data->mac_addrs[0]);
 
 	/* Link state. Inherited from PF */
 	link = &representor->adapter->pf.dev_data->dev_link;
@@ -534,10 +538,7 @@ i40e_vf_representor_init(struct rte_eth_dev *ethdev, void *init_params)
 }
 
 int
-i40e_vf_representor_uninit(struct rte_eth_dev *ethdev)
+i40e_vf_representor_uninit(__rte_unused struct rte_eth_dev *ethdev)
 {
-	/* mac_addrs must not be freed because part of i40e_pf_vf */
-	ethdev->data->mac_addrs = NULL;
-
 	return 0;
 }

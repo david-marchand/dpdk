@@ -146,7 +146,7 @@ enetc4_mac_init(struct enetc_eth_hw *hw, struct rte_eth_dev *eth_dev)
 	struct enetc_hw *enetc_hw = &hw->hw;
 	uint32_t high_mac = 0;
 	uint16_t low_mac = 0;
-	char eth_name[ENETC_ETH_NAMESIZE];
+	int ret;
 
 	PMD_INIT_FUNC_TRACE();
 
@@ -168,16 +168,9 @@ enetc4_mac_init(struct enetc_eth_hw *hw, struct rte_eth_dev *eth_dev)
 			      (const struct rte_ether_addr *)hw->mac.addr);
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	snprintf(eth_name, sizeof(eth_name), "enetc4_eth_%d", eth_dev->data->port_id);
-	eth_dev->data->mac_addrs = rte_zmalloc(eth_name,
-					RTE_ETHER_ADDR_LEN, 0);
-	if (!eth_dev->data->mac_addrs) {
-		ENETC_PMD_ERR("Failed to allocate %d bytes needed to "
-			      "store MAC addresses",
-			      RTE_ETHER_ADDR_LEN * 1);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.addr,

@@ -1553,14 +1553,9 @@ eth_hn_dev_init(struct rte_eth_dev *eth_dev)
 
 	eth_dev->data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
 
-	/* Since Hyper-V only supports one MAC address */
-	eth_dev->data->mac_addrs = rte_calloc("hv_mac", HN_MAX_MAC_ADDRS,
-					      sizeof(struct rte_ether_addr), 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate memory store MAC addresses");
-		return -ENOMEM;
-	}
+	err = rte_eth_dev_allocate_macs(eth_dev, HN_MAX_MAC_ADDRS, SOCKET_ID_ANY);
+	if (err != 0)
+		return err;
 
 	hv->vmbus = vmbus;
 	hv->rxbuf_res = vmbus->resource[HV_RECV_BUF_MAP];

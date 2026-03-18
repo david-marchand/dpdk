@@ -2213,14 +2213,9 @@ zxdh_eth_dev_init(struct rte_eth_dev *eth_dev)
 		return 0;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("zxdh_mac",
-			ZXDH_MAX_MAC_ADDRS * RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_DRV_LOG(ERR, "Failed to allocate %d bytes store MAC addresses",
-				ZXDH_MAX_MAC_ADDRS * RTE_ETHER_ADDR_LEN);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, ZXDH_MAX_MAC_ADDRS, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	memset(hw, 0, sizeof(*hw));
 	hw->bar_addr[0] = (uint64_t)pci_dev->mem_resource[0].addr;

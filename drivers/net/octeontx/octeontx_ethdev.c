@@ -1635,14 +1635,9 @@ octeontx_create(struct rte_vdev_device *dev, int port, uint8_t evdev,
 		goto err;
 	}
 
-	data->mac_addrs = rte_zmalloc_socket(octtx_name, max_entries *
-					     RTE_ETHER_ADDR_LEN, 0,
-							socket_id);
-	if (data->mac_addrs == NULL) {
-		octeontx_log_err("failed to allocate memory for mac_addrs");
-		res = -ENOMEM;
+	res = rte_eth_dev_allocate_macs(eth_dev, max_entries, socket_id);
+	if (res != 0)
 		goto err;
-	}
 
 	eth_dev->dev_ops = &octeontx_dev_ops;
 
@@ -1653,7 +1648,7 @@ octeontx_create(struct rte_vdev_device *dev, int port, uint8_t evdev,
 		octeontx_log_err("eth_dev->port_id (%d) is diff to orig (%d)",
 				data->port_id, nic->port_id);
 		res = -EINVAL;
-		goto free_mac_addrs;
+		goto err;
 	}
 
 	res = rte_eal_alarm_set(OCCTX_INTR_POLL_INTERVAL_MS * 1000,
@@ -1686,9 +1681,6 @@ octeontx_create(struct rte_vdev_device *dev, int port, uint8_t evdev,
 	rte_eth_dev_probing_finish(eth_dev);
 	return data->port_id;
 
-free_mac_addrs:
-	rte_free(data->mac_addrs);
-	data->mac_addrs = NULL;
 err:
 	if (nic)
 		octeontx_port_close(nic);

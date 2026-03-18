@@ -571,8 +571,7 @@ virtual_ethdev_create(const char *name, struct rte_ether_addr *mac_addr,
 	eth_dev->data->dev_link.link_speed = RTE_ETH_SPEED_NUM_10G;
 	eth_dev->data->dev_link.link_duplex = RTE_ETH_LINK_FULL_DUPLEX;
 
-	eth_dev->data->mac_addrs = rte_zmalloc(name, RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL)
+	if (rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY) != 0)
 		goto err;
 
 	memcpy(eth_dev->data->mac_addrs, mac_addr,

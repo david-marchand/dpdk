@@ -1121,13 +1121,9 @@ nfp_net_init(struct rte_eth_dev *eth_dev,
 		}
 	}
 
-	/* Allocating memory for mac addr */
-	eth_dev->data->mac_addrs = rte_zmalloc("mac_addr", RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to space for MAC address.");
-		err = -ENOMEM;
+	err = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (err != 0)
 		goto xstats_free;
-	}
 
 	if ((hw->cap & NFP_NET_CFG_CTRL_TXRWB) != 0) {
 		err = nfp_net_txrwb_alloc(eth_dev);

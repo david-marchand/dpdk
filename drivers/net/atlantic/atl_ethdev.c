@@ -410,13 +410,9 @@ eth_atl_dev_init(struct rte_eth_dev *eth_dev)
 	/* disable interrupt */
 	atl_disable_intr(hw);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("atlantic",
-					RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "MAC Malloc failed");
-		return -ENOMEM;
-	}
+	err = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (err != 0)
+		return err;
 
 	err = hw_atl_utils_initfw(hw, &hw->aq_fw_ops);
 	if (err)

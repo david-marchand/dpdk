@@ -59,7 +59,6 @@ struct pmd_internals {
 	struct null_queue rx_null_queues[RTE_MAX_QUEUES_PER_PORT];
 	struct null_queue tx_null_queues[RTE_MAX_QUEUES_PER_PORT];
 
-	struct rte_ether_addr eth_addr;
 	/** Bit mask of RSS offloads, the bit offset also means flow type */
 	uint64_t flow_type_rss_offloads;
 
@@ -497,17 +496,10 @@ eth_mac_address_set(__rte_unused struct rte_eth_dev *dev,
 }
 
 static int
-eth_dev_close(struct rte_eth_dev *dev)
+eth_dev_close(__rte_unused struct rte_eth_dev *dev)
 {
 	PMD_LOG(INFO, "Closing null ethdev on NUMA socket %u",
 			rte_socket_id());
-
-	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
-		return 0;
-
-	/* mac_addrs must not be freed alone because part of dev_private */
-	dev->data->mac_addrs = NULL;
-
 	return 0;
 }
 
@@ -540,6 +532,8 @@ eth_dev_null_create(struct rte_vdev_device *dev, struct pmd_options *args)
 	struct rte_eth_dev_data *data;
 	struct pmd_internals *internals = NULL;
 	struct rte_eth_dev *eth_dev = NULL;
+	struct rte_ether_addr eth_addr;
+	int ret;
 
 	static const uint8_t default_rss_key[40] = {
 		0x6D, 0x5A, 0x56, 0xDA, 0x25, 0x5B, 0x0E, 0xC2, 0x41, 0x67, 0x25, 0x3D,
@@ -558,6 +552,10 @@ eth_dev_null_create(struct rte_vdev_device *dev, struct pmd_options *args)
 	if (!eth_dev)
 		return -ENOMEM;
 
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
+
 	/* now put it all together
 	 * - store queue data in internals,
 	 * - store numa_node info in ethdev data
@@ -572,7 +570,7 @@ eth_dev_null_create(struct rte_vdev_device *dev, struct pmd_options *args)
 	internals->packet_copy = args->packet_copy;
 	internals->no_rx = args->no_rx;
 	internals->port_id = eth_dev->data->port_id;
-	rte_eth_random_addr(internals->eth_addr.addr_bytes);
+	rte_eth_random_addr(eth_addr.addr_bytes);
 
 	internals->flow_type_rss_offloads =  RTE_ETH_RSS_PROTO_MASK;
 	internals->reta_size = RTE_DIM(internals->reta_conf) * RTE_ETH_RETA_GROUP_SIZE;
@@ -583,7 +581,7 @@ eth_dev_null_create(struct rte_vdev_device *dev, struct pmd_options *args)
 	data->nb_rx_queues = (uint16_t)nb_rx_queues;
 	data->nb_tx_queues = (uint16_t)nb_tx_queues;
 	data->dev_link = pmd_link;
-	data->mac_addrs = &internals->eth_addr;
+	rte_ether_addr_copy(&eth_addr, &data->mac_addrs[0]);
 	data->promiscuous = 1;
 	data->all_multicast = 1;
 	data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;

@@ -1057,6 +1057,7 @@ ice_init_mac_address(struct rte_eth_dev *dev)
 {
 	struct ice_hw *hw = ICE_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 	struct ice_adapter *ad = (struct ice_adapter *)hw->back;
+	int ret;
 
 	if (!rte_is_unicast_ether_addr
 		((struct rte_ether_addr *)hw->port_info[0].mac.lan_addr)) {
@@ -1068,13 +1069,10 @@ ice_init_mac_address(struct rte_eth_dev *dev)
 		(struct rte_ether_addr *)hw->port_info[0].mac.lan_addr,
 		(struct rte_ether_addr *)hw->port_info[0].mac.perm_addr);
 
-	dev->data->mac_addrs =
-		rte_zmalloc(NULL, sizeof(struct rte_ether_addr) * ICE_NUM_MACADDR_MAX, 0);
-	if (!dev->data->mac_addrs) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to allocate memory to store mac address");
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(dev, ICE_NUM_MACADDR_MAX, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
+
 	/* store it to dev data */
 	if (ad->devargs.default_mac_disable != 1)
 		rte_ether_addr_copy((struct rte_ether_addr *)hw->port_info[0].mac.perm_addr,
@@ -2704,7 +2702,7 @@ ice_dev_init(struct rte_eth_dev *dev)
 				hw->func_caps.common_cap.num_msix_vectors - 1);
 	if (ret) {
 		PMD_INIT_LOG(ERR, "Failed to init MSIX pool");
-		goto err_msix_pool_init;
+		goto err_init_mac;
 	}
 
 	ret = ice_pf_setup(pf);
@@ -2790,9 +2788,6 @@ err_flow_init:
 				     ice_interrupt_handler, dev);
 err_pf_setup:
 	ice_res_pool_destroy(&pf->msix_pool);
-err_msix_pool_init:
-	rte_free(dev->data->mac_addrs);
-	dev->data->mac_addrs = NULL;
 err_init_mac:
 	rte_free(pf->proto_xtr);
 #ifndef RTE_EXEC_ENV_WINDOWS

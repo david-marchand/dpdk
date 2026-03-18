@@ -3079,7 +3079,6 @@ static const struct eth_dev_ops hinic_dev_sec_ops = {
 static int hinic_func_init(struct rte_eth_dev *eth_dev)
 {
 	struct rte_pci_device *pci_dev;
-	struct rte_ether_addr *eth_addr;
 	struct hinic_nic_dev *nic_dev;
 	struct hinic_filter_info *filter_info;
 	struct hinic_tcam_info *tcam_info;
@@ -3109,15 +3108,9 @@ static int hinic_func_init(struct rte_eth_dev *eth_dev)
 		 pci_dev->addr.devid, pci_dev->addr.function);
 
 	/* alloc mac_addrs */
-	mac_size = HINIC_MAX_UC_MAC_ADDRS * sizeof(struct rte_ether_addr);
-	eth_addr = rte_zmalloc("hinic_mac", mac_size, 0);
-	if (!eth_addr) {
-		PMD_DRV_LOG(ERR, "Allocate ethernet addresses' memory failed, dev_name: %s",
-			    eth_dev->data->name);
-		rc = -ENOMEM;
+	rc = rte_eth_dev_allocate_macs(eth_dev, HINIC_MAX_UC_MAC_ADDRS, SOCKET_ID_ANY);
+	if (rc != 0)
 		goto eth_addr_fail;
-	}
-	eth_dev->data->mac_addrs = eth_addr;
 
 	mac_size = HINIC_MAX_MC_MAC_ADDRS * sizeof(struct rte_ether_addr);
 	nic_dev->mc_list = rte_zmalloc("hinic_mc", mac_size, 0);
@@ -3205,8 +3198,7 @@ create_nic_dev_fail:
 	nic_dev->mc_list = NULL;
 
 mc_addr_fail:
-	rte_free(eth_addr);
-	eth_dev->data->mac_addrs = NULL;
+	rte_eth_dev_free_macs(eth_dev);
 
 eth_addr_fail:
 	PMD_DRV_LOG(ERR, "Initialize %s in primary failed",

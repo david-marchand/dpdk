@@ -1449,15 +1449,9 @@ eth_igc_dev_init(struct rte_eth_dev *dev)
 		goto err_late;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	dev->data->mac_addrs = rte_zmalloc("igc",
-		RTE_ETHER_ADDR_LEN * hw->mac.rar_entry_count, 0);
-	if (dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to allocate %d bytes for storing MAC",
-				RTE_ETHER_ADDR_LEN * hw->mac.rar_entry_count);
-		error = -ENOMEM;
+	error = rte_eth_dev_allocate_macs(dev, hw->mac.rar_entry_count, SOCKET_ID_ANY);
+	if (error != 0)
 		goto err_late;
-	}
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.addr,
@@ -1466,8 +1460,6 @@ eth_igc_dev_init(struct rte_eth_dev *dev)
 	/* Now initialize the hardware */
 	if (igc_hardware_init(hw) != 0) {
 		PMD_INIT_LOG(ERR, "Hardware initialization failed");
-		rte_free(dev->data->mac_addrs);
-		dev->data->mac_addrs = NULL;
 		error = -ENODEV;
 		goto err_late;
 	}

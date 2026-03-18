@@ -914,6 +914,7 @@ rtl_dev_init(struct rte_eth_dev *dev)
 	struct rtl_hw *hw = &adapter->hw;
 	struct rte_ether_addr *perm_addr = (struct rte_ether_addr *)hw->mac_addr;
 	char buf[RTE_ETHER_ADDR_FMT_SIZE];
+	int ret;
 
 	dev->dev_ops = &rtl_eth_dev_ops;
 	dev->tx_pkt_burst = &rtl_xmit_pkts;
@@ -949,13 +950,9 @@ rtl_dev_init(struct rte_eth_dev *dev)
 		PMD_INIT_LOG(NOTICE, "r8169: Assign randomly generated MAC address %s", buf);
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	dev->data->mac_addrs = rte_zmalloc("r8169", RTE_ETHER_ADDR_LEN, 0);
-
-	if (dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "MAC Malloc failed");
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy(perm_addr, &dev->data->mac_addrs[0]);

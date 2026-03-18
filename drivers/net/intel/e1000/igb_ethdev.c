@@ -874,16 +874,9 @@ eth_igb_dev_init(struct rte_eth_dev *eth_dev)
 		goto err_late;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("e1000",
-		RTE_ETHER_ADDR_LEN * hw->mac.rar_entry_count, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to allocate %d bytes needed to "
-						"store MAC addresses",
-				RTE_ETHER_ADDR_LEN * hw->mac.rar_entry_count);
-		error = -ENOMEM;
+	error = rte_eth_dev_allocate_macs(eth_dev, hw->mac.rar_entry_count, SOCKET_ID_ANY);
+	if (error != 0)
 		goto err_late;
-	}
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.addr,
@@ -895,8 +888,6 @@ eth_igb_dev_init(struct rte_eth_dev *eth_dev)
 	/* Now initialize the hardware */
 	if (igb_hardware_init(hw) != 0) {
 		PMD_INIT_LOG(ERR, "Hardware initialization failed");
-		rte_free(eth_dev->data->mac_addrs);
-		eth_dev->data->mac_addrs = NULL;
 		error = -ENODEV;
 		goto err_late;
 	}
@@ -1028,16 +1019,9 @@ eth_igbvf_dev_init(struct rte_eth_dev *eth_dev)
 
 	diag = hw->mac.ops.reset_hw(hw);
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("igbvf", RTE_ETHER_ADDR_LEN *
-		hw->mac.rar_entry_count, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR,
-			"Failed to allocate %d bytes needed to store MAC "
-			"addresses",
-			RTE_ETHER_ADDR_LEN * hw->mac.rar_entry_count);
-		return -ENOMEM;
-	}
+	diag = rte_eth_dev_allocate_macs(eth_dev, hw->mac.rar_entry_count, SOCKET_ID_ANY);
+	if (diag != 0)
+		return diag;
 
 	/* Generate a random MAC address, if none was assigned by PF. */
 	if (rte_is_zero_ether_addr(perm_addr)) {
@@ -1049,11 +1033,9 @@ eth_igbvf_dev_init(struct rte_eth_dev *eth_dev)
 	}
 
 	diag = e1000_rar_set(hw, perm_addr->addr_bytes, 0);
-	if (diag) {
-		rte_free(eth_dev->data->mac_addrs);
-		eth_dev->data->mac_addrs = NULL;
+	if (diag)
 		return diag;
-	}
+
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.perm_addr,
 			&eth_dev->data->mac_addrs[0]);

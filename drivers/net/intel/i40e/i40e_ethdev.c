@@ -1526,9 +1526,9 @@ eth_i40e_dev_init(struct rte_eth_dev *dev, void *init_params __rte_unused)
 	struct i40e_pf *pf = I40E_DEV_PRIVATE_TO_PF(dev->data->dev_private);
 	struct i40e_hw *hw = I40E_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 	struct i40e_vsi *vsi;
-	int ret;
-	uint32_t len, val;
+	uint32_t val;
 	uint8_t aq_fail = 0;
+	int ret;
 
 	PMD_INIT_FUNC_TRACE();
 
@@ -1768,18 +1768,10 @@ eth_i40e_dev_init(struct rte_eth_dev *dev, void *init_params __rte_unused)
 		}
 	}
 
-	if (!vsi->max_macaddrs)
-		len = RTE_ETHER_ADDR_LEN;
-	else
-		len = RTE_ETHER_ADDR_LEN * vsi->max_macaddrs;
-
-	/* Should be after VSI initialized */
-	dev->data->mac_addrs = rte_zmalloc("i40e", len, 0);
-	if (!dev->data->mac_addrs) {
-		PMD_INIT_LOG(ERR,
-			"Failed to allocated memory for storing mac address");
+	ret = rte_eth_dev_allocate_macs(dev, vsi->max_macaddrs ? vsi->max_macaddrs : 1,
+		SOCKET_ID_ANY);
+	if (ret != 0)
 		goto err_mac_alloc;
-	}
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.perm_addr,
 					&dev->data->mac_addrs[0]);
 
@@ -1856,8 +1848,6 @@ err_init_tunnel_filter_list:
 err_init_ethtype_filter_list:
 	rte_intr_callback_unregister(intr_handle,
 		i40e_dev_interrupt_handler, dev);
-	rte_free(dev->data->mac_addrs);
-	dev->data->mac_addrs = NULL;
 err_mac_alloc:
 	i40e_vsi_release(pf->main_vsi);
 err_setup_pf_switch:

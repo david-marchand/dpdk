@@ -1586,12 +1586,12 @@ rnp_setup_port_attr(struct rnp_eth_port *port,
 static int
 rnp_init_port_resource(struct rnp_eth_adapter *adapter,
 		       struct rte_eth_dev *eth_dev,
-		       char *name,
 		       uint8_t p_id)
 {
 	struct rnp_eth_port *port = RNP_DEV_TO_PORT(eth_dev);
 	struct rte_pci_device *pci_dev = adapter->pdev;
 	char mac_str[RTE_ETHER_ADDR_FMT_SIZE] = " ";
+	int ret;
 
 	PMD_INIT_FUNC_TRACE();
 
@@ -1603,13 +1603,9 @@ rnp_init_port_resource(struct rnp_eth_adapter *adapter,
 	eth_dev->data->mtu = RTE_ETHER_MTU;
 
 	rnp_setup_port_attr(port, eth_dev, p_id);
-	eth_dev->data->mac_addrs = rte_zmalloc(name,
-			sizeof(struct rte_ether_addr) *
-			port->attr.max_mac_addrs, 0);
-	if (!eth_dev->data->mac_addrs) {
-		RNP_PMD_ERR("zmalloc for mac failed! Exiting.");
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, port->attr.max_mac_addrs, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 	rnp_get_mac_addr(port, port->mac_addr.addr_bytes);
 	rte_ether_format_addr(mac_str, RTE_ETHER_ADDR_FMT_SIZE,
 					&port->mac_addr);
@@ -1753,7 +1749,7 @@ rnp_eth_dev_init(struct rte_eth_dev *eth_dev)
 					eth_dev->process_private,
 					sizeof(struct rnp_proc_priv));
 		}
-		ret = rnp_init_port_resource(adapter, sub_eth_dev, name, p_id);
+		ret = rnp_init_port_resource(adapter, sub_eth_dev, p_id);
 		if (ret)
 			goto eth_alloc_error;
 		rnp_mac_rx_disable(sub_eth_dev);

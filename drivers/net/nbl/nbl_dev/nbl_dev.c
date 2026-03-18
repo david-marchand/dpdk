@@ -1252,13 +1252,9 @@ int nbl_dev_init(void *p, struct rte_eth_dev *eth_dev)
 	if (ret)
 		goto setup_net_dev_failed;
 
-	eth_dev->data->mac_addrs =
-		rte_zmalloc("nbl", RTE_ETHER_ADDR_LEN * (*dev_mgt)->net_dev->max_mac_num, 0);
-	if (!eth_dev->data->mac_addrs) {
-		NBL_LOG(ERR, "allocate memory to store mac addr failed");
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, (*dev_mgt)->net_dev->max_mac_num, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto alloc_mac_addrs_failed;
-	}
 	disp_ops->get_mac_addr(NBL_DEV_MGT_TO_DISP_PRIV(*dev_mgt),
 			       eth_dev->data->mac_addrs[0].addr_bytes);
 
@@ -1291,15 +1287,10 @@ void nbl_dev_remove(void *p)
 	struct nbl_dev_mgt **dev_mgt;
 	struct nbl_dev_ops_tbl **dev_ops_tbl;
 	const struct nbl_product_dev_ops *product_dev_ops = NULL;
-	const struct rte_eth_dev *eth_dev;
 
 	dev_mgt = (struct nbl_dev_mgt **)&NBL_ADAPTER_TO_DEV_MGT(adapter);
 	dev_ops_tbl = &NBL_ADAPTER_TO_DEV_OPS_TBL(adapter);
 	product_dev_ops = nbl_dev_get_product_ops(adapter->caps.product_type);
-	eth_dev = (*dev_mgt)->net_dev->eth_dev;
-
-	rte_free(eth_dev->data->mac_addrs);
-	eth_dev->data->mac_addrs = NULL;
 
 	nbl_dev_remove_net_dev(*dev_mgt);
 	nbl_dev_remove_ops(dev_ops_tbl);

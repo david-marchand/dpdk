@@ -905,16 +905,9 @@ enetc_dev_init(struct rte_eth_dev *eth_dev)
 		return -1;
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("enetc_eth",
-					RTE_ETHER_ADDR_LEN, 0);
-	if (!eth_dev->data->mac_addrs) {
-		ENETC_PMD_ERR("Failed to allocate %d bytes needed to "
-			      "store MAC addresses",
-			      RTE_ETHER_ADDR_LEN * 1);
-		error = -ENOMEM;
+	error = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (error != 0)
 		return -1;
-	}
 
 	/* Copy the permanent MAC address */
 	rte_ether_addr_copy((struct rte_ether_addr *)hw->mac.addr,

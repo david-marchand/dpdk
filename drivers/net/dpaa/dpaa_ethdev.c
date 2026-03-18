@@ -2459,16 +2459,9 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 	eth_dev->rx_pkt_burst = dpaa_eth_queue_rx;
 	eth_dev->tx_pkt_burst = dpaa_eth_tx_drop_all;
 
-	/* Allocate memory for storing MAC addresses */
-	eth_dev->data->mac_addrs = rte_zmalloc("mac_addr",
-		RTE_ETHER_ADDR_LEN * DPAA_MAX_MAC_FILTER, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		DPAA_PMD_ERR("Failed to allocate %d bytes needed to "
-						"store MAC addresses",
-				RTE_ETHER_ADDR_LEN * DPAA_MAX_MAC_FILTER);
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, DPAA_MAX_MAC_FILTER, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto free_tx;
-	}
 
 	/* copy the primary mac address */
 	rte_ether_addr_copy(&fman_intf->mac_addr, &eth_dev->data->mac_addrs[0]);

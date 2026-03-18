@@ -252,14 +252,9 @@ allocate_mac:
 		pi->eth_dev->rx_pkt_burst = adapter->eth_dev->rx_pkt_burst;
 
 		rte_eth_copy_pci_info(pi->eth_dev, adapter->pdev);
-		pi->eth_dev->data->mac_addrs = rte_zmalloc(name,
-							RTE_ETHER_ADDR_LEN, 0);
-		if (!pi->eth_dev->data->mac_addrs) {
-			dev_err(adapter, "%s: Mem allocation failed for storing mac addr, aborting\n",
-				__func__);
-			err = -ENOMEM;
+		err = rte_eth_dev_allocate_macs(pi->eth_dev, 1, SOCKET_ID_ANY);
+		if (err != 0)
 			goto out_free;
-		}
 
 		if (i > 0) {
 			/* First port will be notified by upper layer */

@@ -2340,15 +2340,9 @@ eth_axgbe_dev_init(struct rte_eth_dev *eth_dev)
 	pdata->mac_addr.addr_bytes[4] = mac_hi & 0xff;
 	pdata->mac_addr.addr_bytes[5] = (mac_hi >> 8)  &  0xff;
 
-	len = RTE_ETHER_ADDR_LEN * AXGBE_MAX_MAC_ADDRS;
-	eth_dev->data->mac_addrs = rte_zmalloc("axgbe_mac_addr", len, 0);
-
-	if (!eth_dev->data->mac_addrs) {
-		PMD_INIT_LOG(ERR,
-			     "Failed to alloc %u bytes needed to "
-			     "store MAC addresses", len);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, AXGBE_MAX_MAC_ADDRS, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	/* Allocate memory for storing hash filter MAC addresses */
 	len = RTE_ETHER_ADDR_LEN * AXGBE_MAX_HASH_MAC_ADDRS;
@@ -2426,8 +2420,7 @@ eth_axgbe_dev_init(struct rte_eth_dev *eth_dev)
 
 	ret = pdata->phy_if.phy_init(pdata);
 	if (ret) {
-		rte_free(eth_dev->data->mac_addrs);
-		eth_dev->data->mac_addrs = NULL;
+		rte_eth_dev_free_macs(eth_dev);
 		return ret;
 	}
 

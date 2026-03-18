@@ -312,9 +312,6 @@ bnx2x_dev_close(struct rte_eth_dev *dev)
 	/* free ilt */
 	bnx2x_free_ilt_mem(sc);
 
-	/* mac_addrs must not be freed alone because part of dev_private */
-	dev->data->mac_addrs = NULL;
-
 	return 0;
 }
 
@@ -717,8 +714,11 @@ bnx2x_common_dev_init(struct rte_eth_dev *eth_dev, int is_vf)
 		}
 	}
 
-	eth_dev->data->mac_addrs =
-		(struct rte_ether_addr *)sc->link_params.mac_addr;
+	ret = rte_eth_dev_allocate_macs(eth_dev, BNX2X_MAX_MAC_ADDRS, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
+	rte_ether_addr_copy((struct rte_ether_addr *)sc->link_params.mac_addr,
+		&eth_dev->data->mac_addrs[0]);
 
 	if (IS_VF(sc)) {
 		rte_spinlock_init(&sc->vf2pf_lock);

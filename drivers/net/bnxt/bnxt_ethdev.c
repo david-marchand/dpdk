@@ -5651,20 +5651,11 @@ static int bnxt_alloc_stats_mem(struct bnxt *bp)
 static int bnxt_setup_mac_addr(struct rte_eth_dev *eth_dev)
 {
 	struct bnxt *bp = eth_dev->data->dev_private;
-	size_t max_mac_addr = RTE_MIN(bp->max_l2_ctx, RTE_ETH_NUM_RECEIVE_MAC_ADDR);
-	int rc = 0;
+	int rc;
 
-	if (bp->max_l2_ctx > RTE_ETH_NUM_RECEIVE_MAC_ADDR)
-		PMD_DRV_LOG_LINE(INFO, "Max number of MAC addrs supported is %d, but will be limited to %d",
-			    bp->max_l2_ctx, RTE_ETH_NUM_RECEIVE_MAC_ADDR);
-
-	eth_dev->data->mac_addrs = rte_zmalloc("bnxt_mac_addr_tbl",
-					       RTE_ETHER_ADDR_LEN * max_mac_addr,
-					       0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_DRV_LOG_LINE(ERR, "Failed to alloc MAC addr tbl");
-		return -ENOMEM;
-	}
+	rc = rte_eth_dev_allocate_macs(eth_dev, bp->max_l2_ctx, SOCKET_ID_ANY);
+	if (rc != 0)
+		return rc;
 
 	if (!BNXT_HAS_DFLT_MAC_SET(bp)) {
 		if (BNXT_PF(bp))

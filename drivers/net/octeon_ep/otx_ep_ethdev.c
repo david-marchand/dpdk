@@ -807,11 +807,10 @@ otx_ep_eth_dev_init(struct rte_eth_dev *eth_dev)
 	 * This will address working legacy PF with latest VF.
 	 */
 	otx_epvf->mbox_neg_ver = OTX_EP_MBOX_VERSION_V1;
-	eth_dev->data->mac_addrs = rte_zmalloc("otx_ep", RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		otx_ep_err("MAC addresses memory allocation failed");
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0) {
 		eth_dev->dev_ops = NULL;
-		return -ENOMEM;
+		return ret;
 	}
 	rte_eth_random_addr(vf_mac_addr.addr_bytes);
 	rte_ether_addr_copy(&vf_mac_addr, eth_dev->data->mac_addrs);

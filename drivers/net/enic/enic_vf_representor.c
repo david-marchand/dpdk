@@ -667,11 +667,9 @@ int enic_vf_representor_init(struct rte_eth_dev *eth_dev, void *init_params)
 	eth_dev->data->dev_flags |= RTE_ETH_DEV_REPRESENTOR;
 	eth_dev->data->representor_id = vf->vf_id;
 	eth_dev->data->backer_port_id = pf->port_id;
-	eth_dev->data->mac_addrs = rte_zmalloc("enic_mac_addr_vf",
-		sizeof(struct rte_ether_addr) *
-		ENIC_UNICAST_PERFECT_FILTERS, 0);
-	if (eth_dev->data->mac_addrs == NULL)
-		return -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, ENIC_UNICAST_PERFECT_FILTERS, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 	/* Use 1 RX queue and 1 TX queue for representor path */
 	eth_dev->data->nb_rx_queues = 1;
 	eth_dev->data->nb_tx_queues = 1;

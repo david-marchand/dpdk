@@ -1155,7 +1155,7 @@ enetc4_vf_mac_init(struct enetc_eth_hw *hw, struct rte_eth_dev *eth_dev)
 	struct enetc_hw *enetc_hw = &hw->hw;
 	uint32_t high_mac = 0;
 	uint16_t low_mac = 0;
-	char vf_eth_name[ENETC_ETH_NAMESIZE];
+	int ret;
 
 	PMD_INIT_FUNC_TRACE();
 
@@ -1184,16 +1184,9 @@ enetc4_vf_mac_init(struct enetc_eth_hw *hw, struct rte_eth_dev *eth_dev)
 			(const struct rte_ether_addr *)hw->mac.addr);
 	}
 
-	/* Allocate memory for storing MAC addresses */
-	snprintf(vf_eth_name, sizeof(vf_eth_name), "enetc4_vf_eth_%d", eth_dev->data->port_id);
-	eth_dev->data->mac_addrs = rte_zmalloc(vf_eth_name,
-					RTE_ETHER_ADDR_LEN, 0);
-	if (!eth_dev->data->mac_addrs) {
-		ENETC_PMD_ERR("Failed to allocate %d bytes needed to "
-			      "store MAC addresses",
-			      RTE_ETHER_ADDR_LEN * 1);
-		return -ENOMEM;
-	}
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
+		return ret;
 
 	if (!enetc_crc_gen)
 		enetc_gen_crc_table();

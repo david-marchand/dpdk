@@ -177,11 +177,13 @@ fs_eth_dev_create(struct rte_vdev_device *vdev)
 		ERROR("Unable to allocate rte_eth_dev");
 		return -1;
 	}
+	if (rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY) != 0)
+		goto free_dev;
 	priv = PRIV(dev);
 	priv->data = dev->data;
 	priv->rxp = FS_RX_PROXY_INIT;
 	dev->dev_ops = &failsafe_ops;
-	dev->data->mac_addrs = &PRIV(dev)->mac_addrs[0];
+	rte_ether_addr_copy(&PRIV(dev)->mac_addrs[0], &dev->data->mac_addrs[0]);
 	dev->data->dev_link = eth_link;
 	PRIV(dev)->nb_mac_addr = 1;
 	TAILQ_INIT(&PRIV(dev)->flow_list);
@@ -289,8 +291,6 @@ free_args:
 free_subs:
 	rte_free(PRIV(dev)->subs);
 free_dev:
-	/* mac_addrs must not be freed alone because part of dev_private */
-	dev->data->mac_addrs = NULL;
 	rte_eth_dev_release_port(dev);
 	return -1;
 }

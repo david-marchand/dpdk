@@ -179,8 +179,6 @@ struct pmd_internals {
 	char dp_path[PATH_MAX];
 	struct bpf_map *map;
 
-	struct rte_ether_addr eth_addr;
-
 	struct pkt_rx_queue *rx_queues;
 	struct pkt_tx_queue *tx_queues;
 };
@@ -1074,12 +1072,6 @@ eth_dev_close(struct rte_eth_dev *dev)
 		rte_free(rxq->pair);
 		rte_free(rxq);
 	}
-
-	/*
-	 * MAC is not allocated dynamically, setting it to NULL would prevent
-	 * from releasing it in rte_eth_dev_release_port.
-	 */
-	dev->data->mac_addrs = NULL;
 
 	if (remove_xdp_program(internals) != 0)
 		AF_XDP_LOG_LINE(ERR, "Error while removing XDP program.");
@@ -2256,6 +2248,7 @@ init_internals(struct rte_vdev_device *dev, const char *if_name,
 	const unsigned int numa_node = dev->device.numa_node;
 	struct pmd_process_private *process_private;
 	struct pmd_internals *internals;
+	struct rte_ether_addr eth_addr;
 	struct rte_eth_dev *eth_dev;
 	int ret;
 	int i;
@@ -2320,8 +2313,7 @@ init_internals(struct rte_vdev_device *dev, const char *if_name,
 		internals->rx_queues[i].busy_budget = busy_budget;
 	}
 
-	ret = get_iface_info(if_name, &internals->eth_addr,
-			     &internals->if_index);
+	ret = get_iface_info(if_name, &eth_addr, &internals->if_index);
 	if (ret)
 		goto err_free_tx;
 
@@ -2337,9 +2329,12 @@ init_internals(struct rte_vdev_device *dev, const char *if_name,
 	if (eth_dev == NULL)
 		goto err_free_pp;
 
+	if (rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY) != 0)
+		goto err_free_port;
+
 	eth_dev->data->dev_private = internals;
 	eth_dev->data->dev_link = pmd_link;
-	eth_dev->data->mac_addrs = &internals->eth_addr;
+	rte_ether_addr_copy(&eth_addr, &eth_dev->data->mac_addrs[0]);
 	eth_dev->data->dev_flags |= RTE_ETH_DEV_AUTOFILL_QUEUE_XSTATS;
 	if (!internals->use_cni && !internals->use_pinned_map)
 		eth_dev->dev_ops = &ops;
@@ -2359,6 +2354,8 @@ init_internals(struct rte_vdev_device *dev, const char *if_name,
 
 	return eth_dev;
 
+err_free_port:
+	rte_eth_dev_release_port(eth_dev);
 err_free_pp:
 	rte_free(process_private);
 err_free_tx:

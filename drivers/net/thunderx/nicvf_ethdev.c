@@ -2315,13 +2315,9 @@ nicvf_eth_dev_init(struct rte_eth_dev *eth_dev)
 		return ENOTSUP;
 	}
 
-	eth_dev->data->mac_addrs = rte_zmalloc("mac_addr",
-					RTE_ETHER_ADDR_LEN, 0);
-	if (eth_dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Failed to allocate memory for mac addr");
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto alarm_fail;
-	}
 	if (rte_is_zero_ether_addr((struct rte_ether_addr *)nic->mac_addr))
 		rte_eth_random_addr(&nic->mac_addr[0]);
 

@@ -2793,12 +2793,9 @@ cpfl_dev_vport_init(struct rte_eth_dev *dev, void *init_params)
 	adapter->cur_vports |= RTE_BIT32(param->devarg_id);
 	adapter->cur_vport_nb++;
 
-	dev->data->mac_addrs = rte_zmalloc(NULL, RTE_ETHER_ADDR_LEN, 0);
-	if (dev->data->mac_addrs == NULL) {
-		PMD_INIT_LOG(ERR, "Cannot allocate mac_addr memory.");
-		ret = -ENOMEM;
+	ret = rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY);
+	if (ret != 0)
 		goto err_mac_addrs;
-	}
 
 	rte_ether_addr_copy((struct rte_ether_addr *)vport->default_mac_addr,
 			    &dev->data->mac_addrs[0]);

@@ -3382,9 +3382,9 @@ sfc_eth_dev_init(struct rte_eth_dev *dev, void *init_params)
 
 	sfc_log_init(sa, "entry");
 
-	dev->data->mac_addrs = rte_zmalloc("sfc", RTE_ETHER_ADDR_LEN, 0);
-	if (dev->data->mac_addrs == NULL) {
-		rc = ENOMEM;
+	rc = rte_eth_dev_allocate_macs(dev, 1, SOCKET_ID_ANY);
+	if (rc != 0) {
+		rc = -rc;
 		goto fail_mac_addrs;
 	}
 

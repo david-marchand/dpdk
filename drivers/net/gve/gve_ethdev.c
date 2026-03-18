@@ -597,8 +597,6 @@ gve_dev_close(struct rte_eth_dev *dev)
 	gve_teardown_device_resources(priv);
 	gve_adminq_free(priv);
 
-	dev->data->mac_addrs = NULL;
-
 	return err;
 }
 
@@ -1410,6 +1408,10 @@ gve_dev_init(struct rte_eth_dev *eth_dev)
 		return 0;
 	}
 
+	err = rte_eth_dev_allocate_macs(eth_dev, 1, SOCKET_ID_ANY);
+	if (err != 0)
+		return err;
+
 	pci_dev = RTE_DEV_TO_PCI(eth_dev->device);
 
 	reg_bar = pci_dev->mem_resource[GVE_REG_BAR].addr;
@@ -1438,8 +1440,10 @@ gve_dev_init(struct rte_eth_dev *eth_dev)
 	priv->max_nb_rxq = max_rx_queues;
 
 	err = gve_init_priv(priv, false);
-	if (err)
+	if (err) {
+		rte_eth_dev_free_macs(eth_dev);
 		return err;
+	}
 
 	if (gve_is_gqi(priv)) {
 		eth_dev->dev_ops = &gve_eth_dev_ops;
@@ -1451,7 +1455,7 @@ gve_dev_init(struct rte_eth_dev *eth_dev)
 		gve_set_tx_function_dqo(eth_dev);
 	}
 
-	eth_dev->data->mac_addrs = &priv->dev_addr;
+	rte_ether_addr_copy(&priv->dev_addr, &eth_dev->data->mac_addrs[0]);
 
 	pthread_mutexattr_init(&mutexattr);
 	pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
