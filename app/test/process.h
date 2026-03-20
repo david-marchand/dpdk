@@ -104,6 +104,9 @@ process_dup(const char *const argv[], int numargs, const char *env_value)
 #endif
 #endif
 
+	if (argv[0] != prgname)
+		return -1;
+
 	pid_t pid = fork();
 	if (pid < 0)
 		return -1;
