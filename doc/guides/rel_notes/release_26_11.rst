@@ -64,6 +64,10 @@ New Features
   * Renamed the ``enable_ptype_lldp`` devarg to ``enable_lldp``.
     The old name is no longer accepted.
 
+  * Increased the maximum number of secondary unicast MAC addresses
+    from 64 to 32k.
+    This increases a VF port memory footprint by ~192kB.
+
 
 Removed Items
 -------------

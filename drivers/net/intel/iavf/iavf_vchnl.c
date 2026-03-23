@@ -1712,7 +1712,10 @@ iavf_send_eth_addr_list(struct iavf_adapter *adapter, const char *caller,
 void
 iavf_add_del_secondary_mac_addr(struct iavf_adapter *adapter, bool add)
 {
-	uint8_t cmd_buffer[IAVF_ETH_ADDR_CMD_SIZE(IAVF_NUM_MACADDR_MAX)];
+#define IAVF_ETH_ADDR_PER_REQ \
+	((IAVF_AQ_BUF_SZ - sizeof(struct virtchnl_ether_addr_list)) / \
+	 sizeof(struct virtchnl_ether_addr))
+	uint8_t cmd_buffer[IAVF_ETH_ADDR_CMD_SIZE(IAVF_ETH_ADDR_PER_REQ)];
 	struct iavf_info *vf = IAVF_DEV_PRIVATE_TO_VF(adapter);
 	struct virtchnl_ether_addr_list *list;
 
@@ -1720,7 +1723,7 @@ iavf_add_del_secondary_mac_addr(struct iavf_adapter *adapter, bool add)
 	list->vsi_id = vf->vsi_res->vsi_id;
 	list->num_elements = 0;
 
-	for (unsigned int i = 1; i < IAVF_NUM_MACADDR_MAX; i++) {
+	for (unsigned int i = 1; i < IAVF_UC_MACADDR_MAX; i++) {
 		struct rte_ether_addr *addr = &adapter->dev_data->mac_addrs[i];
 		struct virtchnl_ether_addr *vc_addr = &list->list[list->num_elements];
 
@@ -1731,6 +1734,12 @@ iavf_add_del_secondary_mac_addr(struct iavf_adapter *adapter, bool add)
 
 		memcpy(vc_addr->addr, addr->addr_bytes, sizeof(addr->addr_bytes));
 		vc_addr->type = VIRTCHNL_ETHER_ADDR_EXTRA;
+
+		if (list->num_elements == IAVF_ETH_ADDR_PER_REQ) {
+			if (iavf_send_eth_addr_list(adapter, __func__, list, add))
+				return;
+			list->num_elements = 0;
+		}
 	}
 
 	if (list->num_elements != 0)
@@ -2309,7 +2318,7 @@ iavf_add_del_mc_addr_list(struct iavf_adapter *adapter,
 			struct rte_ether_addr *mc_addrs,
 			uint32_t mc_addrs_num, bool add)
 {
-	uint8_t cmd_buffer[IAVF_ETH_ADDR_CMD_SIZE(IAVF_NUM_MACADDR_MAX)];
+	uint8_t cmd_buffer[IAVF_ETH_ADDR_CMD_SIZE(IAVF_MC_MACADDR_MAX)];
 	struct iavf_info *vf = IAVF_DEV_PRIVATE_TO_VF(adapter);
 	struct virtchnl_ether_addr_list *list;
 	uint32_t i;
