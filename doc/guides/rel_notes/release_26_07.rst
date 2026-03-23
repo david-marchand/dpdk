@@ -143,6 +143,8 @@ New Features
 
   * Added support for transmitting LLDP packets based on mbuf packet type.
   * Implemented AVX2 context descriptor transmit paths.
+  * Increased the maximum number of secondary unicast MAC addresses from 64 to 32k.
+    This increases a VF port memory footprint by ~192kB.
 
 * **Updated Intel ice driver.**
 
