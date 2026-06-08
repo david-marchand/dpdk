@@ -130,16 +130,6 @@ scan_one_fslmc_device(char *dev_name)
 
 	dev->device.numa_node = SOCKET_ID_ANY;
 
-	/* Allocate interrupt instance */
-	dev->intr_handle =
-		rte_intr_instance_alloc(RTE_INTR_INSTANCE_F_PRIVATE);
-	if (dev->intr_handle == NULL) {
-		DPAA2_BUS_ERR("Failed to allocate intr handle");
-		ret = -ENOMEM;
-		goto cleanup;
-	}
-	rte_intr_fd_set(dev->intr_handle, -1);
-
 	/* Parse the device name and ID */
 	t_ptr = strtok(dup_dev_name, ".");
 	if (!t_ptr) {
@@ -200,10 +190,7 @@ scan_one_fslmc_device(char *dev_name)
 	return 0;
 cleanup:
 	free(dup_dev_name);
-	if (dev) {
-		rte_intr_instance_free(dev->intr_handle);
-		free(dev);
-	}
+	free(dev);
 	return ret;
 }
 
@@ -310,7 +297,6 @@ fslmc_filter_devices(void)
 				break;
 			default:
 				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
-				rte_intr_instance_free(dev->intr_handle);
 				free(dev);
 				break;
 			}
@@ -327,7 +313,6 @@ fslmc_filter_devices(void)
 			else if (dev->dev_type == DPAA2_IO)
 				is_dpio_in_blocklist = true;
 			rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
-			rte_intr_instance_free(dev->intr_handle);
 			free(dev);
 			continue;
 		}
@@ -363,7 +348,6 @@ fslmc_filter_devices(void)
 				continue;
 			if (current_device != keep_index) {
 				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
-				rte_intr_instance_free(dev->intr_handle);
 				free(dev);
 			}
 
@@ -385,12 +369,10 @@ fslmc_filter_devices(void)
 			if (rte_eal_process_type() == RTE_PROC_SECONDARY &&
 					current_device != last_index) {
 				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
-				rte_intr_instance_free(dev->intr_handle);
 				free(dev);
 			} else if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
 					current_device == last_index) {
 				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
-				rte_intr_instance_free(dev->intr_handle);
 				free(dev);
 			}
 
@@ -511,18 +493,6 @@ rte_fslmc_scan(void)
 			DPAA2_BUS_ERR("Unable to setup devices %d", ret);
 			return 0;
 		}
-
-		RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
-			if (dev->dev_type != DPAA2_ETH &&
-			    dev->dev_type != DPAA2_CRYPTO &&
-			    dev->dev_type != DPAA2_QDMA)
-				continue;
-			ret = fslmc_vfio_dev_setup(dev);
-			if (ret) {
-				DPAA2_BUS_ERR("Dev (%s) VFIO setup failed", dev->device.name);
-				return 0;
-			}
-		}
 	}
 
 	process_once = 1;
@@ -535,7 +505,6 @@ scan_fail_cleanup:
 	/* Remove all devices in the list */
 	RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
 		rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
-		rte_intr_instance_free(dev->intr_handle);
 		free(dev);
 	}
 scan_fail:
@@ -566,7 +535,9 @@ fslmc_bus_unplug_device(struct rte_device *rte_dev)
 		int ret = drv->remove(dev);
 		if (ret != 0)
 			return ret;
-		/* FIXME: unplug_device should free intr_handle */
+		fslmc_vfio_dev_close(dev);
+		rte_intr_instance_free(dev->intr_handle);
+		dev->intr_handle = NULL;
 		DPAA2_BUS_INFO("%s Un-Plugged",  dev->device.name);
 		return 0;
 	}
@@ -587,9 +558,6 @@ rte_fslmc_close(struct rte_bus *bus)
 			continue;
 		if (rte_dev_is_probed(&dev->device) && fslmc_bus_unplug_device(&dev->device))
 			DPAA2_BUS_ERR("Unable to remove %s", dev->device.name);
-		fslmc_vfio_dev_close(dev);
-		rte_intr_instance_free(dev->intr_handle);
-		dev->intr_handle = NULL;
 	}
 
 	ret = fslmc_vfio_close_group();
@@ -665,10 +633,28 @@ fslmc_bus_probe_device(struct rte_driver *driver, struct rte_device *rte_dev)
 	struct rte_dpaa2_driver *drv = RTE_BUS_DRIVER(driver, *drv);
 	int ret = 0;
 
-	/* FIXME: probe_device should allocate intr_handle */
+	/* Allocate interrupt instance */
+	dev->intr_handle =
+		rte_intr_instance_alloc(RTE_INTR_INSTANCE_F_PRIVATE);
+	if (dev->intr_handle == NULL) {
+		DPAA2_BUS_ERR("Failed to allocate intr handle");
+		return -ENOMEM;
+	}
+	rte_intr_fd_set(dev->intr_handle, -1);
+
+	ret = fslmc_vfio_dev_setup(dev);
+	if (ret) {
+		DPAA2_BUS_ERR("Dev (%s) VFIO setup failed", dev->device.name);
+		goto release_intr;
+	}
+
 	ret = drv->probe(drv, dev);
 	if (ret != 0) {
 		DPAA2_BUS_ERR("Unable to probe");
+		fslmc_vfio_dev_close(dev);
+release_intr:
+		rte_intr_instance_free(dev->intr_handle);
+		dev->intr_handle = NULL;
 	} else {
 		DPAA2_BUS_INFO("%s Plugged",  dev->device.name);
 	}
