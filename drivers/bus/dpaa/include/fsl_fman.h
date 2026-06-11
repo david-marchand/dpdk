@@ -8,6 +8,7 @@
 #define __FSL_FMAN_H
 
 #include <rte_compat.h>
+#include <rte_ethdev.h>
 
 /* Status field in FD is updated on Rx side by FMAN with following information.
  * Refer to field description in FM BG.

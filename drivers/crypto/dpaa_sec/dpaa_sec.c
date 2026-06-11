@@ -16,6 +16,7 @@
 #include <cryptodev_pmd.h>
 #include <rte_crypto.h>
 #include <rte_cryptodev.h>
+#include <rte_devargs.h>
 #include <rte_security_driver.h>
 #include <rte_cycles.h>
 #include <dev_driver.h>

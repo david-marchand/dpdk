@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <rte_ethdev.h>
 
 #include "process.h"
 

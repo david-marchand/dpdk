@@ -4,6 +4,7 @@
 
 #include <bus_dpaa_driver.h>
 #include <rte_dmadev_pmd.h>
+#include <rte_devargs.h>
 #include <rte_kvargs.h>
 
 #include "dpaa_qdma.h"

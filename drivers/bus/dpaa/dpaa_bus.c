@@ -28,7 +28,6 @@
 #include <rte_eal.h>
 #include <rte_alarm.h>
 #include <rte_ether.h>
-#include <ethdev_driver.h>
 #include <rte_malloc.h>
 #include <rte_ring.h>
 #include <bus_driver.h>
@@ -225,15 +224,14 @@ dpaa_create_device_list(void)
 		dev->id.dev_id = i;
 
 		/* Create device name */
-		memset(dev->name, 0, RTE_ETH_NAME_MAX_LEN);
 		if (fman_intf->mac_type == fman_offline_internal) {
-			snprintf(dev->name, RTE_ETH_NAME_MAX_LEN, "fm%d-oh%d",
+			snprintf(dev->name, RTE_DIM(dev->name), "fm%d-oh%d",
 				(fman_intf->fman->idx + 1), fman_intf->mac_idx);
 		} else if (fman_intf->mac_type == fman_onic) {
-			snprintf(dev->name, RTE_ETH_NAME_MAX_LEN, "fm%d-onic%d",
+			snprintf(dev->name, RTE_DIM(dev->name), "fm%d-onic%d",
 				(fman_intf->fman->idx + 1), fman_intf->mac_idx);
 		} else {
-			snprintf(dev->name, RTE_ETH_NAME_MAX_LEN, "fm%d-mac%d",
+			snprintf(dev->name, RTE_DIM(dev->name), "fm%d-mac%d",
 				(fman_intf->fman->idx + 1), fman_intf->mac_idx);
 		}
 		dev->device.name = dev->name;
@@ -269,11 +267,6 @@ dpaa_create_device_list(void)
 		dev->device_type = FSL_DPAA_CRYPTO;
 		dev->id.dev_id = dpaa_bus.device_count + i;
 
-		/* Even though RTE_CRYPTODEV_NAME_MAX_LEN is valid length of
-		 * crypto PMD, using RTE_ETH_NAME_MAX_LEN as that is the size
-		 * allocated for dev->name/
-		 */
-		memset(dev->name, 0, RTE_ETH_NAME_MAX_LEN);
 		sprintf(dev->name, "dpaa_sec-%d", i+1);
 		DPAA_BUS_LOG(INFO, "%s cryptodev added", dev->name);
 		dev->device.name = dev->name;
@@ -299,7 +292,6 @@ qdma_dpaa:
 		dev->device_type = FSL_DPAA_QDMA;
 		dev->id.dev_id = dpaa_bus.device_count + i;
 
-		memset(dev->name, 0, RTE_ETH_NAME_MAX_LEN);
 		sprintf(dev->name, "dpaa_qdma-%d", i+1);
 		DPAA_BUS_LOG(INFO, "%s qdma device added", dev->name);
 		dev->device.name = dev->name;

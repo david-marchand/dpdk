@@ -12,7 +12,6 @@
 #include <stdbool.h>
 #include <net/if.h>
 
-#include <ethdev_driver.h>
 #include <rte_ether.h>
 
 #include <compat.h>

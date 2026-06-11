@@ -83,7 +83,7 @@ struct rte_dpaa_device {
 	struct dpaa_device_id id;
 	struct rte_intr_handle *intr_handle;
 	enum rte_dpaa_type device_type; /**< Ethernet or crypto type device */
-	char name[RTE_ETH_NAME_MAX_LEN];
+	char name[RTE_DEV_NAME_MAX_LEN];
 };
 
 typedef int (*rte_dpaa_probe_t)(struct rte_dpaa_driver *dpaa_drv,
