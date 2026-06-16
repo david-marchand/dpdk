@@ -396,6 +396,17 @@ static void dpaa2_portal_finish(void *arg)
 }
 
 static void
+dpaa2_close_intr(struct rte_intr_handle *intr_handle)
+{
+	int fd = rte_intr_fd_get(intr_handle);
+
+	if (fd >= 0) {
+		close(fd);
+		rte_intr_fd_set(intr_handle, -1);
+	}
+}
+
+static void
 dpaa2_close_dpio_device(int object_id)
 {
 	struct dpaa2_dpio_dev *dpio_dev = NULL;
@@ -411,6 +422,8 @@ dpaa2_close_dpio_device(int object_id)
 			rte_free(dpio_dev->dpio);
 		}
 		TAILQ_REMOVE(&dpio_dev_list, dpio_dev, next);
+		dpaa2_close_intr(dpio_dev->intr_handle);
+		rte_intr_instance_free(dpio_dev->intr_handle);
 		rte_free(dpio_dev);
 	}
 }
@@ -452,6 +465,7 @@ dpaa2_create_dpio_device(int vdev_fd,
 		DPAA2_BUS_ERR("Failed to allocate intr handle");
 		goto err;
 	}
+	rte_intr_fd_set(dpio_dev->intr_handle, -1);
 
 	dpio_dev->dpio = rte_zmalloc(NULL, sizeof(struct fsl_mc_io),
 				     RTE_CACHE_LINE_SIZE);
@@ -603,6 +617,7 @@ err:
 		rte_free(dpio_dev->dpio);
 	}
 
+	dpaa2_close_intr(dpio_dev->intr_handle);
 	rte_intr_instance_free(dpio_dev->intr_handle);
 	rte_free(dpio_dev);
 
@@ -615,6 +630,7 @@ err:
 				dpio_dev->token);
 			rte_free(dpio_dev->dpio);
 		}
+		dpaa2_close_intr(dpio_dev->intr_handle);
 		rte_intr_instance_free(dpio_dev->intr_handle);
 		rte_free(dpio_dev);
 	}

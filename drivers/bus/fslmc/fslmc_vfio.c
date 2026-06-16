@@ -1493,6 +1493,12 @@ fslmc_vfio_dev_close(struct rte_dpaa2_device *dev)
 	int vfio_group_fd;
 	int ret;
 	const char *group_name = fslmc_vfio_get_group_name();
+	int fd = rte_intr_fd_get(dev->intr_handle);
+
+	if (fd >= 0) {
+		close(fd);
+		rte_intr_fd_set(dev->intr_handle, -1);
+	}
 
 	vfio_group_fd = fslmc_vfio_group_fd_by_name(group_name);
 	if (vfio_group_fd <= 0) {

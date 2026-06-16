@@ -138,6 +138,7 @@ scan_one_fslmc_device(char *dev_name)
 		ret = -ENOMEM;
 		goto cleanup;
 	}
+	rte_intr_fd_set(dev->intr_handle, -1);
 
 	/* Parse the device name and ID */
 	t_ptr = strtok(dup_dev_name, ".");
@@ -587,6 +588,8 @@ rte_fslmc_close(struct rte_bus *bus)
 		if (rte_dev_is_probed(&dev->device) && fslmc_bus_unplug_device(&dev->device))
 			DPAA2_BUS_ERR("Unable to remove %s", dev->device.name);
 		fslmc_vfio_dev_close(dev);
+		rte_intr_instance_free(dev->intr_handle);
+		dev->intr_handle = NULL;
 	}
 
 	ret = fslmc_vfio_close_group();

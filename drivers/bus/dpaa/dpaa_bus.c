@@ -224,6 +224,7 @@ dpaa_create_device_list(void)
 			free(dev);
 			goto cleanup;
 		}
+		rte_intr_fd_set(dev->intr_handle, -1);
 
 		cfg = &dpaa_netcfg->port_cfg[i];
 		fman_intf = cfg->fman_if;
@@ -657,6 +658,17 @@ static int rte_dpaa_setup_intr(struct rte_intr_handle *intr_handle)
 	return 0;
 }
 
+static void
+dpaa_close_intr(struct rte_intr_handle *intr_handle)
+{
+	int fd = rte_intr_fd_get(intr_handle);
+
+	if (fd >= 0) {
+		close(fd);
+		rte_intr_fd_set(intr_handle, -1);
+	}
+}
+
 #define DPAA_DEV_PATH1 "/sys/devices/platform/soc/soc:fsl,dpaa"
 #define DPAA_DEV_PATH2 "/sys/devices/platform/fsl,dpaa"
 
@@ -815,6 +827,9 @@ dpaa_bus_cleanup(struct rte_bus *bus)
 			rte_errno = errno;
 			return -1;
 		}
+		dpaa_close_intr(dev->intr_handle);
+		rte_intr_instance_free(dev->intr_handle);
+		dev->intr_handle = NULL;
 		dev->device.driver = NULL;
 	}
 	dpaa_portal_finish((void *)DPAA_PER_LCORE_PORTAL);
