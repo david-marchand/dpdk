@@ -290,6 +290,119 @@ fslmc_dev_compare(const char *name1, const char *name2)
 }
 
 static int
+fslmc_filter_devices(void)
+{
+	bool is_dpmcp_in_blocklist = false, is_dpio_in_blocklist = false;
+	int dpmcp_count = 0, dpio_count = 0;
+	struct rte_dpaa2_device *dev;
+
+	/* For secondary, remove control objects not needed */
+	if (rte_eal_process_type() == RTE_PROC_SECONDARY) {
+		RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
+			switch (dev->dev_type) {
+			case DPAA2_ETH:
+			case DPAA2_CRYPTO:
+			case DPAA2_QDMA:
+			case DPAA2_IO:
+			case DPAA2_MPORTAL:
+			case DPAA2_DPRC:
+				break;
+			default:
+				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
+				rte_intr_instance_free(dev->intr_handle);
+				free(dev);
+				break;
+			}
+		}
+	}
+
+	/* Remove blocklisted devices, track MPORTAL/DPIO blocklists */
+	RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
+		if (rte_bus_device_is_ignored(&rte_fslmc_bus, dev)) {
+			DPAA2_BUS_LOG(DEBUG, "%s Blocked, skipping",
+				dev->device.name);
+			if (dev->dev_type == DPAA2_MPORTAL)
+				is_dpmcp_in_blocklist = true;
+			else if (dev->dev_type == DPAA2_IO)
+				is_dpio_in_blocklist = true;
+			rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
+			rte_intr_instance_free(dev->intr_handle);
+			free(dev);
+			continue;
+		}
+		if (dev->dev_type == DPAA2_MPORTAL)
+			dpmcp_count++;
+		else if (dev->dev_type == DPAA2_IO)
+			dpio_count++;
+	}
+
+	if (dpmcp_count == 0) {
+		DPAA2_BUS_ERR("No MC Portal device found");
+		return -ENODEV;
+	}
+
+	/* Automatic MPORTAL split: primary keeps first, secondary keeps last */
+	if (!is_dpmcp_in_blocklist) {
+		int current_device = 0;
+		int keep_index;
+
+		/* Check MPORTAL availability for secondary */
+		if (rte_eal_process_type() == RTE_PROC_SECONDARY && dpmcp_count < 2) {
+			DPAA2_BUS_ERR("No MC Portal device found for secondary");
+			return -ENODEV;
+		}
+
+		if (rte_eal_process_type() == RTE_PROC_PRIMARY)
+			keep_index = 0;
+		else
+			keep_index = dpmcp_count - 1;
+
+		RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
+			if (dev->dev_type != DPAA2_MPORTAL)
+				continue;
+			if (current_device != keep_index) {
+				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
+				rte_intr_instance_free(dev->intr_handle);
+				free(dev);
+			}
+
+			current_device++;
+			if (current_device == dpmcp_count)
+				break;
+		}
+	}
+
+	/* Automatic DPIO split: secondary keeps last only, primary removes last */
+	if (!is_dpio_in_blocklist) {
+		int last_index = dpio_count - 1;
+		int current_device = 0;
+
+		RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
+			if (dev->dev_type != DPAA2_IO)
+				continue;
+
+			if (rte_eal_process_type() == RTE_PROC_SECONDARY &&
+					current_device != last_index) {
+				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
+				rte_intr_instance_free(dev->intr_handle);
+				free(dev);
+			} else if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
+					current_device == last_index) {
+				rte_bus_remove_device(&rte_fslmc_bus, &dev->device);
+				rte_intr_instance_free(dev->intr_handle);
+				free(dev);
+			}
+
+			current_device++;
+			if (current_device == dpio_count)
+				break;
+		}
+	}
+
+	return 0;
+}
+
+static int
 rte_fslmc_scan(void)
 {
 	struct rte_dpaa2_device *dev;
@@ -387,6 +500,10 @@ rte_fslmc_scan(void)
 				return 0;
 			}
 		}
+
+		ret = fslmc_filter_devices();
+		if (ret)
+			return 0;
 
 		ret = fslmc_vfio_process_group();
 		if (ret) {
