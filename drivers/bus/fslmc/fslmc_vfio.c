@@ -1392,7 +1392,6 @@ fslmc_close_iodevices(struct rte_dpaa2_device *dev,
 	int vfio_fd)
 {
 	struct rte_dpaa2_object *object = NULL;
-	const struct rte_dpaa2_driver *drv;
 	int ret;
 
 	switch (dev->dev_type) {
@@ -1406,15 +1405,6 @@ fslmc_close_iodevices(struct rte_dpaa2_device *dev,
 				object->close(dev->object_id);
 			else
 				continue;
-		}
-		break;
-	case DPAA2_ETH:
-	case DPAA2_CRYPTO:
-	case DPAA2_QDMA:
-		if (dev->device.driver != NULL) {
-			drv = RTE_BUS_DRIVER(dev->device.driver, *drv);
-			if (drv->remove && drv->remove(dev))
-				DPAA2_BUS_ERR("Unable to remove");
 		}
 		break;
 	default:
@@ -1431,8 +1421,7 @@ fslmc_close_iodevices(struct rte_dpaa2_device *dev,
 }
 
 /*
- * fslmc_process_iodevices for processing only IO (ETH, CRYPTO, and possibly
- * EVENT) devices.
+ * fslmc_process_iodevices for processing only IO devices.
  */
 static int
 fslmc_process_iodevices(struct rte_dpaa2_device *dev)
@@ -1447,12 +1436,6 @@ fslmc_process_iodevices(struct rte_dpaa2_device *dev)
 		return ret;
 
 	switch (dev->dev_type) {
-	case DPAA2_ETH:
-		ret = rte_dpaa2_vfio_setup_intr(dev->intr_handle, dev_fd,
-				device_info.num_irqs);
-		if (ret)
-			return ret;
-		break;
 	case DPAA2_CON:
 	case DPAA2_IO:
 	case DPAA2_CI:
@@ -1474,6 +1457,58 @@ fslmc_process_iodevices(struct rte_dpaa2_device *dev)
 	DPAA2_BUS_LOG(DEBUG, "Device (%s) abstracted from VFIO",
 		      dev->device.name);
 	return 0;
+}
+
+int
+fslmc_vfio_dev_setup(struct rte_dpaa2_device *dev)
+{
+	int dev_fd = -1;
+	int ret;
+	struct vfio_device_info device_info = { .argsz = sizeof(device_info) };
+
+	ret = fslmc_vfio_setup_device(dev->device.name, &dev_fd, &device_info);
+	if (ret) {
+		DPAA2_BUS_ERR("VFIO setup failed for %s: %d",
+			      dev->device.name, ret);
+		return ret;
+	}
+
+	if (dev->dev_type == DPAA2_ETH) {
+		ret = rte_dpaa2_vfio_setup_intr(dev->intr_handle, dev_fd,
+						device_info.num_irqs);
+		if (ret) {
+			DPAA2_BUS_ERR("Interrupt setup failed for %s: %d",
+				      dev->device.name, ret);
+			return ret;
+		}
+	}
+
+	DPAA2_BUS_DEBUG("Device (%s) VFIO setup completed", dev->device.name);
+	return 0;
+}
+
+int
+fslmc_vfio_dev_close(struct rte_dpaa2_device *dev)
+{
+	int vfio_group_fd;
+	int ret;
+	const char *group_name = fslmc_vfio_get_group_name();
+
+	vfio_group_fd = fslmc_vfio_group_fd_by_name(group_name);
+	if (vfio_group_fd <= 0) {
+		DPAA2_BUS_ERR("Get fd by name(%s) failed(%d)",
+			      group_name, vfio_group_fd);
+		if (vfio_group_fd < 0)
+			return vfio_group_fd;
+		return -EIO;
+	}
+
+	ret = fslmc_vfio_group_remove_dev(vfio_group_fd, dev->device.name);
+	if (ret)
+		DPAA2_BUS_ERR("Failed to remove %s from vfio", dev->device.name);
+
+	DPAA2_BUS_DEBUG("Device (%s) closed", dev->device.name);
+	return ret;
 }
 
 static int
@@ -1559,6 +1594,8 @@ fslmc_vfio_close_group(void)
 		case DPAA2_ETH:
 		case DPAA2_CRYPTO:
 		case DPAA2_QDMA:
+			/* ethdev, cryptodev, dmadev are handled at the bus level */
+			break;
 		case DPAA2_IO:
 		case DPAA2_CON:
 		case DPAA2_CI:
@@ -1621,6 +1658,8 @@ fslmc_vfio_process_group(void)
 		case DPAA2_ETH:
 		case DPAA2_CRYPTO:
 		case DPAA2_QDMA:
+			/* ethdev, cryptodev, dmadev are handled at the bus level */
+			break;
 		case DPAA2_CON:
 		case DPAA2_CI:
 		case DPAA2_BPOOL:

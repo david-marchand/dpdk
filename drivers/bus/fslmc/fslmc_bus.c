@@ -510,6 +510,18 @@ rte_fslmc_scan(void)
 			DPAA2_BUS_ERR("Unable to setup devices %d", ret);
 			return 0;
 		}
+
+		RTE_BUS_FOREACH_DEV(dev, &rte_fslmc_bus) {
+			if (dev->dev_type != DPAA2_ETH &&
+			    dev->dev_type != DPAA2_CRYPTO &&
+			    dev->dev_type != DPAA2_QDMA)
+				continue;
+			ret = fslmc_vfio_dev_setup(dev);
+			if (ret) {
+				DPAA2_BUS_ERR("Dev (%s) VFIO setup failed", dev->device.name);
+				return 0;
+			}
+		}
 	}
 
 	process_once = 1;
@@ -544,9 +556,38 @@ fslmc_bus_match(const struct rte_driver *drv, const struct rte_device *dev)
 }
 
 static int
-rte_fslmc_close(struct rte_bus *bus __rte_unused)
+fslmc_bus_unplug_device(struct rte_device *rte_dev)
 {
+	struct rte_dpaa2_device *dev = RTE_BUS_DEVICE(rte_dev, *dev);
+	const struct rte_dpaa2_driver *drv = RTE_BUS_DRIVER(rte_dev->driver, *drv);
+
+	if (drv->remove != NULL) {
+		int ret = drv->remove(dev);
+		if (ret != 0)
+			return ret;
+		/* FIXME: unplug_device should free intr_handle */
+		DPAA2_BUS_INFO("%s Un-Plugged",  dev->device.name);
+		return 0;
+	}
+
+	return -ENODEV;
+}
+
+static int
+rte_fslmc_close(struct rte_bus *bus)
+{
+	struct rte_dpaa2_device *dev;
 	int ret = 0;
+
+	RTE_BUS_FOREACH_DEV(dev, bus) {
+		if (dev->dev_type != DPAA2_ETH &&
+		    dev->dev_type != DPAA2_CRYPTO &&
+		    dev->dev_type != DPAA2_QDMA)
+			continue;
+		if (rte_dev_is_probed(&dev->device) && fslmc_bus_unplug_device(&dev->device))
+			DPAA2_BUS_ERR("Unable to remove %s", dev->device.name);
+		fslmc_vfio_dev_close(dev);
+	}
 
 	ret = fslmc_vfio_close_group();
 	if (ret)
@@ -630,24 +671,6 @@ fslmc_bus_probe_device(struct rte_driver *driver, struct rte_device *rte_dev)
 	}
 
 	return ret;
-}
-
-static int
-fslmc_bus_unplug_device(struct rte_device *rte_dev)
-{
-	struct rte_dpaa2_device *dev = RTE_BUS_DEVICE(rte_dev, *dev);
-	const struct rte_dpaa2_driver *drv = RTE_BUS_DRIVER(rte_dev->driver, *drv);
-
-	if (drv->remove != NULL) {
-		int ret = drv->remove(dev);
-		if (ret != 0)
-			return ret;
-		/* FIXME: unplug_device should free intr_handle */
-		DPAA2_BUS_INFO("%s Un-Plugged",  dev->device.name);
-		return 0;
-	}
-
-	return -ENODEV;
 }
 
 struct rte_bus rte_fslmc_bus = {
