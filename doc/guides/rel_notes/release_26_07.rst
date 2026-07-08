@@ -160,6 +160,8 @@ New Features
 * **Updated NVIDIA mlx5 ethernet driver.**
 
   * Added support for selective Rx in scalar SPRQ Rx path.
+  * Increased the maximum number of secondary unicast MAC addresses from 128 to up to 4096
+    (depending on devlink configuration on the associated kernel netdevice).
 
 * **Updated NXP dpaa2 driver.**
 
