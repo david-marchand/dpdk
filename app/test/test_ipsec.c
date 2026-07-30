@@ -119,7 +119,7 @@ static const struct ipsec_test_cfg test_cfg[] = {
 };
 
 static const int num_cfg = RTE_DIM(test_cfg);
-static struct ipsec_testsuite_params testsuite_params = { NULL };
+static struct ipsec_testsuite_params testsuite_params = { 0 };
 static struct ipsec_unitest_params unittest_params;
 static struct user_params uparams;
 

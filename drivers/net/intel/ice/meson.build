@@ -45,4 +45,6 @@ sources += files(
         'ice_dcf_sched.c',
 )
 
+cflags += no_missing_field_init_cflag
+
 require_iova_in_mbuf = false

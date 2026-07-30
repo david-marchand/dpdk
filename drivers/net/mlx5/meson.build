@@ -74,6 +74,9 @@ else
     sources += files('mlx5_rxtx_vec_null.c')
 endif
 
+cflags += no_missing_field_init_cflag
+cflags += no_shadow_cflag
+
 cflags_options = [
         '-std=c11',
         '-Wno-strict-prototypes',
@@ -91,7 +94,6 @@ if get_option('buildtype').contains('debug')
 else
     cflags += [ '-UPEDANTIC' ]
 endif
-cflags += no_shadow_cflag
 
 require_iova_in_mbuf = false
 

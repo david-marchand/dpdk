@@ -506,7 +506,7 @@ rte_cryptodev_asym_get_xform_string(enum rte_crypto_asym_xform_type xform_enum);
 
 /** Macro used at end of crypto PMD list */
 #define RTE_CRYPTODEV_END_OF_CAPABILITIES_LIST() \
-	{ RTE_CRYPTO_OP_TYPE_UNDEFINED }
+	{ 0 }
 
 
 /**

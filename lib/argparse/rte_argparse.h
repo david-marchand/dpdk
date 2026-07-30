@@ -178,7 +178,7 @@ struct rte_argparse {
 	struct rte_argparse_arg args[];
 };
 
-#define ARGPARSE_ARG_END() { NULL }
+#define ARGPARSE_ARG_END() { 0 }
 
 /**
  * @warning

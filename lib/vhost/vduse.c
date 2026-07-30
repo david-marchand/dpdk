@@ -678,7 +678,7 @@ vduse_device_create(const char *path, bool compliant_ol_flags, bool extbuf, bool
 	int control_fd, dev_fd, vid, ret;
 	uint32_t i, max_queue_pairs, total_queues;
 	struct virtio_net *dev;
-	struct virtio_net_config vnet_config = {{ 0 }};
+	struct virtio_net_config vnet_config = {0};
 	uint64_t ver = VHOST_VDUSE_API_VERSION;
 	uint64_t features;
 	const char *name = path + strlen("/dev/vduse/");

@@ -22,4 +22,6 @@ sources = files(
         'elink.c',
 )
 
+cflags += no_missing_field_init_cflag
+
 annotate_locks = false

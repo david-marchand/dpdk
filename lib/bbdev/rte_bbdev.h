@@ -362,7 +362,7 @@ struct rte_bbdev_driver_info {
 
 /** Macro used at end of bbdev PMD list */
 #define RTE_BBDEV_END_OF_CAPABILITIES_LIST() \
-	{ RTE_BBDEV_OP_NONE }
+	{ 0 }
 
 /**
  * Device information structure used by an application to discover a devices

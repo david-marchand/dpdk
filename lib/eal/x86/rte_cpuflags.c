@@ -29,7 +29,7 @@ struct feature_entry {
 };
 
 #define FEAT_DEF(name, leaf, subleaf, reg, bit) \
-	[RTE_CPUFLAG_##name] = {leaf, subleaf, reg, bit, #name },
+	[RTE_CPUFLAG_##name] = {leaf, subleaf, reg, bit, #name, false, false },
 
 struct feature_entry rte_cpu_feature_table[] = {
 	FEAT_DEF(SSE3, 0x00000001, 0, RTE_REG_ECX,  0)

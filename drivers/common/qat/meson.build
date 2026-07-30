@@ -127,8 +127,9 @@ if qat_compress
     endforeach
 endif
 
-cflags += no_wvla_cflag
+cflags += no_missing_field_init_cflag
 cflags += no_shadow_cflag
+cflags += no_wvla_cflag
 
 if qat_crypto
     foreach f: ['qat_sym.c', 'qat_sym_session.c',

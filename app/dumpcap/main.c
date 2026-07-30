@@ -354,7 +354,7 @@ static void parse_opts(int argc, char **argv)
 		{ "snapshot-length", required_argument, NULL, 's' },
 		{ "temp-dir",        required_argument, NULL, 0 },
 		{ "version",         no_argument,       NULL, 'v' },
-		{ NULL },
+		{ 0 },
 	};
 	int option_index, c;
 	struct interface *last_intf = NULL;

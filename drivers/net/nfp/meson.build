@@ -47,8 +47,6 @@ sources = files(
         'nfp_service.c',
 )
 
-cflags += no_wvla_cflag
-
 if arch_subdir == 'x86'
         includes += include_directories('../../common/nfp')
 
@@ -63,5 +61,8 @@ else
                 'nfdk/nfp_nfdk_vec_stub.c',
         )
 endif
+
+cflags += no_missing_field_init_cflag
+cflags += no_wvla_cflag
 
 deps += ['hash', 'security', 'common_nfp']

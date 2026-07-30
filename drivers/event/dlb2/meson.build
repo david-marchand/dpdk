@@ -29,6 +29,7 @@ headers = files('rte_pmd_dlb2.h')
 
 deps += ['mbuf', 'mempool', 'ring', 'pci', 'bus_pci']
 
+cflags += no_missing_field_init_cflag
 cflags += no_shadow_cflag
 
 dlb_pmd_defines = ['-DDLB2_BYPASS_FENCE_ON_PP', '-DDLB_HW_CREDITS_CHECKS', '-DDLB_SW_CREDITS_CHECKS', '-DDLB_TYPE_CHECK']

@@ -37,6 +37,7 @@ require_iova_in_mbuf = false
 
 deps += ['hash']
 
+cflags += no_missing_field_init_cflag
 cflags += no_wvla_cflag
 
 if arch_subdir == 'arm' and dpdk_conf.get('RTE_ARCH_64')

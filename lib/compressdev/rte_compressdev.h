@@ -46,7 +46,7 @@ struct rte_compressdev_capabilities {
 
 /** Macro used at end of comp PMD list */
 #define RTE_COMP_END_OF_CAPABILITIES_LIST() \
-	{ RTE_COMP_ALGO_UNSPECIFIED }
+	{ 0 }
 
 const struct rte_compressdev_capabilities *
 rte_compressdev_capability_get(uint8_t dev_id,

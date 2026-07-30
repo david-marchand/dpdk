@@ -330,13 +330,15 @@ test_ip_frag(void)
 		bool opt_copied;
 	} tests[] = {
 		 {4, 1280, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,       2,
-		  {0x2000, 0x009D}, false},
+		  {0x2000, 0x009D}, false, false, false},
 		 {4, 1280, 1400, 0, 0, 0, 64, IPPROTO_ICMP, 0,            2,
-		  {0x2000, 0x009D}, false},
+		  {0x2000, 0x009D}, false, false, false},
 		 {4,  600, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,       3,
-		  {0x2000, 0x2048, 0x0090}, false},
-		 {4, 4, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,    -EINVAL},
-		 {4, 600, 1400, 1, 0, 0, 64, IPPROTO_ICMP, RND_ID, -ENOTSUP},
+		  {0x2000, 0x2048, 0x0090}, false, false, false},
+		 {4, 4, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,    -EINVAL,
+		  {0}, false, false, false},
+		 {4, 600, 1400, 1, 0, 0, 64, IPPROTO_ICMP, RND_ID, -ENOTSUP,
+		  {0}, false, false, false},
 		 {4, 600, 1400, 0, 0, 0, 0, IPPROTO_ICMP, RND_ID,         3,
 		  {0x2000, 0x2046, 0x008C}, true, true, true},
 		 /* The first fragment */
@@ -358,12 +360,13 @@ test_ip_frag(void)
 		 {4, 68, 104, 0, 0, 26, 0, IPPROTO_ICMP, RND_ID,          3,
 		  {0x201A, 0x2020, 0x0026}, true, false, false},
 		 {6, 1280, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,       2,
-		  {0x0001, 0x04D0}, false},
+		  {0x0001, 0x04D0}, false, false, false},
 		 {6, 1300, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,       2,
-		  {0x0001, 0x04E0}, false},
-		 {6, 4, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,    -EINVAL},
+		  {0x0001, 0x04E0}, false, false, false},
+		 {6, 4, 1400, 0, 0, 0, 64, IPPROTO_ICMP, RND_ID,    -EINVAL,
+		  {0}, false, false, false},
 		 {6, 1300, 1400, 0, 0, 0, 0, IPPROTO_ICMP, RND_ID,        2,
-		  {0x0001, 0x04E0}, false},
+		  {0x0001, 0x04E0}, false, false, false},
 	};
 
 	for (i = 0; i < RTE_DIM(tests); i++) {

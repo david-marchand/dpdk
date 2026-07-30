@@ -34,3 +34,5 @@ elif arch_subdir == 'arm' and dpdk_conf.get('RTE_ARCH_64')
 endif
 
 headers = files('rte_pmd_iavf.h')
+
+cflags += no_missing_field_init_cflag

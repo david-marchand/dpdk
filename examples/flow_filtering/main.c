@@ -288,11 +288,11 @@ flow_filtering_parse_args(int argc, char **argv)
 		.args = {
 			{ "--template", NULL, "Enable template API flow",
 			  &use_template_api, (void *)1,
-			  RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_INT,
+			  RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_INT, 0,
 			},
 			{ "--non-template", NULL, "Enable non template API flow",
 			  &use_template_api, (void *)0,
-			  RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_INT,
+			  RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_INT, 0,
 			},
 			ARGPARSE_ARG_END(),
 		},

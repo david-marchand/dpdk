@@ -19,9 +19,7 @@ gen_c_files = generator(gen_c_file_for_header,
         arguments: ['@INPUT@', '@OUTPUT@'])
 
 cflags = machine_args
-if cc.has_argument('-Wno-missing-field-initializers')
-    cflags += '-Wno-missing-field-initializers'
-endif
+cflags += no_missing_field_init_cflag
 cflags += no_wvla_cflag
 
 sources = files('main.c')

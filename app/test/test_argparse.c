@@ -81,9 +81,9 @@ test_argparse_callback(uint32_t index, const char *value, void *opaque)
 	.callback = test_argparse_callback, \
 	.args = { \
 		{ "--abc", "-a", "abc argument", (void *)1, (void *)1, \
-			RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_NONE }, \
+			RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_NONE, 0 }, \
 		{ "--xyz", "-x", "xyz argument", (void *)1, (void *)2, \
-			RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_NONE }, \
+			RTE_ARGPARSE_VALUE_NONE, RTE_ARGPARSE_VALUE_TYPE_NONE, 0 }, \
 		ARGPARSE_ARG_END(), \
 	}, \
 }

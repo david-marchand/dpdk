@@ -432,7 +432,7 @@ mock_capabilities_get(void *device)
  *
  * is an empty security operations set (all function pointers set to NULL)
  */
-struct rte_security_ops empty_ops = { NULL };
+struct rte_security_ops empty_ops = { 0 };
 
 /**
  * mock_ops

@@ -16,3 +16,5 @@ sources += files(
 if arch_subdir == 'x86'
     sources += files('fm10k_rxtx_vec.c')
 endif
+
+cflags += no_missing_field_init_cflag

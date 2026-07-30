@@ -180,7 +180,7 @@ static int
 cryptodev_fips_validate_app_init(void)
 {
 	struct rte_cryptodev_config conf = {rte_socket_id(), 1, 0};
-	struct rte_cryptodev_qp_conf qp_conf = {128, NULL};
+	struct rte_cryptodev_qp_conf qp_conf = { .nb_descriptors = 128 };
 	uint32_t nb_mbufs = UINT16_MAX / env.mbuf_data_room + 1;
 	int ret;
 

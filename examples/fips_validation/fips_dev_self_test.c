@@ -1527,7 +1527,7 @@ fips_dev_auto_test_uninit(uint8_t dev_id,
 static int
 fips_dev_auto_test_init(uint8_t dev_id, struct fips_dev_auto_test_env *env)
 {
-	struct rte_cryptodev_qp_conf qp_conf = {128, NULL};
+	struct rte_cryptodev_qp_conf qp_conf = { .nb_descriptors = 128 };
 	uint32_t sess_sz = rte_cryptodev_sym_get_private_session_size(dev_id);
 	struct rte_cryptodev_config conf;
 	char name[128];

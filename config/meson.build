@@ -337,7 +337,6 @@ global_cflags = [
 
         # globally disabled warnings
         '-Wno-packed-not-aligned',
-        '-Wno-missing-field-initializers',
 
         # guarantee that all non-initialized parts of structure/union are zero
         '-fzero-init-padding-bits=all',
@@ -371,6 +370,11 @@ endif
 no_comma_cflag = []
 if cc.has_argument('-Wno-comma')
     no_comma_cflag = '-Wno-comma'
+endif
+
+no_missing_field_init_cflag = []
+if cc.has_argument('-Wno-missing-field-initializers')
+    no_missing_field_init_cflag = '-Wno-missing-field-initializers'
 endif
 
 foreach arg: global_cflags

@@ -199,7 +199,7 @@ post_process_raw_dp_op(void *user_data,	uint32_t index __rte_unused,
 			RTE_CRYPTO_OP_STATUS_ERROR;
 }
 
-static struct crypto_testsuite_params testsuite_params = { NULL };
+static struct crypto_testsuite_params testsuite_params = { 0 };
 struct crypto_testsuite_params *p_testsuite_params = &testsuite_params;
 static struct crypto_unittest_params unittest_params;
 static bool enq_cb_called;

@@ -14,8 +14,9 @@ sources = files(
         'base/ena_eth_com.c',
 )
 
+cflags += no_missing_field_init_cflag
+cflags += no_shadow_cflag
+
 deps += ['timer']
 
 includes += include_directories('base', 'base/ena_defs')
-
-cflags += no_shadow_cflag

@@ -12,10 +12,12 @@ if dpdk_conf.get('RTE_IOVA_IN_MBUF') == 0
     subdir_done()
 endif
 
-cflags += no_wvla_cflag
-cflags += no_shadow_cflag
-
 headers = files('rte_pmd_bnxt.h')
+
+cflags += no_missing_field_init_cflag
+cflags += no_shadow_cflag
+cflags += no_wvla_cflag
+
 cflags_options = [
         '-DSUPPORT_CFA_HW_P70=1',
 ]
