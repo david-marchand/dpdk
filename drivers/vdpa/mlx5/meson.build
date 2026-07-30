@@ -23,8 +23,9 @@ sources = files(
         'mlx5_vdpa_cthread.c',
 )
 
-cflags += no_wvla_cflag
+cflags += no_packed_not_aligned_cflag
 cflags += no_shadow_cflag
+cflags += no_wvla_cflag
 
 cflags_options = [
         '-std=c11',

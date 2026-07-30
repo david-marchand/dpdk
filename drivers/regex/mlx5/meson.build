@@ -20,6 +20,9 @@ sources = files(
         'mlx5_regex_control.c',
         'mlx5_regex_fastpath.c',
 )
+
+cflags += no_packed_not_aligned_cflag
+
 cflags_options = [
         '-std=c11',
         '-Wno-strict-prototypes',

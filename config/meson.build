@@ -335,9 +335,6 @@ global_cflags = [
         '-Wundef',
         '-Wwrite-strings',
 
-        # globally disabled warnings
-        '-Wno-packed-not-aligned',
-
         # guarantee that all non-initialized parts of structure/union are zero
         '-fzero-init-padding-bits=all',
 ]
@@ -375,6 +372,11 @@ endif
 no_missing_field_init_cflag = []
 if cc.has_argument('-Wno-missing-field-initializers')
     no_missing_field_init_cflag = '-Wno-missing-field-initializers'
+endif
+
+no_packed_not_aligned_cflag = []
+if cc.has_argument('-Wno-packed-not-aligned')
+    no_packed_not_aligned_cflag = '-Wno-packed-not-aligned'
 endif
 
 foreach arg: global_cflags

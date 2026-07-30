@@ -8,6 +8,7 @@ if is_windows
 endif
 
 cflags += ['-g']
+cflags += no_packed_not_aligned_cflag
 
 deps += ['common_sxe2', 'hash','cryptodev','security']
 

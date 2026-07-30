@@ -8,3 +8,5 @@ endif
 
 deps += ['bus_dpaa']
 sources = files('dpaa_mempool.c')
+
+cflags += no_packed_not_aligned_cflag

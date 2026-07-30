@@ -24,6 +24,7 @@ sources += files(
         'mlx5_common_utils.c',
 )
 
+cflags += no_packed_not_aligned_cflag
 cflags += no_wvla_cflag
 
 cflags_options = [

@@ -75,6 +75,7 @@ else
 endif
 
 cflags += no_missing_field_init_cflag
+cflags += no_packed_not_aligned_cflag
 cflags += no_shadow_cflag
 
 cflags_options = [

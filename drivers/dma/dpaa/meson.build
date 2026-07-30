@@ -9,6 +9,7 @@ endif
 deps += ['dmadev', 'bus_dpaa']
 sources = files('dpaa_qdma.c')
 
+cflags += no_packed_not_aligned_cflag
 cflags += no_wvla_cflag
 
 if cc.has_argument('-Wno-pointer-arith')

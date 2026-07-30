@@ -14,6 +14,8 @@ sources = files(
         'caam_jr.c',
 )
 
+cflags += no_packed_not_aligned_cflag
+
 includes += include_directories('../../bus/dpaa/include/')
 includes += include_directories('../../common/dpaax/')
 includes += include_directories('../../common/dpaax/caamflib/')

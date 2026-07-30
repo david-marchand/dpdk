@@ -22,6 +22,8 @@ sources = files(
         'dpaa_bus_base_symbols.c',
 )
 
+cflags += no_packed_not_aligned_cflag
+
 if cc.has_argument('-Wno-cast-qual')
     cflags += '-Wno-cast-qual'
 endif

@@ -20,6 +20,8 @@ sources = files(
         'mlx5_crypto_dek.c',
 )
 
+cflags += no_packed_not_aligned_cflag
+
 cflags_options = [
         '-std=c11',
         '-Wno-strict-prototypes',
