@@ -38,6 +38,9 @@
  * RTE_VERSION_EXPERIMENTAL_SYMBOL similar to RTE_VERSION_SYMBOL but for experimental API symbols.
  * This is mainly used for keeping compatibility for symbols that get promoted to stable ABI.
  *
+ * RTE_VERSION_INTERNAL_SYMBOL similar to RTE_VERSION_SYMBOL but for internal API symbols.
+ * This is mainly used for keeping compatibility for symbols that get promoted to stable ABI.
+ *
  * RTE_DEFAULT_SYMBOL
  * Create a symbol version entry instructing the linker to bind references to
  * symbol <name> to the internal symbol <name>_v<ver>.
@@ -58,6 +61,11 @@ __attribute__((__symver__(RTE_STR(name) "@EXPERIMENTAL"))) \
 type name ## _exp args; \
 type name ## _exp args
 
+#define RTE_VERSION_INTERNAL_SYMBOL(type, name, args) VERSIONING_WARN \
+__attribute__((__symver__(RTE_STR(name) "@INTERNAL"))) \
+type name ## _int args; \
+type name ## _int args
+
 #define RTE_DEFAULT_SYMBOL(ver, type, name, args) VERSIONING_WARN \
 __attribute__((__symver__(RTE_STR(name) "@@DPDK_" RTE_STR(ver)))) \
 type name ## _v ## ver args; \
@@ -76,6 +84,11 @@ __asm__(".symver " RTE_STR(name) "_exp, " RTE_STR(name) "@EXPERIMENTAL"); \
 __rte_used type name ## _exp args; \
 type name ## _exp args
 
+#define RTE_VERSION_INTERNAL_SYMBOL(type, name, args) VERSIONING_WARN \
+__asm__(".symver " RTE_STR(name) "_exp, " RTE_STR(name) "@INTERNAL"); \
+__rte_used type name ## _int args; \
+type name ## _int args
+
 #define RTE_DEFAULT_SYMBOL(ver, type, name, args) VERSIONING_WARN \
 __asm__(".symver " RTE_STR(name) "_v" RTE_STR(ver) ", " RTE_STR(name) "@@DPDK_" RTE_STR(ver)); \
 __rte_used type name ## _v ## ver args; \
@@ -93,6 +106,10 @@ type name ## _v ## ver args
 #define RTE_VERSION_EXPERIMENTAL_SYMBOL(type, name, args) VERSIONING_WARN \
 type name ## _exp args; \
 type name ## _exp args
+
+#define RTE_VERSION_INTERNAL_SYMBOL(type, name, args) VERSIONING_WARN \
+type name ## _int args; \
+type name ## _int args
 
 #define RTE_DEFAULT_SYMBOL(ver, type, name, args) VERSIONING_WARN \
 type name args

@@ -13,10 +13,14 @@ RTE_LOG_REGISTER_SUFFIX(hash_gfni_logtype, gfni, INFO);
 #define HASH_LOG(level, ...) \
 	RTE_LOG_LINE(level, HASH, "" __VA_ARGS__)
 
-RTE_EXPORT_SYMBOL(rte_thash_gfni_stub)
-uint32_t
-rte_thash_gfni_stub(const uint64_t *mtrx __rte_unused,
-	const uint8_t *key __rte_unused, int len __rte_unused)
+RTE_VERSION_INTERNAL_SYMBOL(uint32_t, rte_thash_gfni_stub,
+	(const uint64_t *mtrx, const uint8_t *key, int len))
+{
+	return rte_thash_gfni_stub(mtrx, key, len);
+}
+
+RTE_DEFAULT_SYMBOL(26, uint32_t, rte_thash_gfni_stub,
+	(const uint64_t *mtrx __rte_unused, const uint8_t *key __rte_unused, int len __rte_unused))
 {
 	static bool warned;
 
@@ -29,11 +33,15 @@ rte_thash_gfni_stub(const uint64_t *mtrx __rte_unused,
 	return 0;
 }
 
-RTE_EXPORT_SYMBOL(rte_thash_gfni_bulk_stub)
-void
-rte_thash_gfni_bulk_stub(const uint64_t *mtrx __rte_unused,
-	int len __rte_unused, uint8_t *tuple[] __rte_unused,
-	uint32_t val[], uint32_t num)
+RTE_VERSION_INTERNAL_SYMBOL(void, rte_thash_gfni_bulk_stub,
+	(const uint64_t *mtrx, int len, uint8_t *tuple[], uint32_t val[], uint32_t num))
+{
+	rte_thash_gfni_bulk_stub(mtrx, len, tuple, val, num);
+}
+
+RTE_DEFAULT_SYMBOL(26, void, rte_thash_gfni_bulk_stub,
+	(const uint64_t *mtrx __rte_unused, int len __rte_unused, uint8_t *tuple[] __rte_unused,
+		uint32_t val[], uint32_t num))
 {
 	unsigned int i;
 

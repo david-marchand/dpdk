@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright(c) 2017 Intel Corporation
 
+use_function_versioning = true
+
 headers = files(
         'rte_fbk_hash.h',
         'rte_hash_crc.h',
