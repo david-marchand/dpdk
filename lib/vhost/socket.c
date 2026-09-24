@@ -17,7 +17,7 @@
 #include <eal_export.h>
 #include <rte_thread.h>
 #include <rte_log.h>
-#include <rte_vfio.h>
+#include <dev_vfio.h>
 
 #include "fd_man.h"
 #include "vduse.h"
@@ -245,8 +245,8 @@ vhost_user_add_connection(int fd, struct vhost_user_socket *vsocket)
 
 		if (dev != NULL) {
 			dev->async_copy = 1;
-			dev->dma_map_available = rte_vfio_is_enabled() &&
-					rte_vfio_module_is_loaded(RTE_VFIO_MODULE_VFIO);
+			dev->dma_map_available = dev_vfio_is_enabled() &&
+				dev_vfio_module_is_loaded(DEV_VFIO_MODULE_VFIO);
 		}
 	}
 

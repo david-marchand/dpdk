@@ -2,14 +2,14 @@
  * Copyright(c) 2017 6WIND S.A.
  */
 
-#ifndef _RTE_VFIO_H_
-#define _RTE_VFIO_H_
+#ifndef _DEV_VFIO_H_
+#define _DEV_VFIO_H_
 
 /**
  * @file
  * @internal
  *
- * RTE VFIO internal API.
+ * VFIO device API.
  *
  * This library provides VFIO related utility functions for use by drivers.
  */
@@ -25,11 +25,11 @@ extern "C" {
 
 #ifdef RTE_EXEC_ENV_LINUX
 
-#define RTE_VFIO_DIR "/dev/vfio"
-#define RTE_VFIO_CONTAINER_PATH "/dev/vfio/vfio"
-#define RTE_VFIO_GROUP_FMT "/dev/vfio/%u"
-#define RTE_VFIO_NOIOMMU_GROUP_FMT "/dev/vfio/noiommu-%u"
-#define RTE_VFIO_NOIOMMU_MODE      \
+#define DEV_VFIO_DIR "/dev/vfio"
+#define DEV_VFIO_CONTAINER_PATH "/dev/vfio/vfio"
+#define DEV_VFIO_GROUP_FMT "/dev/vfio/%u"
+#define DEV_VFIO_NOIOMMU_GROUP_FMT "/dev/vfio/noiommu-%u"
+#define DEV_VFIO_NOIOMMU_MODE      \
 	"/sys/module/vfio/parameters/enable_unsafe_noiommu_mode"
 
 #endif /* RTE_EXEC_ENV_LINUX */
@@ -37,17 +37,17 @@ extern "C" {
 /* we don't need an actual definition, only pointer is used */
 struct vfio_device_info;
 
-#define RTE_VFIO_DEFAULT_CONTAINER_FD (-1)
+#define DEV_VFIO_DEFAULT_CONTAINER_FD (-1)
 
 /**
- * @enum rte_vfio_module
+ * @enum dev_vfio_module
  * VFIO kernel modules.
  *
  * These values identify kernel modules used by VFIO.
  */
-enum rte_vfio_module {
-	RTE_VFIO_MODULE_VFIO,     /**< Core VFIO module. */
-	RTE_VFIO_MODULE_VFIO_PCI, /**< VFIO PCI module. */
+enum dev_vfio_module {
+	DEV_VFIO_MODULE_VFIO,     /**< Core VFIO module. */
+	DEV_VFIO_MODULE_VFIO_PCI, /**< VFIO PCI module. */
 };
 
 /**
@@ -77,7 +77,7 @@ enum rte_vfio_module {
  *   >1 if the device cannot be managed this way.
  */
 __rte_internal
-int rte_vfio_setup_device(const char *sysfs_base, const char *dev_addr,
+int dev_vfio_setup_device(const char *sysfs_base, const char *dev_addr,
 		int *vfio_dev_fd, struct vfio_device_info *device_info);
 
 /**
@@ -101,7 +101,7 @@ int rte_vfio_setup_device(const char *sysfs_base, const char *dev_addr,
  *   <0 on failure.
  */
 __rte_internal
-int rte_vfio_release_device(const char *sysfs_base, const char *dev_addr, int fd);
+int dev_vfio_release_device(const char *sysfs_base, const char *dev_addr, int fd);
 
 /**
  * @internal
@@ -115,7 +115,7 @@ int rte_vfio_release_device(const char *sysfs_base, const char *dev_addr, int fd
  *   <0 on failure.
  */
 __rte_internal
-int rte_vfio_enable(void);
+int dev_vfio_enable(void);
 
 /**
  * @internal
@@ -124,7 +124,7 @@ int rte_vfio_enable(void);
  * This function is only relevant to Linux.
  */
 __rte_internal
-void rte_vfio_cleanup(void);
+void dev_vfio_cleanup(void);
 
 /**
  * @internal
@@ -140,7 +140,7 @@ void rte_vfio_cleanup(void);
  *   0 otherwise.
  */
 __rte_internal
-int rte_vfio_module_is_loaded(enum rte_vfio_module module);
+int dev_vfio_module_is_loaded(enum dev_vfio_module module);
 
 /**
  * @internal
@@ -153,7 +153,7 @@ int rte_vfio_module_is_loaded(enum rte_vfio_module module);
  *   0 otherwise.
  */
 __rte_internal
-int rte_vfio_is_enabled(void);
+int dev_vfio_is_enabled(void);
 
 /**
  * @internal
@@ -167,7 +167,7 @@ int rte_vfio_is_enabled(void);
  *   <0 for errors.
  */
 __rte_internal
-int rte_vfio_noiommu_is_enabled(void);
+int dev_vfio_noiommu_is_enabled(void);
 
 /**
  * @internal
@@ -185,7 +185,7 @@ int rte_vfio_noiommu_is_enabled(void);
  */
 __rte_internal
 int
-rte_vfio_clear_group(int vfio_group_fd);
+dev_vfio_clear_group(int vfio_group_fd);
 
 /**
  * @internal
@@ -210,7 +210,7 @@ rte_vfio_clear_group(int vfio_group_fd);
  */
 __rte_internal
 int
-rte_vfio_get_group_num(const char *sysfs_base,
+dev_vfio_get_group_num(const char *sysfs_base,
 		      const char *dev_addr, int *iommu_group_num);
 
 /**
@@ -237,7 +237,7 @@ rte_vfio_get_group_num(const char *sysfs_base,
  */
 __rte_internal
 int
-rte_vfio_get_device_info(const char *sysfs_base, const char *dev_addr,
+dev_vfio_get_device_info(const char *sysfs_base, const char *dev_addr,
 		int *vfio_dev_fd, struct vfio_device_info *device_info);
 
 /**
@@ -253,7 +253,7 @@ rte_vfio_get_device_info(const char *sysfs_base, const char *dev_addr,
  */
 __rte_internal
 int
-rte_vfio_get_container_fd(void);
+dev_vfio_get_container_fd(void);
 
 /**
  * @internal
@@ -271,7 +271,7 @@ rte_vfio_get_container_fd(void);
  */
 __rte_internal
 int
-rte_vfio_get_group_fd(int iommu_group_num);
+dev_vfio_get_group_fd(int iommu_group_num);
 
 /**
  * @internal
@@ -291,7 +291,7 @@ rte_vfio_get_group_fd(int iommu_group_num);
  */
 __rte_internal
 int
-rte_vfio_container_create(void);
+dev_vfio_container_create(void);
 
 /**
  * @internal
@@ -306,7 +306,7 @@ rte_vfio_container_create(void);
  */
 __rte_internal
 int
-rte_vfio_container_destroy(int container_fd);
+dev_vfio_container_destroy(int container_fd);
 
 /**
  * @internal
@@ -324,7 +324,7 @@ rte_vfio_container_destroy(int container_fd);
  */
 __rte_internal
 int
-rte_vfio_container_group_bind(int container_fd, int iommu_group_num);
+dev_vfio_container_group_bind(int container_fd, int iommu_group_num);
 
 /**
  * @internal
@@ -342,14 +342,14 @@ rte_vfio_container_group_bind(int container_fd, int iommu_group_num);
  */
 __rte_internal
 int
-rte_vfio_container_group_unbind(int container_fd, int iommu_group_num);
+dev_vfio_container_group_unbind(int container_fd, int iommu_group_num);
 
 /**
  * @internal
  * Perform DMA mapping for devices in a container.
  *
  * @param container_fd
- *   the specified container fd. Use RTE_VFIO_DEFAULT_CONTAINER_FD to
+ *   the specified container fd. Use DEV_VFIO_DEFAULT_CONTAINER_FD to
  *   use the default container.
  *
  * @param vaddr
@@ -367,7 +367,7 @@ rte_vfio_container_group_unbind(int container_fd, int iommu_group_num);
  */
 __rte_internal
 int
-rte_vfio_container_dma_map(int container_fd, uint64_t vaddr,
+dev_vfio_container_dma_map(int container_fd, uint64_t vaddr,
 		uint64_t iova, uint64_t len);
 
 /**
@@ -375,7 +375,7 @@ rte_vfio_container_dma_map(int container_fd, uint64_t vaddr,
  * Perform DMA unmapping for devices in a container.
  *
  * @param container_fd
- *   the specified container fd. Use RTE_VFIO_DEFAULT_CONTAINER_FD to
+ *   the specified container fd. Use DEV_VFIO_DEFAULT_CONTAINER_FD to
  *   use the default container.
  *
  * @param vaddr
@@ -393,11 +393,11 @@ rte_vfio_container_dma_map(int container_fd, uint64_t vaddr,
  */
 __rte_internal
 int
-rte_vfio_container_dma_unmap(int container_fd, uint64_t vaddr,
+dev_vfio_container_dma_unmap(int container_fd, uint64_t vaddr,
 		uint64_t iova, uint64_t len);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _RTE_VFIO_H_ */
+#endif /* _DEV_VFIO_H_ */
