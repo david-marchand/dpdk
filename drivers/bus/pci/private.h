@@ -272,4 +272,136 @@ rte_pci_dev_iterate(const struct rte_bus *bus,
 int
 rte_pci_devargs_parse(struct rte_devargs *da);
 
+/**
+ * Check whether a PCI driver matches a PCI device.
+ *
+ * @param drv
+ *   PCI driver to check.
+ * @param dev
+ *   PCI device to check.
+ *
+ * @return
+ *   true if the driver matches the device, false otherwise.
+ */
+bool pci_bus_match(const struct rte_driver *drv,
+		const struct rte_device *dev);
+
+/**
+ * Probe a PCI device with a matching driver.
+ *
+ * @param drv
+ *   PCI driver to use for probing.
+ * @param dev
+ *   PCI device to probe.
+ *
+ * @return
+ *   0 on success, negative value on error.
+ */
+int pci_probe_device(struct rte_driver *drv, struct rte_device *dev);
+
+/**
+ * Remove a PCI device from its driver.
+ *
+ * @param dev
+ *   PCI device to remove.
+ *
+ * @return
+ *   0 on success, negative value on error.
+ */
+int pci_unplug_device(struct rte_device *dev);
+
+/**
+ * Free a PCI device and its private data.
+ *
+ * @param dev
+ *   PCI device to free.
+ */
+void pci_free_device(struct rte_device *dev);
+
+/**
+ * Parse a PCI device name.
+ *
+ * @param name
+ *   PCI device name to parse.
+ * @param addr
+ *   Pointer to where the parsed address will be stored.
+ *
+ * @return
+ *   0 on success, negative value on error.
+ */
+int pci_parse(const char *name, void *addr);
+
+/**
+ * Compare two PCI device names.
+ *
+ * @param name1
+ *   First PCI device name.
+ * @param name2
+ *   Second PCI device name.
+ *
+ * @return
+ *   0 if the names identify the same device, non-zero otherwise.
+ */
+int pci_dev_compare(const char *name1, const char *name2);
+
+/**
+ * Handle hot-unplug events for a PCI device.
+ *
+ * @param dev
+ *   PCI device associated with the event.
+ *
+ * @return
+ *   0 on success, negative value on error.
+ */
+int pci_hot_unplug_handler(struct rte_device *dev);
+
+/**
+ * Handle a SIGBUS associated with a PCI device.
+ *
+ * @param failure_addr
+ *   Address associated with the SIGBUS.
+ *
+ * @return
+ *   0 if the event was handled, negative value on error.
+ */
+int pci_sigbus_handler(const void *failure_addr);
+
+/**
+ * Map memory for a PCI device using its driver callback.
+ *
+ * @param dev
+ *   PCI device to map memory for.
+ * @param addr
+ *   Virtual address of the memory to map.
+ * @param iova
+ *   IOVA address to map.
+ * @param len
+ *   Length of the memory segment to map.
+ *
+ * @return
+ *   0 on success, negative value on error. Returns -ENOTSUP if the driver
+ *   does not provide a DMA map callback.
+ */
+int pci_common_dma_map(struct rte_device *dev, void *addr, uint64_t iova,
+		size_t len);
+
+/**
+ * Unmap memory for a PCI device using its driver callback.
+ *
+ * @param dev
+ *   PCI device to unmap memory for.
+ * @param addr
+ *   Virtual address of the memory to unmap.
+ * @param iova
+ *   IOVA address to unmap.
+ * @param len
+ *   Length of the memory segment to unmap.
+ *
+ * @return
+ *   0 on success, negative value on error. Returns -ENOTSUP if the driver
+ *   does not provide a DMA unmap callback.
+ */
+int pci_common_dma_unmap(struct rte_device *dev, void *addr, uint64_t iova,
+		size_t len);
+
 #endif /* _PCI_PRIVATE_H_ */

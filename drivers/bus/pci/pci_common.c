@@ -25,7 +25,6 @@
 #include <rte_string_fns.h>
 #include <rte_common.h>
 #include <rte_devargs.h>
-#include <rte_vfio.h>
 #include <rte_tailq.h>
 
 #include "private.h"
@@ -142,7 +141,7 @@ pci_unmap_resource(void *requested_addr, size_t size)
 		PCI_LOG(DEBUG, "  PCI memory unmapped at %p", requested_addr);
 }
 
-static bool
+bool
 pci_bus_match(const struct rte_driver *drv, const struct rte_device *dev)
 {
 	const struct rte_pci_driver *pci_drv = RTE_BUS_DRIVER(drv, *pci_drv);
@@ -180,7 +179,7 @@ pci_bus_match(const struct rte_driver *drv, const struct rte_device *dev)
  * If vendor/device ID match, call the probe() function of the
  * driver.
  */
-static int
+int
 pci_probe_device(struct rte_driver *drv, struct rte_device *dev)
 {
 	struct rte_pci_device *pci_dev = RTE_BUS_DEVICE(dev, *pci_dev);
@@ -275,7 +274,7 @@ pci_probe_device(struct rte_driver *drv, struct rte_device *dev)
 	return ret;
 }
 
-static int
+int
 pci_unplug_device(struct rte_device *rte_dev)
 {
 	struct rte_pci_device *dev = RTE_BUS_DEVICE(rte_dev, *dev);
@@ -310,7 +309,7 @@ pci_unplug_device(struct rte_device *rte_dev)
 	return 0;
 }
 
-static void
+void
 pci_free_device(struct rte_device *dev)
 {
 	struct rte_pci_device *pdev = RTE_BUS_DEVICE(dev, *pdev);
@@ -349,7 +348,7 @@ rte_pci_dump(FILE *f)
 	}
 }
 
-static int
+int
 pci_parse(const char *name, void *addr)
 {
 	struct rte_pci_addr *out = addr;
@@ -362,7 +361,7 @@ pci_parse(const char *name, void *addr)
 	return parse == false;
 }
 
-static int
+int
 pci_dev_compare(const char *name1, const char *name2)
 {
 	struct rte_pci_addr addr1, addr2;
@@ -420,7 +419,7 @@ pci_find_device_by_addr(const void *failure_addr)
 	return NULL;
 }
 
-static int
+int
 pci_hot_unplug_handler(struct rte_device *dev)
 {
 	struct rte_pci_device *pdev = RTE_BUS_DEVICE(dev, *pdev);
@@ -452,7 +451,7 @@ pci_hot_unplug_handler(struct rte_device *dev)
 	return ret;
 }
 
-static int
+int
 pci_sigbus_handler(const void *failure_addr)
 {
 	struct rte_pci_device *pdev = NULL;
@@ -474,42 +473,26 @@ pci_sigbus_handler(const void *failure_addr)
 	return ret;
 }
 
-static int
-pci_dma_map(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
+int
+pci_common_dma_map(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
 {
 	struct rte_pci_device *pdev = RTE_BUS_DEVICE(dev, *pdev);
 	const struct rte_pci_driver *pdrv = RTE_BUS_DRIVER(dev->driver, *pdrv);
 
 	if (pdrv->dma_map != NULL)
 		return pdrv->dma_map(pdev, addr, iova, len);
-	/**
-	 *  In case driver don't provides any specific mapping
-	 *  try fallback to VFIO.
-	 */
-	if (pdev->kdrv == RTE_PCI_KDRV_VFIO)
-		return rte_vfio_container_dma_map
-				(RTE_VFIO_DEFAULT_CONTAINER_FD, (uintptr_t)addr,
-				 iova, len);
 	rte_errno = ENOTSUP;
 	return -1;
 }
 
-static int
-pci_dma_unmap(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
+int
+pci_common_dma_unmap(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
 {
 	struct rte_pci_device *pdev = RTE_BUS_DEVICE(dev, *pdev);
 	const struct rte_pci_driver *pdrv = RTE_BUS_DRIVER(dev->driver, *pdrv);
 
 	if (pdrv->dma_unmap != NULL)
 		return pdrv->dma_unmap(pdev, addr, iova, len);
-	/**
-	 *  In case driver don't provides any specific mapping
-	 *  try fallback to VFIO.
-	 */
-	if (pdev->kdrv == RTE_PCI_KDRV_VFIO)
-		return rte_vfio_container_dma_unmap
-				(RTE_VFIO_DEFAULT_CONTAINER_FD, (uintptr_t)addr,
-				 iova, len);
 	rte_errno = ENOTSUP;
 	return -1;
 }
@@ -714,26 +697,3 @@ rte_pci_pasid_set_state(const struct rte_pci_device *dev,
 			offset + RTE_PCI_PASID_CTRL) != sizeof(pasid) ? -1 : 0;
 }
 
-struct rte_bus rte_pci_bus = {
-	.allow_multi_probe = true,
-	.scan = rte_pci_scan,
-	.probe = rte_bus_generic_probe,
-	.free_device = pci_free_device,
-	.cleanup = rte_bus_generic_cleanup,
-	.find_device = rte_bus_generic_find_device,
-	.match = pci_bus_match,
-	.probe_device = pci_probe_device,
-	.unplug_device = pci_unplug_device,
-	.parse = pci_parse,
-	.dev_compare = pci_dev_compare,
-	.devargs_parse = rte_pci_devargs_parse,
-	.dma_map = pci_dma_map,
-	.dma_unmap = pci_dma_unmap,
-	.get_iommu_class = rte_pci_get_iommu_class,
-	.dev_iterate = rte_pci_dev_iterate,
-	.hot_unplug_handler = pci_hot_unplug_handler,
-	.sigbus_handler = pci_sigbus_handler,
-};
-
-RTE_REGISTER_BUS(pci, rte_pci_bus);
-RTE_LOG_REGISTER_DEFAULT(pci_bus_logtype, NOTICE);

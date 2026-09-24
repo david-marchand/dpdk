@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 
+#include <rte_errno.h>
 #include <rte_log.h>
 #include <rte_pci.h>
 #include <rte_bus_pci.h>
@@ -18,6 +19,36 @@
 
 #include "private.h"
 #include "pci_init.h"
+
+static int
+pci_dma_map(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
+{
+	struct rte_pci_device *pdev = RTE_BUS_DEVICE(dev, *pdev);
+	const struct rte_pci_driver *pdrv = RTE_BUS_DRIVER(dev->driver, *pdrv);
+
+	if (pdrv->dma_map != NULL)
+		return pci_common_dma_map(dev, addr, iova, len);
+	if (pdev->kdrv == RTE_PCI_KDRV_VFIO)
+		return rte_vfio_container_dma_map(RTE_VFIO_DEFAULT_CONTAINER_FD,
+				(uintptr_t)addr, iova, len);
+	rte_errno = ENOTSUP;
+	return -1;
+}
+
+static int
+pci_dma_unmap(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
+{
+	struct rte_pci_device *pdev = RTE_BUS_DEVICE(dev, *pdev);
+	const struct rte_pci_driver *pdrv = RTE_BUS_DRIVER(dev->driver, *pdrv);
+
+	if (pdrv->dma_unmap != NULL)
+		return pci_common_dma_unmap(dev, addr, iova, len);
+	if (pdev->kdrv == RTE_PCI_KDRV_VFIO)
+		return rte_vfio_container_dma_unmap(RTE_VFIO_DEFAULT_CONTAINER_FD,
+				(uintptr_t)addr, iova, len);
+	rte_errno = ENOTSUP;
+	return -1;
+}
 
 /**
  * @file
@@ -790,3 +821,27 @@ rte_pci_ioport_unmap(struct rte_pci_ioport *p)
 
 	return ret;
 }
+
+struct rte_bus rte_pci_bus = {
+	.allow_multi_probe = true,
+	.scan = rte_pci_scan,
+	.probe = rte_bus_generic_probe,
+	.free_device = pci_free_device,
+	.cleanup = rte_bus_generic_cleanup,
+	.find_device = rte_bus_generic_find_device,
+	.match = pci_bus_match,
+	.probe_device = pci_probe_device,
+	.unplug_device = pci_unplug_device,
+	.parse = pci_parse,
+	.dev_compare = pci_dev_compare,
+	.devargs_parse = rte_pci_devargs_parse,
+	.dma_map = pci_dma_map,
+	.dma_unmap = pci_dma_unmap,
+	.get_iommu_class = rte_pci_get_iommu_class,
+	.dev_iterate = rte_pci_dev_iterate,
+	.hot_unplug_handler = pci_hot_unplug_handler,
+	.sigbus_handler = pci_sigbus_handler,
+};
+
+RTE_REGISTER_BUS(pci, rte_pci_bus);
+RTE_LOG_REGISTER_DEFAULT(pci_bus_logtype, NOTICE);

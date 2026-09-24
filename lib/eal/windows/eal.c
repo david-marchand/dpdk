@@ -24,7 +24,6 @@
 #include <eal_options.h>
 #include <eal_private.h>
 #include <rte_service_component.h>
-#include <rte_vfio.h>
 
 #include "eal_firmware.h"
 #include "eal_hugepages.h"
@@ -150,12 +149,6 @@ rte_eal_cleanup(void)
 	eal_cleanup_config(internal_conf);
 	eal_lcore_var_cleanup();
 	return 0;
-}
-
-RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_cleanup)
-void
-rte_vfio_cleanup(void)
-{
 }
 
 /* Launch threads, called at application init(). */
@@ -457,28 +450,6 @@ eal_asprintf(char **buffer, const char *format, ...)
 		return -1;
 	}
 	return ret;
-}
-
-RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_container_dma_map)
-int
-rte_vfio_container_dma_map(__rte_unused int container_fd,
-			__rte_unused uint64_t vaddr,
-			__rte_unused uint64_t iova,
-			__rte_unused uint64_t len)
-{
-	rte_errno = ENOTSUP;
-	return -1;
-}
-
-RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_container_dma_unmap)
-int
-rte_vfio_container_dma_unmap(__rte_unused int container_fd,
-			__rte_unused uint64_t vaddr,
-			__rte_unused uint64_t iova,
-			__rte_unused uint64_t len)
-{
-	rte_errno = ENOTSUP;
-	return -1;
 }
 
 RTE_EXPORT_INTERNAL_SYMBOL(rte_firmware_read)
