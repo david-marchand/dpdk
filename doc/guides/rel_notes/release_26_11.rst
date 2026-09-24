@@ -213,6 +213,10 @@ API Changes
    Also, make sure to start the actual text at the margin.
    =======================================================
 
+* eal: The entire VFIO API (``rte_vfio_*``) was made internal.
+  These functions are now available only to EAL and drivers,
+  and are no longer part of the public API.
+
 * ethdev: Updated VMDq related API.
 
   * At port configuration time, the number of VMDq pools advertised by a driver
