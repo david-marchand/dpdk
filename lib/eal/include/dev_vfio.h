@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include <rte_compat.h>
+#include <rte_common.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,8 +30,6 @@ extern "C" {
 #define DEV_VFIO_CONTAINER_PATH "/dev/vfio/vfio"
 #define DEV_VFIO_GROUP_FMT "/dev/vfio/%u"
 #define DEV_VFIO_NOIOMMU_GROUP_FMT "/dev/vfio/noiommu-%u"
-#define DEV_VFIO_NOIOMMU_MODE      \
-	"/sys/module/vfio/parameters/enable_unsafe_noiommu_mode"
 
 #endif /* RTE_EXEC_ENV_LINUX */
 
@@ -51,27 +50,63 @@ enum dev_vfio_module {
 };
 
 /**
- * @internal
- * Setup vfio_cfg for the device identified by its address.
- * It discovers the configured I/O MMU groups or sets a new one for the device.
- * If a new groups is assigned, the DMA mapping is performed.
+ * @enum dev_vfio_mode
+ * Enumeration of VFIO operational modes.
  *
- * This function is only relevant to linux and will return
- * an error on BSD.
+ * These modes define how VFIO devices are accessed.
+ *
+ * - DEV_VFIO_MODE_NONE: VFIO is not enabled.
+ * - DEV_VFIO_MODE_GROUP: Legacy group mode.
+ */
+enum dev_vfio_mode {
+	DEV_VFIO_MODE_NONE = 0, /**< VFIO not enabled */
+	DEV_VFIO_MODE_GROUP,    /**< Group mode */
+};
+
+/**
+ * @enum dev_vfio_iova_mode
+ * IOVA modes.
+ *
+ * These modes describe IOVA remapping capability.
+ *
+ * - DEV_VFIO_IOVA_MODE_UNKNOWN: IOVA mode is unknown.
+ * - DEV_VFIO_IOVA_MODE_VA: IOVA addresses can be remapped.
+ * - DEV_VFIO_IOVA_MODE_PA: IOVA addresses cannot be remapped.
+ */
+enum dev_vfio_iova_mode {
+	DEV_VFIO_IOVA_MODE_UNKNOWN = 0, /**< IOVA mode not determined */
+	DEV_VFIO_IOVA_MODE_VA,          /**< IOVA addresses can be remapped */
+	DEV_VFIO_IOVA_MODE_PA,          /**< IOVA addresses cannot be remapped */
+};
+
+/**
+ * @internal
+ * Set up a device managed by VFIO driver.
+ *
+ * If the device was not previously assigned to a container using
+ * `dev_vfio_container_assign_device()`, default container will be used.
+ *
+ * This function is only relevant on Linux.
  *
  * @param sysfs_base
- *   sysfs path prefix.
- *
+ *   Sysfs path prefix.
  * @param dev_addr
- *   device location.
- *
+ *   Device identifier.
  * @param vfio_dev_fd
- *   Pointer to VFIO fd, will be set to the opened device fd on success.
+ *   Pointer to where VFIO device file descriptor will be stored.
  *
  * @return
  *   0 on success.
- *   <0 on failure.
- *   >1 if the device cannot be managed this way.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENODEV  - Device not managed by VFIO.
+ * - ENOSPC  - No space in VFIO container to track the device.
+ * - EINVAL  - Invalid parameters.
+ * - EIO     - Error during underlying VFIO operations.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
+ * - ENOMEM  - Memory allocation failed for device tracking.
  */
 __rte_internal
 int dev_vfio_setup_device(const char *sysfs_base, const char *dev_addr,
@@ -79,23 +114,31 @@ int dev_vfio_setup_device(const char *sysfs_base, const char *dev_addr,
 
 /**
  * @internal
- * Release a device mapped to a VFIO-managed I/O MMU group.
+ * Release a device managed by VFIO driver.
  *
- * This function is only relevant to linux and will return
- * an error on BSD.
+ * This function is only relevant on Linux.
+ *
+ * @note As a result of this function, all internal resources used by the device will be released,
+ *       so if the device was using a non-default container, it will need to be reassigned to the
+ *       container before it can be used again.
  *
  * @param sysfs_base
- *   sysfs path prefix.
- *
+ *   Sysfs path prefix.
  * @param dev_addr
- *   device location.
- *
+ *   Device identifier.
  * @param fd
- *   VFIO fd.
+ *   A previously set up VFIO file descriptor.
  *
  * @return
  *   0 on success.
- *   <0 on failure.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENOENT  - Device not found in any container.
+ * - EINVAL  - Invalid parameters.
+ * - EIO     - Error during underlying VFIO operations.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int dev_vfio_release_device(const char *sysfs_base, const char *dev_addr, int fd);
@@ -104,12 +147,18 @@ int dev_vfio_release_device(const char *sysfs_base, const char *dev_addr, int fd
  * @internal
  * Initialize VFIO.
  *
- * This function is only relevant to linux and will return
- * an error on BSD.
+ * In case of success, `dev_vfio_get_mode()` can be used to retrieve the VFIO mode in use.
+ *
+ * This function is only relevant on Linux.
  *
  * @return
  *   0 on success.
- *   <0 on failure.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - EINVAL  - Invalid parameters.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Operation not supported.
  */
 __rte_internal
 int dev_vfio_enable(void);
@@ -127,7 +176,7 @@ void dev_vfio_cleanup(void);
  * @internal
  * Check whether a VFIO module is loaded.
  *
- * This function is only relevant to Linux.
+ * This function is only relevant on Linux.
  *
  * @param module
  *   VFIO module to check.
@@ -154,43 +203,70 @@ int dev_vfio_is_enabled(void);
 
 /**
  * @internal
- * Whether VFIO NOIOMMU mode is enabled.
+ * Get current VFIO mode.
  *
- * This function is only relevant to Linux.
+ * This function is only relevant on Linux.
  *
  * @return
- *   1 if true.
- *   0 if false.
- *   <0 for errors.
+ *   VFIO mode currently in use.
  */
 __rte_internal
-int dev_vfio_noiommu_is_enabled(void);
+enum dev_vfio_mode
+dev_vfio_get_mode(void);
+
+/**
+ * @internal
+ * Get current VFIO IOVA mode.
+ *
+ * This function is only relevant on Linux.
+ *
+ * @return
+ *   VFIO IOVA mode currently in use.
+ */
+__rte_internal
+enum dev_vfio_iova_mode
+dev_vfio_get_iova_mode(void);
+
+/**
+ * @internal
+ * Check if VFIO NOIOMMU mode is enabled.
+ *
+ * This function is only relevant on Linux.
+ *
+ * @return
+ *   1 if enabled.
+ *   0 if not enabled or not supported.
+ */
+__rte_internal
+int
+dev_vfio_noiommu_is_enabled(void);
 
 /**
  * @internal
  * Parse IOMMU group number for a device.
  *
- * This function is only relevant to linux and will return
- * an error on BSD.
+ * This function is only relevant on Linux in group mode.
  *
  * @param sysfs_base
- *   sysfs path prefix.
- *
+ *   Sysfs path prefix.
  * @param dev_addr
- *   device location.
- *
+ *   Device identifier.
  * @param iommu_group_num
- *   iommu group number
+ *   Pointer to where IOMMU group number will be stored.
  *
  * @return
- *  >0 on success
- *   0 for non-existent group or VFIO
- *  <0 for errors
+ *   0 on success.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENODEV  - Device not managed by VFIO.
+ * - EINVAL  - Invalid parameters.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
-dev_vfio_get_group_num(const char *sysfs_base,
-		      const char *dev_addr, int *iommu_group_num);
+dev_vfio_get_group_num(const char *sysfs_base, const char *dev_addr, int *iommu_group_num);
 
 /**
  * @internal
@@ -209,7 +285,12 @@ dev_vfio_get_group_num(const char *sysfs_base,
  *
  * @return
  *   0 on success.
- *  <0 on failure.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - EINVAL  - Invalid parameters.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
@@ -217,14 +298,17 @@ dev_vfio_get_device_info(int vfio_dev_fd, struct vfio_device_info *device_info);
 
 /**
  * @internal
- * Get the default VFIO container fd
+ * Get the default VFIO container file descriptor.
  *
- * This function is only relevant to linux and will return
- * an error on BSD.
+ * This function is only relevant on Linux.
  *
  * @return
- *  > 0 default container fd
- *  < 0 if VFIO is not enabled or not supported
+ *   Non-negative container file descriptor on success.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
@@ -232,7 +316,9 @@ dev_vfio_get_container_fd(void);
 
 /**
  * @internal
- * Create a new container for device binding.
+ * Create a new VFIO container for device assignment and DMA mapping.
+ *
+ * This function is only relevant on Linux.
  *
  * @note Any newly allocated DPDK memory will not be mapped into these
  *       containers by default, user needs to manage DMA mappings for
@@ -243,8 +329,14 @@ dev_vfio_get_container_fd(void);
  *       devices between multiple processes is not supported.
  *
  * @return
- *   the container fd if successful
- *   <0 if failed
+ *   Non-negative container file descriptor on success.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENOSPC  - Maximum number of containers reached.
+ * - EIO     - Underlying VFIO operation failed.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
@@ -252,14 +344,22 @@ dev_vfio_container_create(void);
 
 /**
  * @internal
- * Destroy the container, unbind all vfio groups within it.
+ * Destroy a VFIO container and unmap all devices assigned to it.
+ *
+ * This function is only relevant on Linux.
  *
  * @param container_fd
- *   the container fd to destroy
+ *   File descriptor of container to destroy.
  *
  * @return
- *    0 if successful
- *   <0 if failed
+ *   0 on success.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENODEV  - Container not managed by VFIO.
+ * - EINVAL  - Invalid container file descriptor.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
@@ -284,33 +384,47 @@ dev_vfio_container_destroy(int container_fd);
  *
  * @return
  *   0 on success.
- *   <0 on failure.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - ENODEV  - Device not managed by VFIO.
+ * - EEXIST  - Device already assigned to the container.
+ * - ENOSPC  - No space in VFIO container to assign device.
+ * - EINVAL  - Invalid container file descriptor.
+ * - EIO     - Error during underlying VFIO operations.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
+ * - ENOMEM  - Memory allocation failed for device tracking.
  */
 __rte_internal
 int
-dev_vfio_container_assign_device(int vfio_container_fd, const char *sysfs_base,
-		const char *dev_addr);
+dev_vfio_container_assign_device(int vfio_container_fd,
+		const char *sysfs_base, const char *dev_addr);
 
 /**
  * @internal
  * Perform DMA mapping for devices in a container.
  *
- * @param container_fd
- *   the specified container fd. Use DEV_VFIO_DEFAULT_CONTAINER_FD to
- *   use the default container.
+ * This function is only relevant on Linux.
  *
+ * @param container_fd
+ *   Container file descriptor. Use DEV_VFIO_DEFAULT_CONTAINER_FD to use the default container.
  * @param vaddr
  *   Starting virtual address of memory to be mapped.
- *
  * @param iova
  *   Starting IOVA address of memory to be mapped.
- *
  * @param len
  *   Length of memory segment being mapped.
  *
  * @return
- *    0 if successful
- *   <0 if failed
+ *   0 on success.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - EIO     - DMA mapping operation failed.
+ * - EINVAL  - Invalid parameters.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
@@ -321,22 +435,26 @@ dev_vfio_container_dma_map(int container_fd, uint64_t vaddr,
  * @internal
  * Perform DMA unmapping for devices in a container.
  *
- * @param container_fd
- *   the specified container fd. Use DEV_VFIO_DEFAULT_CONTAINER_FD to
- *   use the default container.
+ * This function is only relevant on Linux.
  *
+ * @param container_fd
+ *   Container file descriptor. Use DEV_VFIO_DEFAULT_CONTAINER_FD to use the default container.
  * @param vaddr
  *   Starting virtual address of memory to be unmapped.
- *
  * @param iova
  *   Starting IOVA address of memory to be unmapped.
- *
  * @param len
  *   Length of memory segment being unmapped.
  *
  * @return
- *    0 if successful
- *   <0 if failed
+ *   0 on success.
+ *   <0 on failure, rte_errno is set.
+ *
+ * Possible rte_errno values include:
+ * - EIO     - DMA unmapping operation failed.
+ * - EINVAL  - Invalid parameters.
+ * - ENXIO   - VFIO support not initialized.
+ * - ENOTSUP - Unsupported VFIO mode.
  */
 __rte_internal
 int
