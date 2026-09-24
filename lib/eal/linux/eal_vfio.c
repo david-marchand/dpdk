@@ -4,9 +4,12 @@
 
 #include <uapi/linux/vfio.h>
 
+#include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <dirent.h>
@@ -59,6 +62,40 @@ static struct vfio_config *default_vfio_cfg = &vfio_cfgs[0];
 
 /* whether VFIO is enabled (usable) in this process */
 static bool vfio_enabled;
+
+static int
+vfio_check_module(const char *module_name)
+{
+	char sysfs_mod_name[PATH_MAX];
+	struct stat st;
+	int n;
+
+	if (NULL == module_name)
+		return -1;
+
+	/* Check if there is sysfs mounted */
+	if (stat("/sys/module", &st) != 0) {
+		EAL_LOG(DEBUG, "sysfs is not mounted! error %i (%s)",
+			errno, strerror(errno));
+		return -1;
+	}
+
+	/* A module might be built-in, therefore try sysfs */
+	n = snprintf(sysfs_mod_name, PATH_MAX, "/sys/module/%s", module_name);
+	if (n < 0 || n > PATH_MAX) {
+		EAL_LOG(DEBUG, "Could not format module path");
+		return -1;
+	}
+
+	if (stat(sysfs_mod_name, &st) != 0) {
+		EAL_LOG(DEBUG, "Module %s not found! error %i (%s)",
+		        sysfs_mod_name, errno, strerror(errno));
+		return 0;
+	}
+
+	/* Module has been found */
+	return 1;
+}
 
 static int vfio_type1_dma_map(int);
 static int vfio_type1_dma_mem_map(int, uint64_t, uint64_t, uint64_t, int);
@@ -1152,7 +1189,7 @@ rte_vfio_enable(const char *modname)
 	EAL_LOG(DEBUG, "Probing VFIO support...");
 
 	/* check if vfio module is loaded */
-	vfio_available = rte_eal_check_module(modname);
+	vfio_available = vfio_check_module(modname);
 
 	/* return error directly */
 	if (vfio_available == -1) {
@@ -1204,7 +1241,7 @@ RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_is_enabled)
 int
 rte_vfio_is_enabled(const char *modname)
 {
-	const int mod_available = rte_eal_check_module(modname) > 0;
+	const int mod_available = vfio_check_module(modname) > 0;
 	return vfio_enabled && mod_available;
 }
 
