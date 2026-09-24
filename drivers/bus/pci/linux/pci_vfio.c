@@ -1300,11 +1300,12 @@ pci_vfio_mmio_write(const struct rte_pci_device *dev, int bar,
 int
 pci_vfio_is_enabled(void)
 {
-	int status = rte_vfio_is_enabled("vfio_pci");
+	int status;
 
-	if (!status) {
-		rte_vfio_enable();
-		status = rte_vfio_is_enabled("vfio_pci");
-	}
+	if (rte_vfio_enable() < 0)
+		return 0;
+
+	status = rte_vfio_is_enabled() &&
+		rte_vfio_module_is_loaded(RTE_VFIO_MODULE_VFIO_PCI);
 	return status;
 }

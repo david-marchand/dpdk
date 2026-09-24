@@ -245,7 +245,8 @@ vhost_user_add_connection(int fd, struct vhost_user_socket *vsocket)
 
 		if (dev != NULL) {
 			dev->async_copy = 1;
-			dev->dma_map_available = rte_vfio_is_enabled("vfio");
+			dev->dma_map_available = rte_vfio_is_enabled() &&
+					rte_vfio_module_is_loaded(RTE_VFIO_MODULE_VFIO);
 		}
 	}
 

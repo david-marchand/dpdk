@@ -851,8 +851,14 @@ rte_vfio_cleanup(void)
 {
 }
 
+RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_module_is_loaded)
+int rte_vfio_module_is_loaded(__rte_unused enum rte_vfio_module module)
+{
+	return 0;
+}
+
 RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_is_enabled)
-int rte_vfio_is_enabled(__rte_unused const char *modname)
+int rte_vfio_is_enabled(void)
 {
 	return 0;
 }

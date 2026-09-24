@@ -64,14 +64,23 @@ static struct vfio_config *default_vfio_cfg = &vfio_cfgs[0];
 static bool vfio_enabled;
 
 static int
-vfio_check_module(const char *module_name)
+vfio_check_module(enum rte_vfio_module module)
 {
+	const char *module_name;
 	char sysfs_mod_name[PATH_MAX];
 	struct stat st;
 	int n;
 
-	if (NULL == module_name)
+	switch (module) {
+	case RTE_VFIO_MODULE_VFIO:
+		module_name = "vfio";
+		break;
+	case RTE_VFIO_MODULE_VFIO_PCI:
+		module_name = "vfio_pci";
+		break;
+	default:
 		return -1;
+	}
 
 	/* Check if there is sysfs mounted */
 	if (stat("/sys/module", &st) != 0) {
@@ -1189,7 +1198,7 @@ rte_vfio_enable(void)
 	EAL_LOG(DEBUG, "Probing VFIO support...");
 
 	/* check if vfio module is loaded */
-	vfio_available = vfio_check_module("vfio");
+	vfio_available = vfio_check_module(RTE_VFIO_MODULE_VFIO);
 
 	/* return error directly */
 	if (vfio_available == -1) {
@@ -1237,12 +1246,18 @@ rte_vfio_enable(void)
 	return 0;
 }
 
+RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_module_is_loaded)
+int
+rte_vfio_module_is_loaded(enum rte_vfio_module module)
+{
+	return vfio_check_module(module) > 0;
+}
+
 RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_is_enabled)
 int
-rte_vfio_is_enabled(const char *modname)
+rte_vfio_is_enabled(void)
 {
-	const int mod_available = vfio_check_module(modname) > 0;
-	return vfio_enabled && mod_available;
+	return vfio_enabled;
 }
 
 int
