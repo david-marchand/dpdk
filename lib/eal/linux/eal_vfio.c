@@ -1159,7 +1159,7 @@ out:
 
 RTE_EXPORT_INTERNAL_SYMBOL(rte_vfio_enable)
 int
-rte_vfio_enable(const char *modname)
+rte_vfio_enable(void)
 {
 	/* initialize group list */
 	unsigned int i, j;
@@ -1189,7 +1189,7 @@ rte_vfio_enable(const char *modname)
 	EAL_LOG(DEBUG, "Probing VFIO support...");
 
 	/* check if vfio module is loaded */
-	vfio_available = vfio_check_module(modname);
+	vfio_available = vfio_check_module("vfio");
 
 	/* return error directly */
 	if (vfio_available == -1) {
