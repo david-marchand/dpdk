@@ -5,9 +5,9 @@
 
 #include <unistd.h>
 
+#include <eal_interrupts.h>
 #include <rte_ether.h>
 #include <ethdev_driver.h>
-#include <rte_interrupts.h>
 #include <rte_alarm.h>
 #include <rte_cycles.h>
 

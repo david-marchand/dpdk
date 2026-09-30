@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#include <eal_interrupts.h>
 #include <rte_eal.h>
 #include <rte_eal_paging.h>
 #include <rte_pci.h>

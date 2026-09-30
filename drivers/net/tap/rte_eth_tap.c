@@ -2,6 +2,7 @@
  * Copyright(c) 2016-2017 Intel Corporation
  */
 
+#include <eal_interrupts.h>
 #include <rte_atomic.h>
 #include <rte_branch_prediction.h>
 #include <rte_byteorder.h>

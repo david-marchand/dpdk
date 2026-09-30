@@ -13,6 +13,7 @@
 #include <linux/virtio_net.h>
 #include <stdbool.h>
 
+#include <eal_interrupts.h>
 #include <rte_eal_paging.h>
 #include <rte_malloc.h>
 #include <rte_memory.h>

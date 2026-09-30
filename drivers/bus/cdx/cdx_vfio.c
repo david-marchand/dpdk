@@ -21,6 +21,7 @@
 #include <sys/mman.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_eal_paging.h>
 #include <rte_malloc.h>
 #include <rte_vfio.h>

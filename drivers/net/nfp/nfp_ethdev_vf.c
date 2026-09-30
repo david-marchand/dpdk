@@ -5,7 +5,9 @@
  * Small portions derived from code Copyright(c) 2010-2015 Intel Corporation.
  */
 
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
+
 #include <nfp_common_pci.h>
 
 #include "nfd3/nfp_nfd3.h"

@@ -11,11 +11,11 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 
+#include <eal_interrupts.h>
 #include <rte_pci.h>
 #include <ethdev_pci.h>
 #include <rte_bus_pci.h>
 #include <rte_bitops.h>
-#include <rte_interrupts.h>
 
 #include "xsc_defs.h"
 #include "xsc_vfio_mbox.h"

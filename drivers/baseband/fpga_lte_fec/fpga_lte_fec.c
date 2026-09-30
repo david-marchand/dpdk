@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <rte_log.h>
 #include <dev_driver.h>

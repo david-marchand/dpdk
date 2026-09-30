@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
+#include <eal_interrupts.h>
 #include <rte_version.h>
 #include <rte_mbuf.h>
 #include <rte_ether.h>

@@ -17,8 +17,8 @@
  * be polled/reprimed (except qmask in the case of legacy line interrupt).
  */
 
+#include <eal_interrupts.h>
 #include <rte_common.h>
-#include <rte_interrupts.h>
 
 #include "efx.h"
 

@@ -2,6 +2,7 @@
  * Copyright(c) 2013-2016 Intel Corporation
  */
 
+#include <eal_interrupts.h>
 #include <ethdev_driver.h>
 #include <ethdev_pci.h>
 #include <rte_malloc.h>

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <rte_lcore.h>
 #include <rte_cycles.h>

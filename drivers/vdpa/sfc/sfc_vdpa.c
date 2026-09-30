@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <sys/queue.h>
 
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <rte_devargs.h>
 #include <rte_errno.h>

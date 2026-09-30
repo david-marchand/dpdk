@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_cycles.h>
 #include <rte_thread.h>
 #include <rte_common.h>
@@ -21,7 +22,6 @@
 #include <rte_malloc.h>
 #include <rte_service_component.h>
 #include <rte_thash.h>
-#include <rte_interrupts.h>
 #include <rte_mbuf_dyn.h>
 #include <rte_telemetry.h>
 

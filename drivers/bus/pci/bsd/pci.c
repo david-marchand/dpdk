@@ -25,7 +25,7 @@
 #include <machine/cpufunc.h>
 #endif
 
-#include <rte_interrupts.h>
+#include <eal_interrupts.h>
 #include <rte_log.h>
 #include <rte_pci.h>
 #include <rte_common.h>

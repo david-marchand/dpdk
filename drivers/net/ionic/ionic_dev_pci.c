@@ -7,8 +7,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#include <eal_interrupts.h>
 #include <rte_common.h>
-#include <rte_interrupts.h>
 #include <rte_log.h>
 #include <rte_pci.h>
 #include <bus_pci_driver.h>

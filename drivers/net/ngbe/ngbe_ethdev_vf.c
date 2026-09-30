@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+
+#include <eal_interrupts.h>
 #include <ethdev_pci.h>
 
 #include "ngbe_logs.h"

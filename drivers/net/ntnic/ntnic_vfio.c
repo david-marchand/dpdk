@@ -4,6 +4,7 @@
 
 #include <sys/ioctl.h>
 
+#include <eal_interrupts.h>
 #include <rte_malloc.h>
 #include <rte_memory.h>
 #include <rte_vfio.h>

@@ -13,6 +13,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <rte_eal.h>
 #include <rte_string_fns.h>

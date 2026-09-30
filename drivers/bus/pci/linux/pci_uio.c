@@ -15,6 +15,7 @@
 #include <sys/io.h>
 #endif
 
+#include <eal_interrupts.h>
 #include <rte_string_fns.h>
 #include <rte_log.h>
 #include <rte_pci.h>

@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#include <eal_interrupts.h>
 #include <rte_pci.h>
 #include <bus_pci_driver.h>
 #include <rte_memzone.h>

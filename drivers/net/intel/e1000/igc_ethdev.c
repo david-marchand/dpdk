@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <eal_interrupts.h>
 #include <rte_string_fns.h>
 #include <rte_pci.h>
 #include <bus_pci_driver.h>

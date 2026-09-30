@@ -18,9 +18,9 @@
 #include <stdbool.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <eal_trace_internal.h>
 #include <rte_common.h>
-#include <rte_interrupts.h>
 #include <rte_thread.h>
 #include <rte_per_lcore.h>
 #include <rte_lcore.h>
@@ -1328,7 +1328,6 @@ eal_init_tls_epfd(void)
 	return pfd;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_tls_epfd)
 int
 rte_intr_tls_epfd(void)
 {

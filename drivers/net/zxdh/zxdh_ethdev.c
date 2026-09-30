@@ -2,6 +2,7 @@
  * Copyright(c) 2024 ZTE Corporation
  */
 
+#include <eal_interrupts.h>
 #include <ethdev_pci.h>
 #include <bus_pci_driver.h>
 #include <rte_ethdev.h>

@@ -21,11 +21,11 @@
 #pragma GCC diagnostic error "-Wpedantic"
 #endif
 
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
 #include <rte_errno.h>
 #include <ethdev_driver.h>
 #include <rte_io.h>
-#include <rte_interrupts.h>
 
 #include "mlx4.h"
 #include "mlx4_glue.h"

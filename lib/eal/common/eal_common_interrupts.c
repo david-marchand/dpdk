@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include <rte_errno.h>
-#include <rte_interrupts.h>
 #include <rte_log.h>
 #include <rte_malloc.h>
 
@@ -98,7 +97,6 @@ fail:
 	return NULL;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_instance_dup)
 struct rte_intr_handle *rte_intr_instance_dup(const struct rte_intr_handle *src)
 {
 	struct rte_intr_handle *intr_handle;
@@ -335,7 +333,6 @@ fail:
 	return -rte_errno;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_efd_counter_size_get)
 int rte_intr_efd_counter_size_get(const struct rte_intr_handle *intr_handle)
 {
 	CHECK_VALID_INTR_HANDLE(intr_handle);
@@ -383,7 +380,6 @@ fail:
 	return -rte_errno;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_elist_index_get)
 struct rte_epoll_event *rte_intr_elist_index_get(
 	struct rte_intr_handle *intr_handle, int index)
 {
@@ -401,7 +397,6 @@ fail:
 	return NULL;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_elist_index_set)
 int rte_intr_elist_index_set(struct rte_intr_handle *intr_handle,
 	int index, struct rte_epoll_event elist)
 {

@@ -5,6 +5,7 @@
 #ifndef _ROC_PLATFORM_H_
 #define _ROC_PLATFORM_H_
 
+#include <eal_interrupts.h>
 #include <rte_compat.h>
 #include <rte_alarm.h>
 #include <rte_bitmap.h>
@@ -13,7 +14,6 @@
 #include <rte_common.h>
 #include <rte_cycles.h>
 #include <rte_ether.h>
-#include <rte_interrupts.h>
 #include <rte_io.h>
 #include <rte_lcore.h>
 #include <rte_log.h>
@@ -163,7 +163,6 @@ plt_thread_is_valid(plt_thread_t thr)
 	return thr.opaque_id ? true : false;
 }
 
-#define plt_intr_efd_counter_size_get	rte_intr_efd_counter_size_get
 #define plt_intr_efd_counter_size_set	rte_intr_efd_counter_size_set
 #define plt_intr_vec_list_index_get	rte_intr_vec_list_index_get
 #define plt_intr_vec_list_index_set	rte_intr_vec_list_index_set
@@ -176,7 +175,6 @@ plt_thread_is_valid(plt_thread_t thr)
 #define plt_intr_type_get		rte_intr_type_get
 #define plt_intr_type_set		rte_intr_type_set
 #define plt_intr_instance_alloc		rte_intr_instance_alloc
-#define plt_intr_instance_dup		rte_intr_instance_dup
 #define plt_intr_instance_free		rte_intr_instance_free
 #define plt_intr_event_list_update	rte_intr_event_list_update
 #define plt_intr_max_intr_get		rte_intr_max_intr_get
@@ -187,8 +185,6 @@ plt_thread_is_valid(plt_thread_t thr)
 #define plt_intr_nb_intr_set		rte_intr_nb_intr_set
 #define plt_intr_efds_index_get		rte_intr_efds_index_get
 #define plt_intr_efds_index_set		rte_intr_efds_index_set
-#define plt_intr_elist_index_get	rte_intr_elist_index_get
-#define plt_intr_elist_index_set	rte_intr_elist_index_set
 #define plt_is_aligned			rte_is_aligned
 
 #define plt_alarm_set	 rte_eal_alarm_set

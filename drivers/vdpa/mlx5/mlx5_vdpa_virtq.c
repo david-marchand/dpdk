@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/eventfd.h>
 
+#include <eal_interrupts.h>
 #include <rte_malloc.h>
 #include <rte_errno.h>
 #include <rte_io.h>

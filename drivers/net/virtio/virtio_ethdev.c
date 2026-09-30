@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <eal_interrupts.h>
 #include <ethdev_driver.h>
 #include <rte_memcpy.h>
 #include <rte_string_fns.h>

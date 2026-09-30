@@ -7,6 +7,7 @@
 
 #include "nfp_net_common.h"
 
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
 
 #include "flower/nfp_flower_cmsg.h"

@@ -12,6 +12,7 @@
 
 #include <dev_driver.h>
 #include <rte_bitset.h>
+#include <rte_epoll.h>
 #include <rte_lcore.h>
 #include <rte_log.h>
 #include <rte_memory.h>
@@ -783,5 +784,83 @@ int eal_asprintf(char **buffer, const char *format, ...);
 
 #define EAL_LOG(level, ...) \
 	RTE_LOG_LINE(level, EAL, "" __VA_ARGS__)
+
+struct rte_intr_handle;
+
+/**
+ * @internal
+ * The function returns the per thread epoll instance.
+ *
+ * @return
+ *   epfd the epoll instance referred to.
+ */
+int
+rte_intr_tls_epfd(void);
+
+/**
+ * @internal
+ * Creates a clone of src by allocating a new handle and copying src content.
+ *
+ * @param src
+ *  Source interrupt handle to be cloned.
+ *
+ * @return
+ *  - On success, address of interrupt handle.
+ *  - On failure, NULL.
+ */
+struct rte_intr_handle *
+rte_intr_instance_dup(const struct rte_intr_handle *src);
+
+/**
+ * @internal
+ * Returns the event fd counter size field of the given interrupt handle
+ * instance.
+ *
+ * @param intr_handle
+ *  pointer to the interrupt handle.
+ *
+ * @return
+ *  - On success, efd_counter_size
+ *  - On failure, a negative value and rte_errno is set.
+ */
+int
+rte_intr_efd_counter_size_get(const struct rte_intr_handle *intr_handle);
+
+/**
+ * @internal
+ * Set the epoll event object array index with the given
+ * elist instance.
+ *
+ * @param intr_handle
+ *  pointer to the interrupt handle.
+ * @param index
+ *  elist array index to be set
+ * @param elist
+ *  epoll event instance of struct rte_epoll_event
+ *
+ * @return
+ *  - On success, zero.
+ *  - On failure, a negative value and rte_errno is set.
+ */
+int
+rte_intr_elist_index_set(struct rte_intr_handle *intr_handle, int index,
+			 struct rte_epoll_event elist);
+
+/**
+ * @internal
+ * Returns the address of epoll event instance from elist array at a given
+ * index.
+ *
+ * @param intr_handle
+ *  pointer to the interrupt handle.
+ * @param index
+ *  elist array index to be returned
+ *
+ * @return
+ *  - On success, elist
+ *  - On failure, a negative value and rte_errno is set.
+ */
+struct rte_epoll_event *
+rte_intr_elist_index_get(struct rte_intr_handle *intr_handle, int index);
 
 #endif /* _EAL_PRIVATE_H_ */

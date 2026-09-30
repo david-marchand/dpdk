@@ -8,9 +8,9 @@
 #include <stdint.h>
 #include <stdarg.h>
 
+#include <eal_interrupts.h>
 #include <rte_string_fns.h>
 #include <rte_common.h>
-#include <rte_interrupts.h>
 #include <rte_byteorder.h>
 #include <rte_log.h>
 #include <rte_debug.h>

@@ -13,10 +13,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
 #include <rte_errno.h>
 #include <rte_ethdev.h>
-#include <rte_interrupts.h>
 #include <rte_io.h>
 #include <rte_service_component.h>
 

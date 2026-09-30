@@ -14,6 +14,7 @@
 #include <fcntl.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_errno.h>
 #include <rte_string_fns.h>
 #include <bus_pci_driver.h>

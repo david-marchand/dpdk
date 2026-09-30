@@ -3,6 +3,7 @@
  * All rights reserved.
  */
 
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
 #include <rte_string_fns.h>
 #include <rte_errno.h>

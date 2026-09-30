@@ -15,6 +15,7 @@
 #include <linux/ethtool.h>
 #include <fcntl.h>
 
+#include <eal_interrupts.h>
 #include <rte_malloc.h>
 #include <ethdev_driver.h>
 #include <ethdev_pci.h>

@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include <eal_firmware.h>
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
 #include <rte_kvargs.h>
 #include <rte_pci.h>

@@ -12,11 +12,11 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <inttypes.h>
+
+#include <eal_interrupts.h>
 #include <rte_byteorder.h>
 #include <rte_common.h>
 #include <rte_os_shim.h>
-
-#include <rte_interrupts.h>
 #include <rte_debug.h>
 #include <rte_pci.h>
 #include <rte_alarm.h>

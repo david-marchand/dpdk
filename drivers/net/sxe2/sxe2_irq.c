@@ -5,10 +5,12 @@
 #include <stdint.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
+#include <fcntl.h>
+
+#include <eal_interrupts.h>
 #include <ethdev_pci.h>
 #include <ethdev_driver.h>
 #include <rte_alarm.h>
-#include <fcntl.h>
 #include <rte_stdatomic.h>
 #include <rte_common.h>
 

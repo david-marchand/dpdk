@@ -11,11 +11,11 @@
 #include <sys/queue.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_mbuf.h>
 #include <rte_malloc.h>
 #include <ethdev_driver.h>
 #include <rte_common.h>
-#include <rte_interrupts.h>
 #include <rte_debug.h>
 #include <rte_io.h>
 #include <rte_eal_paging.h>

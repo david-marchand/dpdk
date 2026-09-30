@@ -12,6 +12,8 @@
 
 #include <nfp_common_pci.h>
 #include <nfp_dev.h>
+
+#include <eal_interrupts.h>
 #include <rte_vfio.h>
 #include <rte_eal_paging.h>
 #include <rte_malloc.h>

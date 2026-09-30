@@ -15,6 +15,7 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 
+#include <eal_interrupts.h>
 #include <rte_eal.h>
 #include <rte_malloc.h>
 #include <rte_memcpy.h>

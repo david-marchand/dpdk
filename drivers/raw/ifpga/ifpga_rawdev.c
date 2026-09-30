@@ -11,6 +11,7 @@
 #include <sys/ioctl.h>
 #include <sys/epoll.h>
 
+#include <eal_interrupts.h>
 #include <rte_log.h>
 #include <rte_malloc.h>
 #include <rte_devargs.h>
@@ -19,7 +20,6 @@
 #include <bus_pci_driver.h>
 #include <rte_kvargs.h>
 #include <rte_alarm.h>
-#include <rte_interrupts.h>
 #include <rte_errno.h>
 #include <rte_per_lcore.h>
 #include <rte_memory.h>

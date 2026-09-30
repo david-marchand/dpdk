@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+
+#include <eal_interrupts.h>
 #include <rte_log.h>
 #include <ethdev_pci.h>
 #include <rte_alarm.h>

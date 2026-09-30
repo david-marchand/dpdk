@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <eal_interrupts.h>
 #include <rte_alarm.h>
 #include <rte_string_fns.h>
 #include <rte_eal_memconfig.h>

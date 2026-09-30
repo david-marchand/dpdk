@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <sys/epoll.h>
 
+#include <eal_interrupts.h>
 #include <eal_export.h>
 #include <rte_mbuf.h>
 #include <ethdev_driver.h>

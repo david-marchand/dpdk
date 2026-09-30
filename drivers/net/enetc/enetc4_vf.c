@@ -3,6 +3,8 @@
  */
 
 #include <stdbool.h>
+
+#include <eal_interrupts.h>
 #include <rte_bus_pci.h>
 #include <rte_kvargs.h>
 #include <rte_random.h>

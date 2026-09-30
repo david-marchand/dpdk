@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_mbuf.h>
 #include <ethdev_driver.h>
 #include <rte_malloc.h>

@@ -2,6 +2,7 @@
  * Copyright(C) 2021 HiSilicon Limited
  */
 
+#include <eal_interrupts.h>
 #include <rte_kvargs.h>
 #include <bus_pci_driver.h>
 #include <ethdev_pci.h>

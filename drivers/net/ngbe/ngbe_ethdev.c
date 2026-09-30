@@ -4,6 +4,8 @@
  */
 
 #include <errno.h>
+
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <ethdev_pci.h>
 

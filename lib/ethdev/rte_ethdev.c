@@ -13,8 +13,8 @@
 
 #include <bus_driver.h>
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_log.h>
-#include <rte_interrupts.h>
 #include <rte_kvargs.h>
 #include <rte_memcpy.h>
 #include <rte_common.h>

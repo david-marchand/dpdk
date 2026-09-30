@@ -3,7 +3,7 @@
  */
 
 #include <eal_export.h>
-#include <rte_interrupts.h>
+#include <eal_interrupts.h>
 
 #include "eal_private.h"
 #include "eal_windows.h"
@@ -297,7 +297,6 @@ rte_epoll_ctl(int epfd, int op, int fd, struct rte_epoll_event *event)
 	return -ENOTSUP;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_intr_tls_epfd)
 int
 rte_intr_tls_epfd(void)
 {

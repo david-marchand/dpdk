@@ -14,9 +14,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <eal_interrupts.h>
 #include <rte_eth_tap.h>
 #include <rte_errno.h>
-#include <rte_interrupts.h>
 
 
 /**

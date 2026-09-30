@@ -2,6 +2,7 @@
  * Copyright(c) 2018 Intel Corporation
  */
 
+#include <eal_interrupts.h>
 #include <rte_string_fns.h>
 #include <rte_alarm.h>
 #include <ethdev_pci.h>

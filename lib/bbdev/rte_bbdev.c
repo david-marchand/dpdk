@@ -8,6 +8,7 @@
 #include <sys/queue.h>
 
 #include <eal_export.h>
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <rte_errno.h>
 #include <rte_log.h>
@@ -17,7 +18,6 @@
 #include <rte_memzone.h>
 #include <rte_lcore.h>
 #include <rte_spinlock.h>
-#include <rte_interrupts.h>
 
 #include "rte_bbdev_op.h"
 #include "rte_bbdev.h"

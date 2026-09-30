@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 
+#include <eal_interrupts.h>
 #include <rte_common.h>
 #include <rte_log.h>
 #include <rte_dev.h>
