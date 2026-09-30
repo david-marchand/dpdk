@@ -2,6 +2,7 @@
  * Copyright (c) 2022 Marvell.
  */
 
+#include <eal_internal.h>
 #include <rte_common.h>
 #include <rte_dev.h>
 #include <rte_devargs.h>

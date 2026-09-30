@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#include <eal_internal.h>
 #include <rte_string_fns.h> /* strlcpy */
 #include <rte_devargs.h>
 #include <rte_eal.h>

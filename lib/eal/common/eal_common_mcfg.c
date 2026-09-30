@@ -6,6 +6,7 @@
 #include <rte_version.h>
 
 #include <eal_export.h>
+#include <eal_internal.h>
 #include "eal_internal_cfg.h"
 #include "eal_memcfg.h"
 #include "eal_private.h"

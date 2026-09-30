@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#include <eal_internal.h>
 #include <rte_kvargs.h>
 #include <rte_telemetry.h>
 

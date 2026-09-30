@@ -61,6 +61,7 @@ headers += files(
 driver_sdk_headers = files(
         'bus_driver.h',
         'dev_driver.h',
+        'eal_internal.h',
         'eal_interrupts.h',
         'eal_thread.h',
 )

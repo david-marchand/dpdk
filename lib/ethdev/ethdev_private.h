@@ -7,6 +7,7 @@
 
 #include <sys/queue.h>
 
+#include <eal_internal.h>
 #include <rte_eal_memconfig.h>
 #include <rte_malloc.h>
 #include <rte_os_shim.h>

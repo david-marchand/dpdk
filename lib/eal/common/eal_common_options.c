@@ -36,6 +36,7 @@
 #include <rte_vect.h>
 
 #include <rte_argparse.h>
+#include <eal_internal.h>
 #include <eal_export.h>
 #include "eal_internal_cfg.h"
 #include "eal_options.h"
