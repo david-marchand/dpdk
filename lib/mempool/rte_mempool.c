@@ -15,6 +15,7 @@
 #include <sys/queue.h>
 
 #include <eal_export.h>
+#include <mempool_internal.h>
 #include <rte_common.h>
 #include <rte_log.h>
 #include <rte_debug.h>

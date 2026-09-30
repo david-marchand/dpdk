@@ -12,6 +12,7 @@
 #include <fcntl.h>
 
 #include <eal_export.h>
+#include <mempool_internal.h>
 #include <rte_malloc.h>
 #include <ethdev_driver.h>
 #include <rte_pci.h>

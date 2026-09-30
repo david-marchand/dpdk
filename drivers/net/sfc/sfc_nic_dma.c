@@ -2,7 +2,7 @@
  * Copyright(c) 2021 Xilinx, Inc.
  */
 
-#include <rte_mempool.h>
+#include <mempool_internal.h>
 #include <rte_memzone.h>
 
 #include "efx.h"

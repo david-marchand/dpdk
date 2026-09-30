@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <sys/queue.h>
 
+#include <mempool_internal.h>
 #include <rte_common.h>
 #include <rte_eal_paging.h>
 #include <rte_log.h>
@@ -25,7 +26,6 @@
 #include <rte_per_lcore.h>
 #include <rte_lcore.h>
 #include <rte_branch_prediction.h>
-#include <rte_mempool.h>
 #include <rte_spinlock.h>
 #include <rte_malloc.h>
 #include <rte_mbuf_pool_ops.h>

@@ -8,8 +8,8 @@
 #include <pthread.h>
 
 #include <eal_export.h>
+#include <mempool_internal.h>
 #include <rte_errno.h>
-#include <rte_mempool.h>
 #include <rte_class.h>
 #include <rte_malloc.h>
 #include <rte_eal_paging.h>
