@@ -12,6 +12,7 @@
 #include <sys/epoll.h>
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <rte_log.h>
 #include <rte_malloc.h>
 #include <rte_devargs.h>

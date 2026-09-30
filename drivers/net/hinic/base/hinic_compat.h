@@ -9,6 +9,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <pthread.h>
+
+#include <eal_thread.h>
 #include <rte_common.h>
 #include <rte_bitops.h>
 #include <rte_byteorder.h>
@@ -19,7 +21,6 @@
 #include <rte_spinlock.h>
 #include <rte_cycles.h>
 #include <rte_log.h>
-#include <rte_thread.h>
 
 typedef uint8_t   u8;
 typedef int8_t    s8;

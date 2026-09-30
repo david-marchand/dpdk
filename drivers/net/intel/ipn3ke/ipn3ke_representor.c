@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <eal_thread.h>
 #include <bus_pci_driver.h>
 #include <rte_ethdev.h>
 #include <rte_pci.h>

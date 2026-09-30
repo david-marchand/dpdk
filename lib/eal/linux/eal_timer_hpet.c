@@ -8,8 +8,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <eal_thread.h>
 #include <rte_cycles.h>
-#include <rte_thread.h>
 
 #include <eal_export.h>
 #include "eal_private.h"

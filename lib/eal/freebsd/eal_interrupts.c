@@ -10,6 +10,7 @@
 
 #include <eal_export.h>
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <eal_trace_internal.h>
 #include <rte_errno.h>
 #include <rte_lcore.h>

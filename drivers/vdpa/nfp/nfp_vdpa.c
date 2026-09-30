@@ -14,6 +14,7 @@
 #include <nfp_dev.h>
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <rte_vfio.h>
 #include <rte_eal_paging.h>
 #include <rte_malloc.h>

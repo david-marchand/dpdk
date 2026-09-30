@@ -3,6 +3,7 @@
  * All rights reserved.
  */
 
+#include <eal_thread.h>
 #include <rte_log.h>
 #include <rte_malloc.h>
 #include <rte_flow.h>

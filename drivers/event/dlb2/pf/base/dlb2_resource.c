@@ -2,6 +2,8 @@
  * Copyright(c) 2016-2020 Intel Corporation
  */
 
+#include <eal_thread.h>
+
 #include "dlb2_user.h"
 
 #include "dlb2_hw_types.h"

@@ -2,6 +2,8 @@
  * Copyright 2025 Nebulamatrix Technology Co., Ltd.
  */
 
+#include <eal_thread.h>
+
 #include "nbl_channel.h"
 
 static int nbl_chan_send_ack(void *priv, struct nbl_chan_ack_info *chan_ack);

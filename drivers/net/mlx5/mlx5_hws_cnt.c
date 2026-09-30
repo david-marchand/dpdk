@@ -3,13 +3,14 @@
  */
 
 #include <stdint.h>
+
+#include <eal_thread.h>
 #include <rte_malloc.h>
 #include <mlx5_malloc.h>
 #include <rte_ring.h>
 #include <mlx5_devx_cmds.h>
 #include <rte_cycles.h>
 #include <rte_eal_paging.h>
-#include <rte_thread.h>
 
 #if defined(HAVE_IBV_FLOW_DV_SUPPORT) || !defined(HAVE_INFINIBAND_VERBS_H)
 

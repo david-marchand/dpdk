@@ -6,6 +6,7 @@
 #define _ROC_PLATFORM_H_
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <rte_compat.h>
 #include <rte_alarm.h>
 #include <rte_bitmap.h>

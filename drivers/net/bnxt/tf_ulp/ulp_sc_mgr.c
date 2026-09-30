@@ -5,10 +5,13 @@
 
 #include <sched.h>
 #include <unistd.h>
+
+#include <eal_thread.h>
 #include <rte_common.h>
 #include <rte_cycles.h>
 #include <rte_malloc.h>
 #include <rte_log.h>
+
 #include "bnxt.h"
 #include "bnxt_ulp.h"
 #include "bnxt_ulp_utils.h"

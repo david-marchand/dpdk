@@ -19,6 +19,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <eal_thread.h>
 #include <rte_alarm.h>
 #include <rte_common.h>
 #include <rte_cycles.h>
@@ -26,7 +27,6 @@
 #include <rte_errno.h>
 #include <rte_lcore.h>
 #include <rte_log.h>
-#include <rte_thread.h>
 
 #include <eal_export.h>
 #include "eal_memcfg.h"

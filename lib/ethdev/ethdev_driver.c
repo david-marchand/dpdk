@@ -8,6 +8,7 @@
 #include <pthread.h>
 
 #include <eal_export.h>
+#include <eal_thread.h>
 #include <rte_kvargs.h>
 #include <rte_malloc.h>
 

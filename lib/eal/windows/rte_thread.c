@@ -7,11 +7,11 @@
 #include <wchar.h>
 
 #include <eal_export.h>
+#include <eal_thread.h>
 #include <rte_eal.h>
 #include <rte_common.h>
 #include <rte_errno.h>
 #include <rte_stdatomic.h>
-#include <rte_thread.h>
 
 #include "eal_private.h"
 #include "eal_windows.h"

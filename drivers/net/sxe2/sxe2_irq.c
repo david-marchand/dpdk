@@ -8,6 +8,7 @@
 #include <fcntl.h>
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <ethdev_pci.h>
 #include <ethdev_driver.h>
 #include <rte_alarm.h>

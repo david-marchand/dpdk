@@ -4,6 +4,7 @@
 
 #include <eal_export.h>
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 
 #include "eal_private.h"
 #include "eal_windows.h"

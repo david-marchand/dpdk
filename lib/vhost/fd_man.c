@@ -9,10 +9,10 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 
+#include <eal_thread.h>
 #include <rte_common.h>
 #include <rte_log.h>
 #include <rte_string_fns.h>
-#include <rte_thread.h>
 
 #include "fd_man.h"
 

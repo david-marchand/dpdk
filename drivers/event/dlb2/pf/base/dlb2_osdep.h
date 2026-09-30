@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <eal_thread.h>
 #include <rte_string_fns.h>
 #include <rte_cycles.h>
 #include <rte_io.h>

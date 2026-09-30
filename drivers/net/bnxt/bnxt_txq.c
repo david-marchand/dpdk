@@ -5,6 +5,7 @@
 
 #include <inttypes.h>
 
+#include <eal_thread.h>
 #include <rte_malloc.h>
 
 #include "bnxt.h"

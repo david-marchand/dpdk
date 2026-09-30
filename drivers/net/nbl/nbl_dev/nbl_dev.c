@@ -2,6 +2,8 @@
  * Copyright 2025 Nebulamatrix Technology Co., Ltd.
  */
 
+#include <eal_thread.h>
+
 #include "nbl_dev.h"
 
 static int nbl_dev_port_configure(struct nbl_adapter *adapter)

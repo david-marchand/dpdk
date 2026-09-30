@@ -12,7 +12,7 @@
 
 #include "eal_filesystem.h"
 
-#include <rte_thread.h>
+#include <eal_thread.h>
 #include <rte_vect.h>
 
 #ifdef RTE_ARCH_X86

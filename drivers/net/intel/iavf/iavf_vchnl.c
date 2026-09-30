@@ -14,6 +14,7 @@
 #include <rte_common.h>
 #include <rte_os_shim.h>
 
+#include <eal_thread.h>
 #include <rte_debug.h>
 #include <rte_alarm.h>
 #include <rte_atomic.h>

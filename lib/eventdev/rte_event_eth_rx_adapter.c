@@ -12,8 +12,8 @@
 
 #include <eal_export.h>
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <rte_cycles.h>
-#include <rte_thread.h>
 #include <rte_common.h>
 #include <dev_driver.h>
 #include <rte_errno.h>

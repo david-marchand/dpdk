@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause
  * Copyright(C) 2024 Marvell.
  */
+#include <eal_thread.h>
+
 #include <cnxk_rep.h>
 #include <cnxk_rep_msg.h>
 

@@ -10,6 +10,7 @@
 #include <net/if.h>
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <ethdev_driver.h>
 #include <ethdev_pci.h>
 #include <rte_kvargs.h>

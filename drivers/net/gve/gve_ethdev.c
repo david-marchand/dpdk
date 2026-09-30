@@ -10,6 +10,7 @@
 #include "gve_version.h"
 #include "rte_ether.h"
 #include "gve_rss.h"
+#include <eal_thread.h>
 #include <ethdev_driver.h>
 
 static int gve_init_priv(struct gve_priv *priv, bool skip_describe_device);

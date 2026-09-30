@@ -7,6 +7,7 @@
 #include <dlfcn.h>
 
 #include <bus_pci_driver.h>
+#include <eal_thread.h>
 #include <ethdev_pci.h>
 #include <rte_kvargs.h>
 

@@ -3,6 +3,7 @@
  * Copyright(c) 2020-2021 Xilinx, Inc.
  */
 
+#include <eal_thread.h>
 #include <rte_common.h>
 #include <rte_service_component.h>
 

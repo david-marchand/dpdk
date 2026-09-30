@@ -15,7 +15,7 @@
 #include <fcntl.h>
 
 #include <eal_export.h>
-#include <rte_thread.h>
+#include <eal_thread.h>
 #include <rte_log.h>
 
 #include "fd_man.h"

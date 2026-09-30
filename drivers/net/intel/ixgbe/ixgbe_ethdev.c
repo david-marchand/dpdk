@@ -16,6 +16,7 @@
 #include <rte_cycles.h>
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <rte_log.h>
 #include <rte_debug.h>
 #include <rte_pci.h>

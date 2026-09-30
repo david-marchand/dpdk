@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <eal_thread.h>
 #include <rte_spinlock.h>
 
 #include "ice_dcf_ethdev.h"

@@ -3,10 +3,10 @@
  */
 
 #include <eal_interrupts.h>
+#include <eal_thread.h>
 #include <rte_string_fns.h>
 #include <ethdev_pci.h>
 #include <rte_alarm.h>
-#include <rte_thread.h>
 
 #include "atl_ethdev.h"
 #include "atl_common.h"
