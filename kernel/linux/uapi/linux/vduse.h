@@ -2,7 +2,7 @@
 #ifndef _VDUSE_H_
 #define _VDUSE_H_
 
-#include <linux/types.h>
+#include <uapi/linux/types.h>
 
 #define VDUSE_BASE	0x81
 

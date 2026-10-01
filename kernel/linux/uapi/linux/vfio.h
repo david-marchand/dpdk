@@ -12,7 +12,7 @@
 #ifndef VFIO_H
 #define VFIO_H
 
-#include <linux/types.h>
+#include <uapi/linux/types.h>
 #include <linux/ioctl.h>
 #include <uapi/linux/stddef.h>
 
