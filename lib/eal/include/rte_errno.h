@@ -41,17 +41,9 @@ RTE_DECLARE_PER_LCORE(int, _rte_errno); /**< Per core error number. */
  */
 const char *rte_strerror(int errnum);
 
-#ifndef __ELASTERROR
-/**
- * Check if we have a defined value for the max system-defined errno values.
- * if no max defined, start from 1000 to prevent overlap with standard values
- */
-#define __ELASTERROR 1000
-#endif
-
 /** Error types */
 enum {
-	RTE_MIN_ERRNO = __ELASTERROR, /**< Start numbering above std errno vals */
+	RTE_MIN_ERRNO = 1000, /**< Start numbering above std errno vals */
 
 	E_RTE_SECONDARY, /**< Operation not allowed in secondary processes */
 	E_RTE_NO_CONFIG, /**< Missing rte_config */
