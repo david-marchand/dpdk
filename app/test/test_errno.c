@@ -13,13 +13,17 @@
 
 #include "test.h"
 
+#if defined (RTE_EXEC_ENV_WINDOWS) || (defined(RTE_EXEC_ENV_LINUX) && !defined(__GLIBC__))
+#define FIXED_ERRNO_STRING
+#endif
+
 static int
 test_errno(void)
 {
 	const char *rte_retval;
 	const char *libc_retval;
 
-#ifndef RTE_EXEC_ENV_WINDOWS
+#ifndef FIXED_ERRNO_STRING
 #ifdef RTE_EXEC_ENV_FREEBSD
 	/* BSD has a colon in the string, unlike linux */
 	const char unknown_code_result[] = "Unknown error: %d";
@@ -28,8 +32,12 @@ test_errno(void)
 #endif
 	char expected_libc_retval[sizeof(unknown_code_result) + 3];
 #else
+#ifdef RTE_EXEC_ENV_WINDOWS
 	/* Windows doesn't return error number for error greater than MAX_errno*/
 	static const char expected_libc_retval[] = "Unknown error";
+#else
+	static const char expected_libc_retval[] = "No error information";
+#endif
 #endif
 
 	/* use a small selection of standard errors for testing */
@@ -60,7 +68,7 @@ test_errno(void)
 				rte_retval, libc_retval);
 		if (strcmp(rte_retval, libc_retval) == 0)
 			return -1;
-#ifndef RTE_EXEC_ENV_WINDOWS
+#ifndef FIXED_ERRNO_STRING
 		/* generate appropriate error string for unknown error number
 		 * and then check that this is what we got back. If not, we have
 		 * a duplicate error number that conflicts with errno.h */
@@ -77,7 +85,7 @@ test_errno(void)
 	/* ensure that beyond RTE_MAX_ERRNO, we always get an unknown code */
 	rte_retval = rte_strerror(RTE_MAX_ERRNO + 1);
 	libc_retval = strerror(RTE_MAX_ERRNO + 1);
-#ifndef RTE_EXEC_ENV_WINDOWS
+#ifndef FIXED_ERRNO_STRING
 	snprintf(expected_libc_retval, sizeof(expected_libc_retval),
 			unknown_code_result, RTE_MAX_ERRNO + 1);
 #endif
