@@ -33,9 +33,7 @@
 #ifdef RTE_LIBRTE_VHOST_NUMA
 #include <numaif.h>
 #endif
-#ifdef RTE_LIBRTE_VHOST_POSTCOPY
 #include <linux/userfaultfd.h>
-#endif
 #include <linux/memfd.h>
 
 #include <eal_export.h>
@@ -1166,7 +1164,6 @@ vhost_memory_changed(struct VhostUserMemory *new,
 	return false;
 }
 
-#ifdef RTE_LIBRTE_VHOST_POSTCOPY
 static int
 vhost_user_postcopy_region_register(struct virtio_net *dev,
 		struct rte_vhost_mem_region *reg)
@@ -1202,14 +1199,6 @@ vhost_user_postcopy_region_register(struct virtio_net *dev,
 
 	return 0;
 }
-#else
-static int
-vhost_user_postcopy_region_register(struct virtio_net *dev __rte_unused,
-		struct rte_vhost_mem_region *reg __rte_unused)
-{
-	return -1;
-}
-#endif
 
 static int
 vhost_user_postcopy_register(struct virtio_net *dev, int main_fd,
@@ -2922,7 +2911,6 @@ vhost_user_set_postcopy_advise(struct virtio_net **pdev,
 			int main_fd __rte_unused)
 {
 	struct virtio_net *dev = *pdev;
-#ifdef RTE_LIBRTE_VHOST_POSTCOPY
 	struct uffdio_api api_struct;
 
 	dev->postcopy_ufd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK);
@@ -2947,12 +2935,6 @@ vhost_user_set_postcopy_advise(struct virtio_net **pdev,
 	ctx->fd_num = 1;
 
 	return RTE_VHOST_MSG_RESULT_REPLY;
-#else
-	dev->postcopy_ufd = -1;
-	ctx->fd_num = 0;
-
-	return RTE_VHOST_MSG_RESULT_ERR;
-#endif
 }
 
 static int

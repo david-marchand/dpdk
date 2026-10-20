@@ -880,9 +880,6 @@ mbuf_to_desc(struct virtio_net *dev, struct vhost_virtqueue *vq,
 	uint64_t buf_addr, buf_iova, buf_len;
 	uint32_t cpy_len;
 
-	if (unlikely(m == NULL))
-		return -1;
-
 	buf_addr = buf_vec[vec_idx].buf_addr;
 	buf_iova = buf_vec[vec_idx].buf_iova;
 	buf_len = buf_vec[vec_idx].buf_len;

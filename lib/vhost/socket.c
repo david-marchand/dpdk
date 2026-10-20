@@ -1006,11 +1006,6 @@ rte_vhost_driver_register(const char *path, uint64_t flags)
 	if (!(flags & RTE_VHOST_USER_POSTCOPY_SUPPORT)) {
 		vsocket->protocol_features &=
 			~(1ULL << VHOST_USER_PROTOCOL_F_PAGEFAULT);
-	} else {
-#ifndef RTE_LIBRTE_VHOST_POSTCOPY
-		VHOST_CONFIG_LOG(path, ERR, "Postcopy requested but not compiled");
-		goto out_mutex;
-#endif
 	}
 
 	if (!vsocket->is_vduse) {

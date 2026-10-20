@@ -8,7 +8,6 @@ endif
 if has_libnuma
     dpdk_conf.set10('RTE_LIBRTE_VHOST_NUMA', true)
 endif
-dpdk_conf.set('RTE_LIBRTE_VHOST_POSTCOPY', cc.has_header('linux/userfaultfd.h'))
 
 cflags += no_wvla_cflag
 
