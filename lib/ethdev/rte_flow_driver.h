@@ -463,12 +463,6 @@ struct __rte_cache_aligned rte_flow_fp_ops {
 	rte_flow_async_action_list_handle_query_update_t async_action_list_handle_query_update;
 };
 
-/**
- * @internal
- * Default implementation of fast path flow API functions.
- */
-extern struct rte_flow_fp_ops rte_flow_fp_default_ops;
-
 #ifdef __cplusplus
 }
 #endif

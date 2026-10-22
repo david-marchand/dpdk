@@ -102,10 +102,6 @@ void rte_gpu_complete_new(struct rte_gpu *dev);
 __rte_internal
 int rte_gpu_release(struct rte_gpu *dev);
 
-/* Call registered callbacks. No multi-process event. */
-__rte_internal
-void rte_gpu_notify(struct rte_gpu *dev, enum rte_gpu_event);
-
 #ifdef __cplusplus
 }
 #endif

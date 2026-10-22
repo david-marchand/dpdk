@@ -8,7 +8,6 @@
 
 #include <rte_errno.h>
 #include <rte_log.h>
-#include <dev_vfio.h>
 #include <rte_eal.h>
 
 #include "eal_private.h"
@@ -59,7 +58,7 @@ vfio_mp_primary(const struct rte_mp_msg *msg, const void *peer)
 	}
 	case VFIO_SOCKET_REQ_CONTAINER:
 		r->req = VFIO_SOCKET_REQ_CONTAINER;
-		fd = dev_vfio_get_container_fd();
+		fd = vfio_get_container_fd();
 		if (fd < 0)
 			r->result = VFIO_SOCKET_ERR;
 		else {

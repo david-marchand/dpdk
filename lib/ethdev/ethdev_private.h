@@ -13,6 +13,8 @@
 
 #include "rte_ethdev.h"
 
+struct rte_flow_fp_ops;
+
 struct eth_dev_shared {
 	uint64_t allocated_owners;
 	uint64_t next_owner_id;
@@ -84,5 +86,24 @@ int eth_dev_tx_queue_config(struct rte_eth_dev *dev, uint16_t nb_queues);
  */
 int eth_stats_qstats_get(uint16_t port_id,
 		struct rte_eth_stats *stats, struct eth_queue_stats *qstats);
+
+/* Dummy callback for queue count. */
+int rte_eth_queue_count_dummy(void *queue);
+
+/* Dummy callback for descriptor status. */
+int rte_eth_descriptor_status_dummy(void *queue, uint16_t offset);
+
+/* Dummy callback for recycle Tx mbufs reuse. */
+uint16_t rte_eth_recycle_tx_mbufs_reuse_dummy(void *queue,
+		struct rte_eth_recycle_rxq_info *recycle_rxq_info);
+
+/* Dummy callback for Rx descriptor refill. */
+void rte_eth_recycle_rx_descriptors_refill_dummy(void *queue, uint16_t nb);
+
+/* Get restore flags for device operation. */
+uint64_t rte_eth_get_restore_flags(struct rte_eth_dev *dev, enum rte_eth_dev_operation op);
+
+/* Default flow fast-path operations. */
+extern struct rte_flow_fp_ops rte_flow_fp_default_ops;
 
 #endif /* _ETH_PRIVATE_H_ */

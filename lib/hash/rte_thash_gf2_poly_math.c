@@ -9,6 +9,8 @@
 #include <rte_thash.h>
 #include <rte_log.h>
 
+#include "thash.h"
+
 #define MAX_POLY_DEGREE 32
 #define MAX_TOEPLITZ_KEY_LENGTH 64
 RTE_LOG_REGISTER_SUFFIX(thash_poly_logtype, thash_poly, INFO);
@@ -242,7 +244,6 @@ thash_test_poly_order(uint32_t poly, int degree)
 	return 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(thash_get_rand_poly)
 uint32_t
 thash_get_rand_poly(uint32_t poly_degree)
 {

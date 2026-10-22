@@ -17,6 +17,8 @@
 #include "rte_gpudev.h"
 #include "gpudev_driver.h"
 
+static void rte_gpu_notify(struct rte_gpu *dev, enum rte_gpu_event);
+
 /* Logging */
 RTE_LOG_REGISTER_DEFAULT(gpu_logtype, NOTICE);
 #define RTE_LOGTYPE_GPUDEV gpu_logtype
@@ -456,8 +458,7 @@ gpu_free_callbacks(struct rte_gpu *dev)
 	rte_rwlock_write_unlock(&gpu_callback_lock);
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_gpu_notify)
-void
+static void
 rte_gpu_notify(struct rte_gpu *dev, enum rte_gpu_event event)
 {
 	int16_t dev_id;

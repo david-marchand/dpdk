@@ -8,6 +8,7 @@
 #include <rte_malloc.h>
 
 #include "rte_mldev_pmd.h"
+#include "mldev_private.h"
 
 RTE_EXPORT_INTERNAL_SYMBOL(rte_ml_dev_pmd_create)
 struct rte_ml_dev *

@@ -43,21 +43,6 @@ struct rte_ml_dev;
 /**
  * @internal
  *
- * Get the ML device pointer for the device. Assumes a valid device index.
- *
- * @param dev_id
- *	Device ID value to select the device structure.
- *
- * @return
- *	The rte_ml_dev pointer for the given device ID.
- */
-__rte_internal
-struct rte_ml_dev *
-rte_ml_dev_pmd_get_dev(int16_t dev_id);
-
-/**
- * @internal
- *
  * Get the rte_ml_dev structure device pointer for the named device.
  *
  * @param name
@@ -69,39 +54,6 @@ rte_ml_dev_pmd_get_dev(int16_t dev_id);
 __rte_internal
 struct rte_ml_dev *
 rte_ml_dev_pmd_get_named_dev(const char *name);
-
-/**
- * @internal
- *
- * Allocates a new mldev slot for an ML device and returns the pointer to that slot for use.
- * Function for internal use by dummy drivers.
- *
- * @param name
- *	Unique identifier name for each device.
- * @param socket_id
- *	Socket to allocate resources.
- *
- * @return
- *	Slot in the rte_ml_dev_devices array for a new device.
- */
-__rte_internal
-struct rte_ml_dev *
-rte_ml_dev_pmd_allocate(const char *name, uint8_t socket_id);
-
-/**
- * @internal
- *
- * Release the specified mldev device.
- *
- * @param dev
- *	ML device.
- * @return
- *	- 0 on success.
- *	- < 0, error code on failure.
- */
-__rte_internal
-int
-rte_ml_dev_pmd_release(struct rte_ml_dev *dev);
 
 /**
  * @internal

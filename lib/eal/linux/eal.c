@@ -39,7 +39,8 @@
 #include <rte_bus.h>
 #include <rte_version.h>
 #include <malloc_heap.h>
-#include <dev_vfio.h>
+
+#include "eal_vfio.h"
 
 #include <telemetry_internal.h>
 #include <eal_export.h>
@@ -817,7 +818,7 @@ rte_eal_init(int argc, char **argv)
 	}
 
 	/* VFIO memory setup that requires DPDK memory to be available. */
-	if (dev_vfio_init_mem() < 0) {
+	if (eal_vfio_init_mem() < 0) {
 		rte_eal_init_alert("Cannot init VFIO memory");
 		rte_errno = EAGAIN;
 		goto err_out;
@@ -995,7 +996,7 @@ rte_eal_cleanup(void)
 
 	rte_service_finalize();
 	eal_bus_cleanup();
-	dev_vfio_cleanup();
+	eal_vfio_cleanup();
 	rte_mp_channel_cleanup();
 	rte_eal_alarm_cleanup();
 	rte_trace_save();

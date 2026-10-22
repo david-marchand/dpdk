@@ -28,6 +28,7 @@
 
 #include "rte_eventdev.h"
 #include "eventdev_pmd.h"
+#include "eventdev_private.h"
 #include "eventdev_trace.h"
 
 RTE_EXPORT_INTERNAL_SYMBOL(rte_event_logtype)

@@ -1276,7 +1276,7 @@ vfio_select_mode(void)
 		return DEV_VFIO_MODE_GROUP;
 	}
 	EAL_LOG(DEBUG, "VFIO group mode not available, trying cdev mode...");
-	/* cdev ops, IOAS and DMA setup are deferred to dev_vfio_init_mem() */
+	/* cdev ops, IOAS and DMA setup are deferred to eal_vfio_init_mem() */
 	if (vfio_cdev_enable(cfg) == 0) {
 		vfio_global_cfg.iova_mode = iova_mode;
 		return DEV_VFIO_MODE_CDEV;
@@ -1362,9 +1362,8 @@ dev_vfio_module_is_loaded(enum dev_vfio_module module)
 	return vfio_check_module(module) > 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(dev_vfio_init_mem)
 int
-dev_vfio_init_mem(void)
+eal_vfio_init_mem(void)
 {
 	struct vfio_container *cfg = vfio_global_cfg.default_cfg;
 
@@ -1435,9 +1434,8 @@ dev_vfio_get_device_info(int vfio_dev_fd, struct vfio_device_info *device_info)
 	return 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(dev_vfio_get_container_fd)
 int
-dev_vfio_get_container_fd(void)
+vfio_get_container_fd(void)
 {
 	/* Return the default container fd if VFIO is enabled.
 	 * The default container is set up during dev_vfio_enable().
@@ -1483,9 +1481,8 @@ dev_vfio_get_group_num(const char *sysfs_base, const char *dev_addr, int *iommu_
 	return 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(dev_vfio_get_device_num)
 int
-dev_vfio_get_device_num(const char *sysfs_base, const char *dev_addr, int *device_num)
+vfio_get_device_num(const char *sysfs_base, const char *dev_addr, int *device_num)
 {
 	int ret;
 
@@ -1887,9 +1884,8 @@ dev_vfio_get_iova_mode(void)
 	return vfio_global_cfg.iova_mode;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(dev_vfio_cleanup)
 void
-dev_vfio_cleanup(void)
+eal_vfio_cleanup(void)
 {
 	struct vfio_container *cfg;
 

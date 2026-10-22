@@ -12,6 +12,7 @@
 #include <rte_malloc.h>
 
 #include "cryptodev_pmd.h"
+#include "cryptodev_private.h"
 
 /**
  * Parse name from argument
@@ -214,7 +215,6 @@ dummy_crypto_dequeue_burst(__rte_unused void *qp,
 	return 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(cryptodev_fp_ops_reset)
 void
 cryptodev_fp_ops_reset(struct rte_crypto_fp_ops *fp_ops)
 {
@@ -233,7 +233,6 @@ cryptodev_fp_ops_reset(struct rte_crypto_fp_ops *fp_ops)
 	*fp_ops = dummy;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(cryptodev_fp_ops_set)
 void
 cryptodev_fp_ops_set(struct rte_crypto_fp_ops *fp_ops,
 		     const struct rte_cryptodev *dev)

@@ -8,6 +8,8 @@
 #include <rte_mldev.h>
 #include <rte_mldev_pmd.h>
 
+#include "mldev_private.h"
+
 #include <stdlib.h>
 
 static struct rte_ml_dev_global ml_dev_globals = {
@@ -23,8 +25,7 @@ struct rte_ml_op_pool_private {
 	uint16_t user_size; /* Size of private user data with each operation. */
 };
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_ml_dev_pmd_get_dev)
-struct rte_ml_dev *
+static struct rte_ml_dev *
 rte_ml_dev_pmd_get_dev(int16_t dev_id)
 {
 	return &ml_dev_globals.devs[dev_id];
@@ -49,7 +50,6 @@ rte_ml_dev_pmd_get_named_dev(const char *name)
 	return NULL;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_ml_dev_pmd_allocate)
 struct rte_ml_dev *
 rte_ml_dev_pmd_allocate(const char *name, uint8_t socket_id)
 {
@@ -123,7 +123,6 @@ rte_ml_dev_pmd_allocate(const char *name, uint8_t socket_id)
 	return dev;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_ml_dev_pmd_release)
 int
 rte_ml_dev_pmd_release(struct rte_ml_dev *dev)
 {

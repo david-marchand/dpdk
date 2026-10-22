@@ -141,9 +141,14 @@ extern struct vfio_config vfio_global_cfg;
 	VFIO_DEVICE_FOREACH((cfg), (dev)) \
 		if ((dev)->active)
 
+int eal_vfio_init_mem(void);
+void eal_vfio_cleanup(void);
 int vfio_get_iommu_type(void);
 int vfio_mp_sync_setup(void);
 void vfio_mp_sync_cleanup(void);
+
+int vfio_get_device_num(const char *sysfs_base, const char *dev_addr, int *vfio_device_num);
+int vfio_get_container_fd(void);
 bool vfio_container_is_default(struct vfio_container *cfg);
 
 /* group mode functions */

@@ -154,25 +154,6 @@ int dev_vfio_enable(void);
 
 /**
  * @internal
- * Cleanup VFIO resources.
- */
-__rte_internal
-void dev_vfio_cleanup(void);
-
-/**
- * @internal
- * Initialize VFIO memory mapping. Must be called after `dev_vfio_enable()` and
- * after EAL memory initialization has completed.
- *
- * @return
- *   0 on success.
- *   <0 on failure.
- */
-__rte_internal
-int dev_vfio_init_mem(void);
-
-/**
- * @internal
  * Check whether a VFIO module is loaded.
  *
  * @param module
@@ -244,31 +225,6 @@ dev_vfio_get_group_num(const char *sysfs_base, const char *dev_addr, int *iommu_
 
 /**
  * @internal
- * Parse VFIO cdev device number for a device.
- *
- * @param sysfs_base
- *   Sysfs path prefix.
- * @param dev_addr
- *   Device identifier.
- * @param vfio_device_num
- *   Pointer to where VFIO cdev device number will be stored.
- *
- * @return
- *   0 on success.
- *   <0 on failure, rte_errno is set.
- *
- * Possible rte_errno values include:
- * - ENODEV  - Device not managed by VFIO.
- * - EINVAL  - Invalid parameters.
- * - ENXIO   - VFIO support not initialized.
- * - ENOTSUP - Unsupported VFIO mode.
- */
-__rte_internal
-int
-dev_vfio_get_device_num(const char *sysfs_base, const char *dev_addr, int *vfio_device_num);
-
-/**
- * @internal
  * Get device information.
  *
  * This function retrieves VFIO device information from an already opened
@@ -292,22 +248,6 @@ dev_vfio_get_device_num(const char *sysfs_base, const char *dev_addr, int *vfio_
 __rte_internal
 int
 dev_vfio_get_device_info(int vfio_dev_fd, struct vfio_device_info *device_info);
-
-/**
- * @internal
- * Get the default VFIO container file descriptor.
- *
- * @return
- *   Non-negative container file descriptor on success.
- *   <0 on failure, rte_errno is set.
- *
- * Possible rte_errno values include:
- * - ENXIO   - VFIO support not initialized.
- * - ENOTSUP - Unsupported VFIO mode.
- */
-__rte_internal
-int
-dev_vfio_get_container_fd(void);
 
 /**
  * @internal
