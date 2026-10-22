@@ -2886,31 +2886,6 @@ rte_crypto_op_pool_create(const char *name, enum rte_crypto_op_type type,
 	return mp;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_cryptodev_pmd_create_dev_name)
-int
-rte_cryptodev_pmd_create_dev_name(char *name, const char *dev_name_prefix)
-{
-	struct rte_cryptodev *dev = NULL;
-	uint32_t i = 0;
-
-	if (name == NULL)
-		return -EINVAL;
-
-	for (i = 0; i < RTE_CRYPTO_MAX_DEVS; i++) {
-		int ret = snprintf(name, RTE_CRYPTODEV_NAME_MAX_LEN,
-				"%s_%u", dev_name_prefix, i);
-
-		if (ret < 0)
-			return ret;
-
-		dev = rte_cryptodev_pmd_get_named_dev(name);
-		if (!dev)
-			return 0;
-	}
-
-	return -1;
-}
-
 TAILQ_HEAD(cryptodev_driver_list, cryptodev_driver);
 
 static struct cryptodev_driver_list cryptodev_driver_list =

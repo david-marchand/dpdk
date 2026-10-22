@@ -632,14 +632,6 @@ void rte_cryptodev_pmd_callback_process(struct rte_cryptodev *dev,
 
 /**
  * @internal
- * Create unique device name
- */
-__rte_internal
-int
-rte_cryptodev_pmd_create_dev_name(char *name, const char *dev_name_prefix);
-
-/**
- * @internal
  * Allocate Cryptodev driver.
  *
  * @param crypto_drv
