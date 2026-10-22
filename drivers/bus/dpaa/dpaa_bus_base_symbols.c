@@ -5,9 +5,6 @@
 #include <eal_export.h>
 
 /* Symbols from the base driver are exported separately below. */
-RTE_EXPORT_INTERNAL_SYMBOL(fman_ip_rev)
-RTE_EXPORT_INTERNAL_SYMBOL(fman_dealloc_bufs_mask_hi)
-RTE_EXPORT_INTERNAL_SYMBOL(fman_dealloc_bufs_mask_lo)
 RTE_EXPORT_INTERNAL_SYMBOL(fman_if_set_mcast_filter_table)
 RTE_EXPORT_INTERNAL_SYMBOL(fman_if_reset_mcast_filter_table)
 RTE_EXPORT_INTERNAL_SYMBOL(fman_if_clear_mac_addr)
