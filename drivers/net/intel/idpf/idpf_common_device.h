@@ -250,7 +250,6 @@ __rte_internal
 int idpf_vport_deinit(struct idpf_vport *vport);
 __rte_internal
 int idpf_vport_rss_config(struct idpf_vport *vport);
-__rte_internal
 int idpf_vport_irq_map_config(struct idpf_vport *vport, uint16_t nb_rx_queues);
 __rte_internal
 int idpf_vport_irq_unmap_config(struct idpf_vport *vport, uint16_t nb_rx_queues);

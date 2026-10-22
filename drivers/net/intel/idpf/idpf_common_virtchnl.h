@@ -33,8 +33,6 @@ __rte_internal
 int idpf_vc_queue_switch(struct idpf_vport *vport, uint16_t qid,
 			 bool rx, bool on, uint32_t type);
 __rte_internal
-int idpf_vc_queues_ena_dis(struct idpf_vport *vport, bool enable);
-__rte_internal
 int idpf_vc_vport_ena_dis(struct idpf_vport *vport, bool enable);
 __rte_internal
 int idpf_vc_vectors_alloc(struct idpf_vport *vport, uint16_t num_vectors);

@@ -636,7 +636,6 @@ idpf_vport_rss_config(struct idpf_vport *vport)
 	return ret;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vport_irq_map_config)
 int
 idpf_vport_irq_map_config(struct idpf_vport *vport, uint16_t nb_rx_queues)
 {
