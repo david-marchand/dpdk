@@ -245,56 +245,6 @@ rte_gpu_allocate(const char *name)
 	return dev;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(rte_gpu_attach)
-struct rte_gpu *
-rte_gpu_attach(const char *name)
-{
-	int16_t dev_id;
-	struct rte_gpu *dev;
-	struct rte_gpu_mpshared *shared_dev;
-
-	if (rte_eal_process_type() != RTE_PROC_SECONDARY) {
-		GPU_LOG(ERR, "only secondary process can attach device");
-		rte_errno = EPERM;
-		return NULL;
-	}
-	if (name == NULL) {
-		GPU_LOG(ERR, "attach device without a name");
-		rte_errno = EINVAL;
-		return NULL;
-	}
-
-	/* implicit initialization of library before adding first device */
-	if (gpus == NULL && rte_gpu_init(RTE_GPU_DEFAULT_MAX) < 0)
-		return NULL;
-
-	/* initialize shared memory before adding first device */
-	if (gpu_shared_mem == NULL && gpu_shared_mem_init() < 0)
-		return NULL;
-
-	for (dev_id = 0; dev_id < gpu_max; dev_id++) {
-		shared_dev = &gpu_shared_mem->gpus[dev_id];
-		if (strncmp(name, shared_dev->name, RTE_DEV_NAME_MAX_LEN) == 0)
-			break;
-	}
-	if (dev_id >= gpu_max) {
-		GPU_LOG(ERR, "device with name %s not found", name);
-		rte_errno = ENOENT;
-		return NULL;
-	}
-	dev = &gpus[dev_id];
-	memset(dev, 0, sizeof(*dev));
-
-	TAILQ_INIT(&dev->callbacks);
-	dev->mpshared = shared_dev;
-	rte_atomic_fetch_add_explicit(&dev->mpshared->process_refcnt, 1, rte_memory_order_relaxed);
-
-	gpu_count++;
-	GPU_LOG(DEBUG, "attached device %s (id %d) of total %d",
-			name, dev_id, gpu_count);
-	return dev;
-}
-
 RTE_EXPORT_EXPERIMENTAL_SYMBOL(rte_gpu_add_child, 21.11)
 int16_t
 rte_gpu_add_child(const char *name, int16_t parent, uint64_t child_context)

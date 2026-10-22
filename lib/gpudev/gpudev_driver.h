@@ -94,10 +94,6 @@ struct rte_gpu *rte_gpu_get_by_name(const char *name);
 __rte_internal
 struct rte_gpu *rte_gpu_allocate(const char *name);
 
-/* First step of initialization in secondary process. */
-__rte_internal
-struct rte_gpu *rte_gpu_attach(const char *name);
-
 /* Last step of initialization. */
 __rte_internal
 void rte_gpu_complete_new(struct rte_gpu *dev);
