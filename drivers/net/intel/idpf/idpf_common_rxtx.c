@@ -254,7 +254,6 @@ idpf_qc_split_tx_complq_reset(struct idpf_complq *cq)
 	cq->expected_gen_id = 1;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_splitq_rearm_common)
 void
 idpf_splitq_rearm_common(struct idpf_rx_queue *rx_bufq)
 {
@@ -342,7 +341,6 @@ idpf_qc_single_tx_queue_reset(struct ci_tx_queue *txq)
 	txq->tx_next_rs = txq->tx_rs_thresh - 1;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_qc_rx_queue_release)
 void
 idpf_qc_rx_queue_release(void *rxq)
 {
@@ -373,7 +371,6 @@ idpf_qc_rx_queue_release(void *rxq)
 	rte_free(q);
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_qc_tx_queue_release)
 void
 idpf_qc_tx_queue_release(void *txq)
 {
@@ -620,7 +617,6 @@ idpf_split_rx_bufq_refill(struct idpf_rx_queue *rx_bufq)
 	rx_bufq->rx_tail = next_avail;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_splitq_recv_pkts)
 uint16_t
 idpf_dp_splitq_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			 uint16_t nb_pkts)
@@ -907,7 +903,6 @@ idpf_get_context_desc(uint64_t ol_flags, const struct rte_mbuf *mbuf,
 	return 1;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_splitq_xmit_pkts)
 uint16_t
 idpf_dp_splitq_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 			 uint16_t nb_pkts)
@@ -1140,7 +1135,6 @@ idpf_singleq_rx_rss_offload(struct rte_mbuf *mb,
 
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_singleq_recv_pkts)
 uint16_t
 idpf_dp_singleq_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			  uint16_t nb_pkts)
@@ -1264,7 +1258,6 @@ idpf_dp_singleq_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 	return nb_rx;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_singleq_recv_scatter_pkts)
 uint16_t
 idpf_dp_singleq_recv_scatter_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			       uint16_t nb_pkts)
@@ -1410,7 +1403,6 @@ idpf_dp_singleq_recv_scatter_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 }
 
 /* TX function */
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_singleq_xmit_pkts)
 uint16_t
 idpf_dp_singleq_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 			  uint16_t nb_pkts)
@@ -1420,7 +1412,6 @@ idpf_dp_singleq_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 			idpf_get_context_desc, NULL, NULL);
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_singleq_xmit_pkts_simple)
 uint16_t
 idpf_dp_singleq_xmit_pkts_simple(void *tx_queue, struct rte_mbuf **tx_pkts,
 				   uint16_t nb_pkts)

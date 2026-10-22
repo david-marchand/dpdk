@@ -548,7 +548,6 @@ _idpf_singleq_recv_raw_pkts_avx512(struct idpf_rx_queue *rxq,
  * Notice:
  * - nb_pkts < IDPF_DESCS_PER_LOOP, just return no packet
  */
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_singleq_recv_pkts_avx512)
 uint16_t
 idpf_dp_singleq_recv_pkts_avx512(void *rx_queue, struct rte_mbuf **rx_pkts,
 				 uint16_t nb_pkts)
@@ -966,7 +965,6 @@ _idpf_splitq_recv_raw_pkts_avx512(struct idpf_rx_queue *rxq,
 }
 
 /* only bufq2 can receive pkts */
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_splitq_recv_pkts_avx512)
 uint16_t
 idpf_dp_splitq_recv_pkts_avx512(void *rx_queue, struct rte_mbuf **rx_pkts,
 			     uint16_t nb_pkts)
@@ -1124,7 +1122,6 @@ idpf_singleq_xmit_pkts_vec_avx512_cmn(void *tx_queue, struct rte_mbuf **tx_pkts,
 	return nb_tx;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_singleq_xmit_pkts_avx512)
 uint16_t
 idpf_dp_singleq_xmit_pkts_avx512(void *tx_queue, struct rte_mbuf **tx_pkts,
 				 uint16_t nb_pkts)
@@ -1326,7 +1323,6 @@ idpf_splitq_xmit_pkts_vec_avx512_cmn(void *tx_queue, struct rte_mbuf **tx_pkts,
 	return nb_tx;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_dp_splitq_xmit_pkts_avx512)
 uint16_t
 idpf_dp_splitq_xmit_pkts_avx512(void *tx_queue, struct rte_mbuf **tx_pkts,
 				uint16_t nb_pkts)

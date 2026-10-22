@@ -8,11 +8,8 @@
 #include "idpf_common_device.h"
 #include "idpf_common_rxtx.h"
 
-__rte_internal
 int idpf_vc_api_version_check(struct idpf_adapter *adapter);
-__rte_internal
 int idpf_vc_caps_get(struct idpf_adapter *adapter);
-__rte_internal
 int idpf_vc_vport_create(struct idpf_vport *vport,
 			 struct virtchnl2_create_vport *vport_info);
 __rte_internal
@@ -21,9 +18,7 @@ __rte_internal
 int idpf_vc_rss_key_set(struct idpf_vport *vport);
 __rte_internal
 int idpf_vc_rss_lut_set(struct idpf_vport *vport);
-__rte_internal
 int idpf_vc_rss_hash_set(struct idpf_vport *vport);
-__rte_internal
 int idpf_vc_irq_map_unmap_config(struct idpf_vport *vport,
 				 uint16_t nb_rxq, bool map);
 __rte_internal
@@ -38,13 +33,9 @@ __rte_internal
 int idpf_vc_vectors_alloc(struct idpf_vport *vport, uint16_t num_vectors);
 __rte_internal
 int idpf_vc_vectors_dealloc(struct idpf_vport *vport);
-__rte_internal
 int idpf_vc_ptype_info_query(struct idpf_adapter *adapter,
 			     struct virtchnl2_get_ptype_info *req_ptype_info,
 			     struct virtchnl2_get_ptype_info *recv_ptype_info);
-__rte_internal
-int idpf_vc_one_msg_read(struct idpf_adapter *adapter, uint32_t ops,
-			 uint16_t buf_len, uint8_t *buf);
 __rte_internal
 int idpf_vc_rxq_config(struct idpf_vport *vport, struct idpf_rx_queue *rxq);
 __rte_internal

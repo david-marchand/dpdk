@@ -217,13 +217,10 @@ __rte_internal
 void idpf_qc_split_tx_descq_reset(struct ci_tx_queue *txq);
 __rte_internal
 void idpf_qc_split_tx_complq_reset(struct idpf_complq *cq);
-__rte_internal
 void idpf_splitq_rearm_common(struct idpf_rx_queue *rx_bufq);
 __rte_internal
 void idpf_qc_single_tx_queue_reset(struct ci_tx_queue *txq);
-__rte_internal
 void idpf_qc_rx_queue_release(void *rxq);
-__rte_internal
 void idpf_qc_tx_queue_release(void *txq);
 __rte_internal
 int idpf_qc_ts_mbuf_register(struct idpf_rx_queue *rxq);
@@ -231,19 +228,14 @@ __rte_internal
 int idpf_qc_single_rxq_mbufs_alloc(struct idpf_rx_queue *rxq);
 __rte_internal
 int idpf_qc_split_rxq_mbufs_alloc(struct idpf_rx_queue *rxq);
-__rte_internal
 uint16_t idpf_dp_splitq_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 				  uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_splitq_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 				  uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 				   uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 				   uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_xmit_pkts_simple(void *tx_queue, struct rte_mbuf **tx_pkts,
 				   uint16_t nb_pkts);
 __rte_internal
@@ -253,34 +245,25 @@ __rte_internal
 int idpf_qc_singleq_rx_vec_setup(struct idpf_rx_queue *rxq);
 __rte_internal
 int idpf_qc_splitq_rx_vec_setup(struct idpf_rx_queue *rxq);
-__rte_internal
 uint16_t idpf_dp_singleq_recv_pkts_avx512(void *rx_queue,
 					  struct rte_mbuf **rx_pkts,
 					  uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_splitq_recv_pkts_avx512(void *tx_queue, struct rte_mbuf **tx_pkts,
 					 uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_xmit_pkts_avx512(void *tx_queue,
 					  struct rte_mbuf **tx_pkts,
 					  uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_splitq_xmit_pkts_avx512(void *tx_queue, struct rte_mbuf **tx_pkts,
 					 uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_splitq_recv_pkts_avx2(void *rxq, struct rte_mbuf **rx_pkts,
 				     uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_recv_scatter_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			  uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_splitq_xmit_pkts_avx2(void *tx_queue, struct rte_mbuf **tx_pkts,
 				       uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_recv_pkts_avx2(void *rx_queue,
 					struct rte_mbuf **rx_pkts,
 					uint16_t nb_pkts);
-__rte_internal
 uint16_t idpf_dp_singleq_xmit_pkts_avx2(void *tx_queue,
 					struct rte_mbuf **tx_pkts,
 					uint16_t nb_pkts);

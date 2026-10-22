@@ -187,8 +187,7 @@ idpf_read_msg_from_cp(struct idpf_adapter *adapter, uint16_t buf_len,
 #define MAX_TRY_TIMES 200
 #define ASQ_DELAY_MS  10
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_one_msg_read)
-int
+static int
 idpf_vc_one_msg_read(struct idpf_adapter *adapter, uint32_t ops, uint16_t buf_len,
 		     uint8_t *buf)
 {
@@ -262,7 +261,6 @@ idpf_vc_cmd_execute(struct idpf_adapter *adapter, struct idpf_cmd_info *args)
 	return err;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_api_version_check)
 int
 idpf_vc_api_version_check(struct idpf_adapter *adapter)
 {
@@ -303,7 +301,6 @@ idpf_vc_api_version_check(struct idpf_adapter *adapter)
 	return 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_caps_get)
 int
 idpf_vc_caps_get(struct idpf_adapter *adapter)
 {
@@ -328,7 +325,6 @@ idpf_vc_caps_get(struct idpf_adapter *adapter)
 	return 0;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_vport_create)
 int
 idpf_vc_vport_create(struct idpf_vport *vport,
 		     struct virtchnl2_create_vport *create_vport_info)
@@ -647,7 +643,6 @@ idpf_vc_rss_hash_get(struct idpf_vport *vport)
 	return err;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_rss_hash_set)
 int
 idpf_vc_rss_hash_set(struct idpf_vport *vport)
 {
@@ -674,7 +669,6 @@ idpf_vc_rss_hash_set(struct idpf_vport *vport)
 	return err;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_irq_map_unmap_config)
 int
 idpf_vc_irq_map_unmap_config(struct idpf_vport *vport, uint16_t nb_rxq, bool map)
 {
@@ -918,7 +912,6 @@ idpf_vc_vport_ena_dis(struct idpf_vport *vport, bool enable)
 	return err;
 }
 
-RTE_EXPORT_INTERNAL_SYMBOL(idpf_vc_ptype_info_query)
 int
 idpf_vc_ptype_info_query(struct idpf_adapter *adapter,
 			 struct virtchnl2_get_ptype_info *req_ptype_info,
