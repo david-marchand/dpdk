@@ -105,8 +105,8 @@ gve_tx_clean_dqo(struct gve_tx_queue *txq)
 		PMD_DRV_DP_LOG(DEBUG, "GVE_COMPL_TYPE_DQO_MISS ignored !!!");
 		break;
 	default:
-		PMD_DRV_DP_LOG(ERR, "unknown completion type.");
-		return;
+		PMD_DRV_DP_LOG(ERR, "unknown completion type %u", compl_desc->type);
+		break;
 	}
 
 	next++;
@@ -119,8 +119,43 @@ gve_tx_clean_dqo(struct gve_tx_queue *txq)
 
 static inline void
 gve_tx_clean_descs_dqo(struct gve_tx_queue *txq, uint16_t nb_descs) {
-	while (--nb_descs)
+	while (nb_descs--)
 		gve_tx_clean_dqo(txq);
+}
+
+/* Validate packet lengths against the device limits. */
+static inline bool
+gve_tx_validate_pkt(const struct rte_mbuf *tx_pkt, bool is_tso)
+{
+	uint32_t headlen;
+
+	if (!is_tso)
+		return tx_pkt->pkt_len >= GVE_TX_MIN_PKT_SIZE_DQO &&
+		       tx_pkt->pkt_len <= GVE_TX_MAX_PKT_SIZE_DQO;
+
+	/* Headers must be present, fit the context descriptor, and be
+	 * contained in the first segment; the payload must not be empty.
+	 */
+	headlen = tx_pkt->l2_len + tx_pkt->l3_len + tx_pkt->l4_len;
+	if (tx_pkt->l4_len == 0 || headlen > GVE_TX_MAX_HDR_SIZE_DQO ||
+	    tx_pkt->data_len < headlen || tx_pkt->pkt_len <= headlen)
+		return false;
+
+	return tx_pkt->pkt_len - headlen <= GVE_TX_MAX_TSO_LEN_DQO &&
+	       tx_pkt->tso_segsz >= GVE_TX_MIN_TSO_MSS_DQO &&
+	       tx_pkt->tso_segsz <= GVE_TX_MAX_PKT_SIZE_DQO;
+}
+
+/* Max descriptors a single packet may use. A larger packet can never pass
+ * gve_can_tx(): one slot is always reserved, the cacheline overlap margin
+ * must stay free, and up to GVE_TX_MIN_RE_INTERVAL - 1 descriptors posted
+ * after the last report_event are not reclaimed until more are posted.
+ */
+static inline int
+gve_tx_max_pkt_descs(const struct gve_tx_queue *txq)
+{
+	return (int)txq->nb_tx_desc - 1 - GVE_TX_MIN_DESC_PREVENT_CACHE_OVERLAP -
+		(GVE_TX_MIN_RE_INTERVAL - 1);
 }
 
 /* GVE expects at most 10 data descriptors per mtu-sized segment. Beyond this,
@@ -129,8 +164,12 @@ gve_tx_clean_descs_dqo(struct gve_tx_queue *txq, uint16_t nb_descs) {
  * posting descriptors for an invalid packet.
  */
 static inline bool
-gve_tx_validate_descs(struct rte_mbuf *tx_pkt, uint16_t nb_descs, bool is_tso)
+gve_tx_validate_descs(const struct gve_tx_queue *txq, struct rte_mbuf *tx_pkt,
+		      uint16_t nb_descs, bool is_tso)
 {
+	if (nb_descs > gve_tx_max_pkt_descs(txq))
+		return false;
+
 	if (!is_tso)
 		return nb_descs <= GVE_TX_MAX_DATA_DESCS;
 
@@ -251,10 +290,14 @@ gve_tx_burst_dqo(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 	volatile union gve_tx_desc_dqo *txr;
 	volatile union gve_tx_desc_dqo *txd;
 	uint16_t mask = txq->nb_tx_desc - 1;
+	uint16_t last_re_interval;
+	uint16_t last_desc_idx;
 	struct gve_tx_pkt *pkts;
 	struct rte_mbuf *tx_pkt;
 	uint16_t compl_tag;
+	uint16_t req_descs;
 	const char *reason;
+	uint16_t nb_sent = 0;
 	uint16_t nb_tx = 0;
 	uint64_t bytes = 0;
 	uint64_t ol_flags;
@@ -277,40 +320,53 @@ gve_tx_burst_dqo(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 
 		if (rte_mbuf_check(tx_pkt, true, &reason)) {
 			PMD_DRV_DP_LOG(DEBUG, "Invalid mbuf: %s", reason);
-			break;
+			txq->stats.invalid_mbufs++;
+			rte_pktmbuf_free(tx_pkt);
+			continue;
 		}
 
 		ol_flags = tx_pkt->ol_flags;
 		tso = !!(ol_flags & RTE_MBUF_F_TX_TCP_SEG);
 		csum = !!(ol_flags & GVE_TX_CKSUM_OFFLOAD_MASK_DQO);
 
+		if (!gve_tx_validate_pkt(tx_pkt, tso)) {
+			txq->stats.invalid_pkts++;
+			rte_pktmbuf_free(tx_pkt);
+			continue;
+		}
+
 		nb_descs = gve_tx_pkt_nb_data_descs(tx_pkt);
 		nb_descs += tso;
 
-		/* Clean if there aren't enough descriptors to send the packet. */
-		if (unlikely(!gve_can_tx(txq, nb_descs, 1))) {
+		/* Drop packet if it doesn't adhere to hardware limits. */
+		if (!gve_tx_validate_descs(txq, tx_pkt, nb_descs, tso)) {
+			txq->stats.too_many_descs++;
+			rte_pktmbuf_free(tx_pkt);
+			continue;
+		}
+
+		req_descs = nb_descs + GVE_TX_MIN_DESC_PREVENT_CACHE_OVERLAP;
+
+		/* Clean if there aren't enough descriptors to send the packet
+		 * while maintaining the cacheline overlap margin.
+		 */
+		if (unlikely(!gve_can_tx(txq, req_descs, 1))) {
 			int nb_to_clean = RTE_MAX(DQO_TX_MULTIPLIER * txq->rs_thresh,
-						  nb_descs);
+						  (int)req_descs);
 
 			gve_tx_clean_descs_dqo(txq, nb_to_clean);
-			if (!gve_can_tx(txq, nb_descs, 1))
+			if (!gve_can_tx(txq, req_descs, 1))
 				break;
 		}
 
-		/* Drop packet if it doesn't adhere to hardware limits. */
-		if (!gve_tx_validate_descs(tx_pkt, nb_descs, tso)) {
-			txq->stats.too_many_descs++;
+		if (!gve_free_compl_tags_pop(txq, &compl_tag))
 			break;
-		}
 
 		if (tso) {
 			txd = &txr[tx_id];
 			gve_tx_fill_seg_desc_dqo(txd, tx_pkt);
 			tx_id = (tx_id + 1) & mask;
 		}
-
-		if (!gve_free_compl_tags_pop(txq, &compl_tag))
-			break;
 
 		pkts[compl_tag].mbuf = tx_pkt;
 		while (tx_pkt) {
@@ -328,26 +384,30 @@ gve_tx_burst_dqo(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 		txd = &txr[(tx_id - 1) & mask];
 		txd->pkt.end_of_packet = 1;
 
+		/* Request a descriptor completion once at least
+		 * GVE_TX_MIN_RE_INTERVAL descriptors have been posted
+		 * since the last request.
+		 */
+		last_desc_idx = (tx_id - 1) & mask;
+		last_re_interval = (last_desc_idx - txq->last_re_idx) & mask;
+		if (unlikely(last_re_interval >= GVE_TX_MIN_RE_INTERVAL)) {
+			txd->pkt.report_event = true;
+			txq->last_re_idx = last_desc_idx;
+		}
+
 		txq->nb_free -= nb_descs;
 		txq->nb_used += nb_descs;
+		nb_sent++;
 	}
 
 	/* update the tail pointer if any packets were processed */
 	if (nb_tx > 0) {
-		/* Request a descriptor completion on the last descriptor */
-		txq->re_cnt += nb_tx;
-		if (txq->re_cnt >= GVE_TX_MIN_RE_INTERVAL) {
-			txd = &txr[(tx_id - 1) & mask];
-			txd->pkt.report_event = true;
-			txq->re_cnt = 0;
-		}
-
 		rte_write32(tx_id, txq->qtx_tail);
 		txq->tx_tail = tx_id;
 
-		txq->stats.packets += nb_tx;
+		txq->stats.packets += nb_sent;
 		txq->stats.bytes += bytes;
-		txq->stats.errors += nb_pkts - nb_tx;
+		txq->stats.errors += nb_pkts - nb_sent;
 	}
 
 	return nb_tx;
@@ -442,6 +502,7 @@ gve_reset_tx_ring_state_dqo(struct gve_tx_queue *txq)
 	txq->nb_used = 0;
 
 	txq->last_desc_cleaned = 0;
+	txq->last_re_idx = 0;
 	txq->nb_free = txq->nb_tx_desc - 1;
 
 	txq->complq_tail = 0;

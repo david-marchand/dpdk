@@ -58,6 +58,7 @@ dpaa2_dev_rx_parse_new(struct rte_mbuf *m, const struct qbman_fd *fd,
 	uint16_t frc = DPAA2_GET_FD_FRC_PARSE_SUM(fd);
 	struct dpaa2_annot_hdr *annotation =
 			(struct dpaa2_annot_hdr *)hw_annot_addr;
+	uint32_t flc_lo, tc, flow;
 
 	if (unlikely(dpaa2_print_parser_result))
 		dpaa2_print_parse_result(annotation);
@@ -74,14 +75,6 @@ dpaa2_dev_rx_parse_new(struct rte_mbuf *m, const struct qbman_fd *fd,
 	case DPAA2_PKT_TYPE_IPV6:
 		m->packet_type = RTE_PTYPE_L2_ETHER |
 			RTE_PTYPE_L3_IPV6;
-		break;
-	case DPAA2_PKT_TYPE_IPV4_EXT:
-		m->packet_type = RTE_PTYPE_L2_ETHER |
-			RTE_PTYPE_L3_IPV4_EXT;
-		break;
-	case DPAA2_PKT_TYPE_IPV6_EXT:
-		m->packet_type = RTE_PTYPE_L2_ETHER |
-			RTE_PTYPE_L3_IPV6_EXT;
 		break;
 	case DPAA2_PKT_TYPE_IPV4_TCP:
 		m->packet_type = RTE_PTYPE_L2_ETHER |
@@ -115,11 +108,60 @@ dpaa2_dev_rx_parse_new(struct rte_mbuf *m, const struct qbman_fd *fd,
 		m->packet_type = RTE_PTYPE_L2_ETHER |
 			RTE_PTYPE_L3_IPV6 | RTE_PTYPE_L4_ICMP;
 		break;
+	case DPAA2_PKT_TYPE_IPV4_FRAG:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L4_FRAG;
+		break;
+	case DPAA2_PKT_TYPE_IPV6_FRAG:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV6 | RTE_PTYPE_L4_FRAG;
+		break;
+	case DPAA2_PKT_TYPE_IPV4_ESP:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV4 | RTE_PTYPE_TUNNEL_ESP;
+		break;
+	case DPAA2_PKT_TYPE_IPV6_ESP:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV6 | RTE_PTYPE_TUNNEL_ESP;
+		break;
+	case DPAA2_PKT_TYPE_IPV4_GTPU:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L4_UDP |
+			RTE_PTYPE_TUNNEL_GTPU;
+		break;
+	case DPAA2_PKT_TYPE_IPV6_GTPU:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV6 | RTE_PTYPE_L4_UDP |
+			RTE_PTYPE_TUNNEL_GTPU;
+		break;
+	case DPAA2_PKT_TYPE_IPV4_GTPC:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L4_UDP |
+			RTE_PTYPE_TUNNEL_GTPC;
+		break;
+	case DPAA2_PKT_TYPE_IPV6_GTPC:
+		m->packet_type = RTE_PTYPE_L2_ETHER |
+			RTE_PTYPE_L3_IPV6 | RTE_PTYPE_L4_UDP |
+			RTE_PTYPE_TUNNEL_GTPC;
+		break;
 	default:
 		m->packet_type = dpaa2_dev_rx_parse_slow(m, annotation);
 	}
-	m->hash.rss = fd->simple.flc_hi;
-	m->ol_flags |= RTE_MBUF_F_RX_RSS_HASH;
+	flc_lo = fd->simple.flc_lo;
+	if (flc_lo & (1 << DPAA2_FS_FLC_FS_MARK_OFFSET)) {
+		tc = (flc_lo >> DPAA2_FS_FLC_TC_OFFSET) &
+			DPAA2_FS_FLC_TC_MASK;
+		flow = flc_lo >> DPAA2_FS_FLC_FLOW_OFFSET;
+		m->ol_flags |= RTE_MBUF_F_RX_FDIR;
+		m->hash.fdir.hi = (tc << 16) | flow;
+		DPAA2_PMD_DP_DEBUG("FS frame received from TC[%d]->flow%d",
+			tc, flow);
+	} else {
+		m->hash.rss = fd->simple.flc_hi;
+		m->ol_flags |= RTE_MBUF_F_RX_RSS_HASH;
+		DPAA2_PMD_DP_DEBUG("Hash frame received with RSS(%08x)",
+			m->hash.rss);
+	}
 
 	if (dpaa2_enable_ts[m->port]) {
 		*dpaa2_timestamp_dynfield(m) = annotation->word2;
@@ -787,7 +829,7 @@ dpaa2_dev_prefetch_rx_common(void *queue, struct rte_mbuf **bufs,
 	if (!by_channel) {
 		struct dpaa2_dev_priv *priv = eth_data->dev_private;
 
-		if (unlikely(priv->flags & DPAAX_RX_ERROR_QUEUE_FLAG))
+		if (unlikely(priv->flags & DPAA2_RX_ERROR_QUEUE_FLAG))
 			dump_err_pkts(priv->rx_err_vq);
 	}
 
@@ -1052,7 +1094,7 @@ dpaa2_dev_rx_common(void *queue, struct rte_mbuf **bufs, uint16_t nb_pkts,
 	struct rte_eth_dev_data *eth_data = dpaa2_q->eth_data;
 	struct dpaa2_dev_priv *priv = eth_data->dev_private;
 
-	if (!by_channel && unlikely(priv->flags & DPAAX_RX_ERROR_QUEUE_FLAG))
+	if (!by_channel && unlikely(priv->flags & DPAA2_RX_ERROR_QUEUE_FLAG))
 		dump_err_pkts(priv->rx_err_vq);
 
 	if (by_channel) {

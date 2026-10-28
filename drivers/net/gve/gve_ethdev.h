@@ -114,6 +114,8 @@ struct gve_tx_stats {
 	uint64_t bytes;
 	uint64_t errors;
 	uint64_t too_many_descs;
+	uint64_t invalid_mbufs;
+	uint64_t invalid_pkts;
 };
 
 struct gve_rx_stats {
@@ -193,7 +195,7 @@ struct gve_tx_queue {
 	uint16_t sw_size;
 	uint8_t cur_gen_bit;
 	uint32_t last_desc_cleaned;
-	uint16_t re_cnt;
+	uint16_t last_re_idx;
 
 	/* Only valid for DQO_RDA queue format */
 	struct gve_tx_queue *complq;
@@ -261,6 +263,8 @@ struct gve_rx_queue {
 	struct rte_mbuf **refill_bufs;
 
 	uint8_t is_gqi_qpl;
+	/* the port enabled RTE_ETH_RX_OFFLOAD_SCATTER (GQI) */
+	bool scatter;
 	bool timestamp_enabled;
 };
 
@@ -452,6 +456,15 @@ gve_is_gqi(struct gve_priv *priv)
 {
 	return priv->queue_format == GVE_GQI_RDA_FORMAT ||
 		priv->queue_format == GVE_GQI_QPL_FORMAT;
+}
+
+/* GQI places GVE_RX_PAD bytes ahead of the frame in its first Rx buffer
+ * and chains the rest of a larger frame into further buffers.
+ */
+static inline bool
+gve_rx_gqi_needs_scatter(uint16_t mtu, uint16_t rx_buf_len)
+{
+	return (uint32_t)mtu + RTE_ETHER_HDR_LEN + GVE_RX_PAD > rx_buf_len;
 }
 
 static inline bool

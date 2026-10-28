@@ -679,7 +679,7 @@ F: examples/bond/
 Linux AF_PACKET
 M: Stephen Hemminger <stephen@networkplumber.org>
 F: drivers/net/af_packet/
-F: doc/guides/nics/features/afpacket.ini
+F: doc/guides/nics/features/af_packet.ini
 F: app/test/test_pmd_af_packet.c
 
 Linux AF_XDP
@@ -1164,6 +1164,7 @@ F: drivers/net/memif/
 F: devtools/test-memif.sh
 F: doc/guides/nics/memif.rst
 F: doc/guides/nics/features/memif.ini
+F: app/test/test_pmd_memif.c
 
 
 Crypto Drivers

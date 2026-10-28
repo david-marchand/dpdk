@@ -452,7 +452,6 @@ dpaa2_dev_info_get(struct rte_eth_dev *dev,
 
 	dev_info->max_hash_mac_addrs = 0;
 	dev_info->max_vfs = 0;
-	dev_info->max_vmdq_pools = RTE_ETH_16_POOLS;
 	dev_info->flow_type_rss_offloads = DPAA2_RSS_OFFLOAD_ALL;
 	/* DPAA2 has no software-visible indirection table: incoming packets are
 	 * dispatched to FQs via 'queue_id = hash % dist_size'. We expose the
@@ -551,7 +550,7 @@ dpaa2_alloc_rx_tx_queues(struct rte_eth_dev *dev)
 			goto fail;
 	}
 
-	if (priv->flags & DPAAX_RX_ERROR_QUEUE_FLAG) {
+	if (priv->flags & DPAA2_RX_ERROR_QUEUE_FLAG) {
 		priv->rx_err_vq = rte_zmalloc("dpni_rx_err",
 			sizeof(struct dpaa2_queue), 0);
 		if (!priv->rx_err_vq) {
@@ -1042,7 +1041,7 @@ dpaa2_dev_rx_queue_setup(struct rte_eth_dev *dev,
 		options |= DPNI_QUEUE_OPT_FLC;
 		cfg.flc.stash_control = true;
 		dpaa2_flc_stashing_clear_all(&cfg.flc.value);
-		if (priv->flags & DPAA2_DATA_STASHING_OFF) {
+		if (priv->flags & DPAA2_RX_DATA_STASHING_OFF_FLAG) {
 			dpaa2_flc_stashing_set(DPAA2_FLC_DATA_STASHING, 0,
 				&cfg.flc.value);
 			dpaa2_q->data_stashing_off = 1;
@@ -1153,7 +1152,6 @@ dpaa2_dev_tx_queue_setup(struct rte_eth_dev *dev,
 	struct dpni_queue tx_conf_cfg;
 	struct dpni_queue tx_flow_cfg;
 	uint8_t options = 0, flow_id;
-	uint8_t ceetm_ch_idx;
 	uint16_t channel_id;
 	struct dpni_queue_id qid;
 	uint32_t tc_id;
@@ -1173,30 +1171,6 @@ dpaa2_dev_tx_queue_setup(struct rte_eth_dev *dev,
 
 	memset(&tx_conf_cfg, 0, sizeof(struct dpni_queue));
 	memset(&tx_flow_cfg, 0, sizeof(struct dpni_queue));
-
-	if (!tx_queue_id) {
-		for (ceetm_ch_idx = 0;
-			ceetm_ch_idx <= (priv->num_channels - 1);
-			ceetm_ch_idx++) {
-			/*Set tx-conf and error configuration*/
-			if (priv->flags & DPAA2_TX_CONF_ENABLE) {
-				ret = dpni_set_tx_confirmation_mode(dpni,
-						CMD_PRI_LOW, priv->token,
-						ceetm_ch_idx,
-						DPNI_CONF_AFFINE);
-			} else {
-				ret = dpni_set_tx_confirmation_mode(dpni,
-						CMD_PRI_LOW, priv->token,
-						ceetm_ch_idx,
-						DPNI_CONF_DISABLE);
-			}
-			if (ret) {
-				DPAA2_PMD_ERR("Error(%d) in tx conf setting",
-					ret);
-				return ret;
-			}
-		}
-	}
 
 	tc_id = tx_queue_id % priv->num_tx_tc;
 	channel_id = (uint8_t)(tx_queue_id / priv->num_tx_tc) % priv->num_channels;
@@ -1396,6 +1370,10 @@ dpaa2_supported_ptypes_get(struct rte_eth_dev *dev, size_t *no_of_elements)
 		RTE_PTYPE_L4_UDP,
 		RTE_PTYPE_L4_SCTP,
 		RTE_PTYPE_L4_ICMP,
+		RTE_PTYPE_L4_FRAG,
+		RTE_PTYPE_TUNNEL_ESP,
+		RTE_PTYPE_TUNNEL_GTPU,
+		RTE_PTYPE_TUNNEL_GTPC,
 	};
 
 	if (dev->rx_pkt_burst == dpaa2_dev_prefetch_rx ||
@@ -1543,7 +1521,7 @@ dpaa2_dev_start(struct rte_eth_dev *dev)
 		dpaa2_q->fqid = qid.fqid;
 	}
 
-	if (priv->flags & DPAAX_RX_ERROR_QUEUE_FLAG) {
+	if (priv->flags & DPAA2_RX_ERROR_QUEUE_FLAG) {
 		ret = dpni_get_queue(dpni, CMD_PRI_LOW, priv->token,
 				     DPNI_QUEUE_RX_ERR, 0, 0, &cfg, &qid);
 		if (ret) {
@@ -3497,7 +3475,7 @@ dpaa2_dev_init(struct rte_eth_dev *eth_dev)
 
 	if (dpaa2_get_devargs(dev->devargs, DRIVER_NO_DATA_STASHING) ||
 	    getenv("DPAA2_DATA_STASHING_OFF")) {
-		priv->flags |= DPAA2_DATA_STASHING_OFF;
+		priv->flags |= DPAA2_RX_DATA_STASHING_OFF_FLAG;
 		DPAA2_PMD_INFO("Data stashing disabled");
 	}
 
@@ -3601,7 +3579,7 @@ dpaa2_dev_init(struct rte_eth_dev *eth_dev)
 	}
 
 	if (dpaa2_get_devargs(dev->devargs, DRIVER_ERROR_QUEUE)) {
-		priv->flags |= DPAAX_RX_ERROR_QUEUE_FLAG;
+		priv->flags |= DPAA2_RX_ERROR_QUEUE_FLAG;
 		DPAA2_PMD_INFO("Enable error queue");
 	}
 
@@ -3619,6 +3597,21 @@ dpaa2_dev_init(struct rte_eth_dev *eth_dev)
 	if (ret) {
 		DPAA2_PMD_ERR("Queue allocation Failed");
 		goto init_err;
+	}
+
+	for (i = 0; i < priv->num_channels; i++) {
+		/*Set tx-conf and error configuration*/
+		if (priv->flags & DPAA2_TX_CONF_ENABLE) {
+			ret = dpni_set_tx_confirmation_mode(dpni_dev,
+				CMD_PRI_LOW, priv->token, i, DPNI_CONF_AFFINE);
+		} else {
+			ret = dpni_set_tx_confirmation_mode(dpni_dev,
+				CMD_PRI_LOW, priv->token, i, DPNI_CONF_DISABLE);
+		}
+		if (ret) {
+			DPAA2_PMD_ERR("Error(%d) in tx conf setting", ret);
+			goto init_err;
+		}
 	}
 
 	/* Allocate memory for storing MAC addresses.

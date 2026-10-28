@@ -115,7 +115,11 @@ fs_eth_dev_conf_apply(struct rte_eth_dev *dev,
 			ret = rte_eth_dev_set_link_up(PORT_ID(sdev));
 		else
 			ret = rte_eth_dev_set_link_down(PORT_ID(sdev));
-		if (ret) {
+		if (ret == -ENOTSUP) {
+			/* The sub-device link follows its physical state. */
+			DEBUG("link_status control not supported");
+			ret = 0;
+		} else if (ret) {
 			ERROR("Failed to apply link_status");
 			return ret;
 		}
@@ -177,6 +181,9 @@ fs_eth_dev_conf_apply(struct rte_eth_dev *dev,
 		struct rte_ether_addr *ea;
 
 		ea = &dev->data->mac_addrs[i];
+		/* Removed addresses leave a zeroed slot. */
+		if (rte_is_zero_ether_addr(ea))
+			continue;
 		ret = rte_eth_dev_mac_addr_add(PORT_ID(sdev), ea,
 				PRIV(dev)->mac_addr_pool[i]);
 		if (ret) {
@@ -298,12 +305,9 @@ fs_dev_remove(struct sub_device *sdev)
 		/* fallthrough */
 	case DEV_PROBED:
 		ret = rte_dev_remove(sdev->dev);
-		if (ret < 0) {
+		if (ret < 0)
 			ERROR("Bus detach failed for sub_device %u",
 			      SUB_ID(sdev));
-		} else {
-			rte_eth_dev_release_port(ETH(sdev));
-		}
 		sdev->state = DEV_PARSED;
 		/* fallthrough */
 	case DEV_PARSED:
@@ -380,6 +384,22 @@ failsafe_eth_dev_unregister_callbacks(struct sub_device *sdev)
 			WARN("Failed to unregister LSC callback for sub_device"
 			     " %d", SUB_ID(sdev));
 		sdev->lsc_callback = 0;
+	}
+	/*
+	 * The bus device-event callback is registered by the primary only
+	 * (hotplug is handled there). sub_device is shared memory, so in a
+	 * secondary the flag reads as set and sdev->dev holds the primary's
+	 * pointer; dereferencing it (rte_dev_name) would crash. Skip it.
+	 */
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
+	    sdev->dev_event_callback) {
+		ret = rte_dev_event_callback_unregister(rte_dev_name(sdev->dev),
+						failsafe_dev_event_callback,
+						sdev);
+		if (ret < 0)
+			WARN("Failed to unregister device event callback for"
+			     " sub_device %d", SUB_ID(sdev));
+		sdev->dev_event_callback = 0;
 	}
 }
 
@@ -587,8 +607,6 @@ failsafe_eth_rmv_event_callback(uint16_t port_id __rte_unused,
 		return -1;
 	/* Switch as soon as possible tx_dev. */
 	fs_switch_dev(fs_dev(sdev), sdev);
-	/* Use safe bursts in any case. */
-	failsafe_set_burst_fn(fs_dev(sdev), 1);
 	/*
 	 * Async removal, the sub-PMD will try to unregister
 	 * the callback at the source of the current thread context.
@@ -596,6 +614,16 @@ failsafe_eth_rmv_event_callback(uint16_t port_id __rte_unused,
 	sdev->remove = 1;
 	fs_unlock(fs_dev(sdev), 0);
 	return 0;
+}
+
+void
+failsafe_dev_event_callback(const char *device_name __rte_unused,
+			    enum rte_dev_event_type type,
+			    void *cb_arg)
+{
+	if (type == RTE_DEV_EVENT_REMOVE)
+		failsafe_eth_rmv_event_callback(0, RTE_ETH_EVENT_INTR_RMV,
+						cb_arg, NULL);
 }
 
 int

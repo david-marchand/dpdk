@@ -28,7 +28,7 @@ changed_files()
 
 has_code_change() # <pattern>
 {
-	test -n "$(git log --format='%h' -S"$1" $trusted_commit..)"
+	test -n "$(git log --format='%h' -G"$1" $trusted_commit..)"
 }
 
 has_file_change() # <pattern>
@@ -36,40 +36,183 @@ has_file_change() # <pattern>
 	changed_files | grep -q "$1"
 }
 
+net_driver_from_path() # <path>
+{
+	sed -rn '
+		s,.*drivers/net/intel/([^/]*)/.*,\1,p; t
+		s,.*drivers/net/([^./]*)/.*,\1,p; t
+		s,.*doc/guides/nics/features/([^./]*).*,\1,p' |
+	grep -v '^default$'
+}
+
 changed_net_drivers()
 {
-	net_paths='drivers/net/|doc/guides/nics/features/'
 	[ -n "$drivers" ] ||
 		drivers=$(changed_files |
-			sed -rn "s,^($net_paths)([^./]*).*,\2,p" |
+			net_driver_from_path |
 			sort -u)
 	echo "$drivers"
 }
 
 all_net_drivers()
 {
-	find $rootdir/drivers/net -mindepth 1 -maxdepth 1 -type d |
-	sed 's,.*/,,' |
-	sort
+	{
+		find $rootdir/drivers/net -name meson.build
+		ls $rootdir/doc/guides/nics/features/*.ini
+	} |
+	net_driver_from_path |
+	sort -u
+}
+
+# give back a driver directory for a doc/driver name
+driver_code_dir() # <driver_name>
+{
+	drv=$(echo "$1" | sed -r 's/_(dcf|vec|vf)$//')
+	case $drv in
+	enetc|enetc4)
+		echo "$rootdir/drivers/net/enetc" ;;
+	igb|igc|e1000)
+		echo "$rootdir/drivers/net/intel/e1000" ;;
+	*)
+		if [ -d $rootdir/drivers/net/intel/$drv ]; then
+			echo "$rootdir/drivers/net/intel/$drv"
+		else
+			echo "$rootdir/drivers/net/$drv"
+		fi ;;
+	esac
+}
+
+# create a cache of the mapping between a driver code directory and associated driver docs
+# format of this cache is:
+# ^,$drv1_directory: $drv1_doc_name1 $drv1_doc_name2,$drv2_directory: $drv2_doc_name1,...,$
+doc_code_map=","
+for d in $rootdir/doc/guides/nics/features/*.ini; do
+	drv=$(basename "$d" .ini)
+	[ "$drv" != 'default' ] || continue
+	code=$(driver_code_dir $drv)
+	case $doc_code_map in
+	*,$code:*)
+		before=${doc_code_map%,$code:*}
+		after=${doc_code_map#*,$code:}
+		drvs=${after%%,*}
+		rest=${after#*,}
+		doc_code_map="$before,$code:$drvs $drv,$rest" ;;
+	*)
+		doc_code_map="$doc_code_map$code: $drv," ;;
+	esac
+done
+
+# extract all doc names from the cache created above
+docs_for_code() # <code_dir>
+{
+	tmp=${doc_code_map#*,$1:}
+	echo ${tmp%%,*}
+}
+
+# output items from first list that are not in second list
+items_not_in() # <list1> <list2>
+{
+	{
+		[ -n "$1" ] && echo "$1"
+		[ -n "$2" ] && { echo "$2"; echo "$2"; }
+	} | sort | uniq -u
 }
 
 check_rte_flow() # <driver>
 {
-	code=$rootdir/drivers/net/$1
+	code=$(driver_code_dir $1)
 	doc=$rootdir/doc/guides/nics/features/$1.ini
 	[ -d $code ] || return 0
 	[ -f $doc ] || return 0
-	report=$($selfdir/parse-flow-support.sh $code $doc)
+	code_support=$($selfdir/parse-flow-support.sh $code)
+	report=$(
+		for category in item action; do
+			section="rte_flow ${category}s]"
+			code_items=$(echo "$code_support" | sed -n "/$section/,/]/p" |
+				sed '/]/d' |        # ignore section title
+				sed 's, *=.*,,' |   # keep only item name
+				sed '/^$/d' |       # remove empty lines
+				sort -u)
+			doc_items=$(sed -n "/$section/,/]/p" "$doc" |
+				sed '/]/d' |        # ignore section title
+				sed 's, *=.*,,' |   # keep only item name
+				sed '/^$/d' |       # remove empty lines
+				sort -u)
+			{
+				# items documented but not in code
+				items_not_in "$doc_items" "$code_items"
+				# items in code but not documented in any doc for the code directory
+				all_doc_items=$(
+					for drv in $(docs_for_code $code); do
+						d=$rootdir/doc/guides/nics/features/$drv.ini
+						sed -n "/$section/,/]/p" "$d" |
+							sed '/]/d' |        # ignore section title
+							sed 's, *=.*,,' |   # keep only item name
+							sed '/^$/d'         # remove empty lines
+					done | sort -u
+				)
+				items_not_in "$code_items" "$all_doc_items"
+			} | sed "s,^,$category ,"   # prefix with category name
+		done
+	)
 	if [ -n "$report" ]; then
 		error "rte_flow doc out of sync for $1"
 		echo "$report" | sed 's,^,\t,'
 	fi
 }
 
+has_doc_feature() # <ini_file> <feature>
+{
+	grep -q "^$2[[:space:]]*=[[:space:]]*[YP]" "$1"
+}
+
+# check if any doc for a code directory has a feature
+any_doc_has_feature() # <code_dir> <feature>
+{
+	for drv in $(docs_for_code $1); do
+		d=$rootdir/doc/guides/nics/features/$drv.ini
+		if has_doc_feature "$d" "$2"; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+check_mq_cap() # <driver> <feature> <indicator> <code_pattern> <mq_pattern>
+{
+	if has_doc_feature "$doc" "$2"; then
+		# doc claims feature, code must have it
+		git grep -qE "$4" -- "$code" ||
+			error "$2 documented but $3 not set for $1"
+	elif ! any_doc_has_feature "$code" "$2"; then
+		# check code->doc only if no doc for the code directory has the feature
+		! git grep -qE "$4" -- "$code" ||
+			error "$3 set but $2 not documented for $1"
+		! git grep -qE "$5" -- "$code" ||
+			error "$2 mq_mode referenced but $2 not documented for $1"
+	fi
+}
+
+check_mq_caps() # <driver>
+{
+	code=$(driver_code_dir $1)
+	doc=$rootdir/doc/guides/nics/features/$1.ini
+	[ -d $code ] || return 0
+	[ -f $doc ] || return 0
+
+	check_mq_cap $1 "DCB" "get_dcb_info" '\.get_dcb_info[[:space:]]*=' \
+		'RTE_ETH_MQ_(RX|TX).*DCB'
+	check_mq_cap $1 "RSS hash" "flow_type_rss_offloads" \
+		'flow_type_rss_offloads[[:space:]]*\|?=' 'RTE_ETH_MQ_RX.*RSS'
+	check_mq_cap $1 "VMDq" "max_vmdq_pools" 'max_vmdq_pools[[:space:]]*=' \
+		'RTE_ETH_MQ_(RX|TX).*VMDQ'
+}
+
 if [ -z "$trusted_commit" ]; then
 	# check all
 	for driver in $(all_net_drivers); do
 		check_rte_flow $driver
+		check_mq_caps $driver
 	done
 	exit $result
 fi
@@ -79,6 +222,12 @@ if has_code_change 'RTE_FLOW_.*_TYPE_' ||
 		has_file_change 'doc/guides/nics/features'; then
 	for driver in $(changed_net_drivers); do
 		check_rte_flow $driver
+	done
+fi
+if has_code_change 'get_dcb_info|flow_type_rss_offloads|max_vmdq_pools|RTE_ETH_MQ_' ||
+		has_file_change 'doc/guides/nics/features'; then
+	for driver in $(changed_net_drivers); do
+		check_mq_caps $driver
 	done
 fi
 exit $result

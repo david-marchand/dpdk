@@ -209,10 +209,11 @@ cpfl_dev_info_get(struct rte_eth_dev *dev, struct rte_eth_dev_info *dev_info)
 	dev_info->max_mtu = vport->max_mtu;
 	dev_info->min_mtu = RTE_ETHER_MIN_MTU;
 
-	dev_info->hash_key_size = vport->rss_key_size;
-	dev_info->reta_size = vport->rss_lut_size;
-
-	dev_info->flow_type_rss_offloads = CPFL_RSS_OFFLOAD_ALL;
+	if (base->caps.rss_caps != 0) {
+		dev_info->hash_key_size = vport->rss_key_size;
+		dev_info->reta_size = vport->rss_lut_size;
+		dev_info->flow_type_rss_offloads = CPFL_RSS_OFFLOAD_ALL;
+	}
 
 	dev_info->rx_offload_capa =
 		RTE_ETH_RX_OFFLOAD_IPV4_CKSUM           |
@@ -706,12 +707,6 @@ cpfl_dev_configure(struct rte_eth_dev *dev)
 		return -ENOTSUP;
 	}
 
-	if (conf->txmode.mq_mode != RTE_ETH_MQ_TX_NONE) {
-		PMD_INIT_LOG(ERR, "Multi-queue TX mode %d is not supported",
-			     conf->txmode.mq_mode);
-		return -ENOTSUP;
-	}
-
 	if (conf->lpbk_mode != 0) {
 		PMD_INIT_LOG(ERR, "Loopback operation mode %d is not supported",
 			     conf->lpbk_mode);
@@ -738,22 +733,12 @@ cpfl_dev_configure(struct rte_eth_dev *dev)
 		return -ENOTSUP;
 	}
 
-	if (conf->rxmode.mq_mode != RTE_ETH_MQ_RX_RSS &&
-	    conf->rxmode.mq_mode != RTE_ETH_MQ_RX_NONE) {
-		PMD_INIT_LOG(ERR, "RX mode %d is not supported.",
-			     conf->rxmode.mq_mode);
-		return -EINVAL;
-	}
-
 	if (base->caps.rss_caps != 0 && dev->data->nb_rx_queues != 0) {
 		ret = cpfl_init_rss(vport);
 		if (ret != 0) {
 			PMD_INIT_LOG(ERR, "Failed to init rss");
 			return ret;
 		}
-	} else if (conf->rxmode.mq_mode == RTE_ETH_MQ_RX_RSS) {
-		PMD_INIT_LOG(ERR, "RSS is not supported.");
-		return -ENOTSUP;
 	}
 
 	vport->max_pkt_len =

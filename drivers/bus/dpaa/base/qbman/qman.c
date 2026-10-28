@@ -2710,14 +2710,6 @@ put_portal:
 	return ret;
 }
 
-#define GENMASK(h, l) \
-	(((~0U) >> (sizeof(unsigned int) * 8 - ((h) - (l) + 1))) << (l))
-
-/* 'fqid' is a 24-bit field in every h/w descriptor */
-#define QM_FQID_MASK    GENMASK(23, 0)
-#define qm_fqid_set(p, v) ((p)->fqid = cpu_to_be32((v) & QM_FQID_MASK))
-#define qm_fqid_get(p)    (be32_to_cpu((p)->fqid) & QM_FQID_MASK)
-
 static int
 _qm_mr_consume_and_match_verb(struct qm_portal *p, int v)
 {
@@ -2795,19 +2787,20 @@ qm_mc_result_timeout(struct qm_portal *portal,
 
 RTE_EXPORT_INTERNAL_SYMBOL(qman_shutdown_fq)
 int
-qman_shutdown_fq(u32 fqid)
+qman_shutdown_fq(struct qman_fq *fq)
 {
-	struct qman_portal *p;
+	struct qman_portal *p = fq->qp;
 	struct qm_mc_command *mcc;
 	struct qm_mc_result *mcr;
 	int orl_empty, drain = 0, ret = 0;
-	u32 res;
+	u32 res, fqid = fq->fqid;
+	u32 loop;
 	u8 state;
-	u32 channel, wq;
-	u16 dest_wq;
+	u16 channel;
 
 	DPAA_BUS_DEBUG("In shutdown for queue = %x", fqid);
-	p = get_affine_portal();
+	if (!p)
+		p = get_affine_portal();
 	/* Determine the state of the FQID */
 	mcc = qm_mc_start(&p->p);
 	mcc->queryfq_np.fqid = cpu_to_be32(fqid);
@@ -2817,9 +2810,10 @@ qman_shutdown_fq(u32 fqid)
 		ret = -ETIMEDOUT;
 		goto out;
 	}
+
 	state = mcr->queryfq_np.state & QM_MCR_NP_STATE_MASK;
 	if (state == QM_MCR_NP_STATE_OOS) {
-		DPAA_BUS_ERR("Already in OOS");
+		DPAA_BUS_DEBUG("fqid(0x%x) Already in OOS", fqid);
 		goto out; /* Already OOS, no need to do anymore checks */
 	}
 
@@ -2834,9 +2828,7 @@ qman_shutdown_fq(u32 fqid)
 	}
 
 	/* Need to store these since the MCR gets reused */
-	dest_wq = be16_to_cpu(mcr->queryfq.fqd.dest_wq);
-	channel = dest_wq & 0x7;
-	wq = dest_wq >> 3;
+	channel = qm_fqd_get_chan(&mcr->queryfq.fqd);
 
 	switch (state) {
 	case QM_MCR_NP_STATE_TEN_SCHED:
@@ -2855,10 +2847,9 @@ qman_shutdown_fq(u32 fqid)
 		}
 		res = mcr->result; /* Make a copy as we reuse MCR below */
 
-		if (res == QM_MCR_RESULT_OK)
+		if (res == QM_MCR_RESULT_OK) {
 			drain_mr_fqrni(&p->p);
-
-		if (res == QM_MCR_RESULT_PENDING) {
+		} else if (res == QM_MCR_RESULT_PENDING) {
 			/*
 			 * Need to wait for the FQRN in the message ring, which
 			 * will only occur once the FQ has been drained.  In
@@ -2870,47 +2861,60 @@ qman_shutdown_fq(u32 fqid)
 			/* Flag that we need to drain FQ */
 			drain = 1;
 
-			__maybe_unused u16 dequeue_wq = 0;
-			if (channel >= qm_channel_pool1 &&
-				channel < (u16)(qm_channel_pool1 + 15)) {
-				/* Pool channel, enable the bit in the portal */
-				dequeue_wq = (channel -
-						qm_channel_pool1 + 1) << 4 | wq;
-			} else if (channel < qm_channel_pool1) {
-				/* Dedicated channel */
-				dequeue_wq = wq;
-			} else {
-				DPAA_BUS_ERR("Can't recover FQ 0x%x, ch: 0x%x",
-					fqid, channel);
-				ret = -EBUSY;
-				goto out;
-			}
-			/* Set the sdqcr to drain this channel */
-			if (channel < qm_channel_pool1)
+			const u16 pool_ch_start = dpaa_get_qm_channel_pool();
+			const u16 pool_ch_end = pool_ch_start +
+					dpaa_get_qm_channel_pool_num();
+			if (channel >= pool_ch_start && channel < pool_ch_end) {
+				/* Any portal may subscribe to a pool channel. */
+				qm_dqrr_sdqcr_set(&p->p,
+						  QM_SDQCR_TYPE_ACTIVE |
+						  QM_SDQCR_CHANNELS_POOL_CONV(channel));
+			} else if (channel < pool_ch_start) {
+				/* DEDICATED only dequeues our own channel, so
+				 * another portal's FQ would never retire here.
+				 */
+				if (channel != p->config->channel) {
+					DPAA_BUS_ERR("FQ 0x%x on portal channel 0x%x, not ours(0x%x)",
+						fqid, channel,
+						p->config->channel);
+					ret = -EBUSY;
+					goto out;
+				}
 				qm_dqrr_sdqcr_set(&p->p,
 						  QM_SDQCR_TYPE_ACTIVE |
 						  QM_SDQCR_CHANNELS_DEDICATED);
-			else
-				qm_dqrr_sdqcr_set(&p->p,
-						  QM_SDQCR_TYPE_ACTIVE |
-						  QM_SDQCR_CHANNELS_POOL_CONV
-						  (channel));
-			do {
+			} else {
+				/* DCP portal channel, not drainable from software. */
+				DPAA_BUS_ERR("DCP portal channel 0x%x for FQ 0x%x",
+					channel, fqid);
+				ret = -EBUSY;
+				goto out;
+			}
+
+			for (loop = 0; loop < QMAN_FQRN_WAIT_MAX; loop++) {
 				/* Keep draining DQRR while checking the MR*/
 				qm_dqrr_drain_nomatch(&p->p);
 				/* Process message ring too */
-				found_fqrn = qm_mr_drain(&p->p,
-							FQRN);
+				found_fqrn = qm_mr_drain(&p->p, FQRN);
+				if (found_fqrn)
+					break;
 				cpu_relax();
-			} while (!found_fqrn);
-			/* Restore SDQCR */
-			qm_dqrr_sdqcr_set(&p->p,
-					p->sdqcr);
+			}
+
+			/* Restore portal SDQCR. */
+			qm_dqrr_sdqcr_set(&p->p, p->sdqcr);
+
+			if (!found_fqrn) {
+				DPAA_BUS_ERR("FQ 0x%x retire did not complete",
+					fqid);
+				ret = -EBUSY;
+				goto out;
+			}
 		}
 		if (res != QM_MCR_RESULT_OK &&
 		    res != QM_MCR_RESULT_PENDING) {
 			DPAA_BUS_ERR("retire_fq failed: FQ 0x%x, res=0x%x",
-				      fqid, res);
+				fqid, res);
 			ret = -EIO;
 			goto out;
 		}

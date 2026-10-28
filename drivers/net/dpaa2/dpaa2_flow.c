@@ -24,11 +24,13 @@
 #include <dpaa2_pmd_logs.h>
 
 static char *dpaa2_flow_control_log;
-static uint16_t dpaa2_flow_miss_flow_id; /* Default miss flow id is 0. */
 static int dpaa2_sp_loaded = -1;
 
+/* Default size of a key */
+#define DPNI_DEFAULT_KEY_SIZE 24
+
 enum dpaa2_flow_entry_size {
-	DPAA2_FLOW_ENTRY_MIN_SIZE = (DPNI_MAX_KEY_SIZE / 2),
+	DPAA2_FLOW_ENTRY_MIN_SIZE = DPNI_DEFAULT_KEY_SIZE,
 	DPAA2_FLOW_ENTRY_MAX_SIZE = DPNI_MAX_KEY_SIZE
 };
 
@@ -80,6 +82,8 @@ enum rte_flow_item_type dpaa2_hp_supported_pattern_type[] = {
 	RTE_FLOW_ITEM_TYPE_GTP,
 	RTE_FLOW_ITEM_TYPE_ESP,
 	RTE_FLOW_ITEM_TYPE_AH,
+	RTE_FLOW_ITEM_TYPE_MPLS,
+	RTE_FLOW_ITEM_TYPE_PPPOES,
 	RTE_FLOW_ITEM_TYPE_RAW
 };
 
@@ -95,7 +99,8 @@ enum rte_flow_action_type dpaa2_supported_action_type[] = {
 	RTE_FLOW_ACTION_TYPE_QUEUE,
 	RTE_FLOW_ACTION_TYPE_PORT_ID,
 	RTE_FLOW_ACTION_TYPE_REPRESENTED_PORT,
-	RTE_FLOW_ACTION_TYPE_RSS
+	RTE_FLOW_ACTION_TYPE_RSS,
+	RTE_FLOW_ACTION_TYPE_DROP
 };
 
 #ifndef __cplusplus
@@ -180,7 +185,16 @@ static const struct rte_flow_item_gtp dpaa2_flow_item_gtp_mask = {
 	.teid = RTE_BE32(0xffffffff),
 };
 
+static const struct rte_flow_item_mpls dpaa2_flow_item_mpls_mask = {
+	.label_tc_s = { 0xff, 0xff, 0xff },
+};
+
+static const struct rte_flow_item_pppoe dpaa2_flow_item_pppoe_mask = {
+	.session_id = RTE_BE16(0xffff),
+};
+
 #endif
+
 
 #define DPAA2_FLOW_DUMP printf
 
@@ -1763,6 +1777,14 @@ dpaa2_flow_extract_support(const uint8_t *mask_src,
 	case RTE_FLOW_ITEM_TYPE_GTP:
 		mask_support = (const char *)&dpaa2_flow_item_gtp_mask;
 		size = sizeof(struct rte_flow_item_gtp);
+		break;
+	case RTE_FLOW_ITEM_TYPE_MPLS:
+		mask_support = (const char *)&dpaa2_flow_item_mpls_mask;
+		size = sizeof(struct rte_flow_item_mpls);
+		break;
+	case RTE_FLOW_ITEM_TYPE_PPPOES:
+		mask_support = (const char *)&dpaa2_flow_item_pppoe_mask;
+		size = sizeof(struct rte_flow_item_pppoe);
 		break;
 	default:
 		return -EINVAL;
@@ -4042,6 +4064,163 @@ dpaa2_configure_flow_gtp(struct dpaa2_dev_flow *flow,
 }
 
 static int
+dpaa2_configure_flow_mpls(struct dpaa2_dev_flow *flow,
+	struct rte_eth_dev *dev,
+	const struct rte_flow_attr *attr,
+	const struct rte_dpaa2_flow_item *dpaa2_pattern,
+	const struct rte_flow_action actions[] __rte_unused,
+	struct rte_flow_error *error __rte_unused,
+	int *device_configured)
+{
+	int ret, local_cfg = 0;
+	uint32_t group;
+	const struct rte_flow_item_mpls *spec, *mask;
+	struct dpaa2_dev_priv *priv = dev->data->dev_private;
+	const struct rte_flow_item *pattern =
+		&dpaa2_pattern->generic_item;
+
+	group = attr->group;
+
+	/* Parse pattern list to get the matching parameters */
+	spec = pattern->spec;
+	mask = pattern->mask ?
+		pattern->mask : &dpaa2_flow_item_mpls_mask;
+
+	/* Get traffic class index and flow id to be configured */
+	flow->tc_id = group;
+	flow->tc_index = attr->priority;
+
+	if (dpaa2_pattern->in_tunnel) {
+		DPAA2_PMD_ERR("Tunnel-MPLS distribution not support");
+		return -ENOTSUP;
+	}
+
+	if (!spec) {
+		ret = dpaa2_flow_identify_by_faf(priv, flow,
+				FAF_MPLS_FRAM, DPAA2_FLOW_QOS_TYPE,
+				group, &local_cfg);
+		if (ret)
+			return ret;
+
+		ret = dpaa2_flow_identify_by_faf(priv, flow,
+				FAF_MPLS_FRAM, DPAA2_FLOW_FS_TYPE,
+				group, &local_cfg);
+		if (ret)
+			return ret;
+
+		(*device_configured) |= local_cfg;
+		return 0;
+	}
+
+	ret = dpaa2_flow_extract_support((const uint8_t *)mask,
+		RTE_FLOW_ITEM_TYPE_MPLS);
+	if (ret) {
+		DPAA2_PMD_WARN("Extract field(s) of MPLS not support.");
+		return ret;
+	}
+
+	if (!mask->label_tc_s[0] && !mask->label_tc_s[1] &&
+		!mask->label_tc_s[2])
+		return 0;
+
+	ret = dpaa2_flow_add_hdr_extract_rule(flow, NET_PROT_MPLS,
+			NH_FLD_MPLS_MPLSL_1, spec,
+			mask, sizeof(*mask),
+			priv, group, &local_cfg, DPAA2_FLOW_QOS_TYPE);
+	if (ret)
+		return ret;
+
+	ret = dpaa2_flow_add_hdr_extract_rule(flow, NET_PROT_MPLS,
+			NH_FLD_MPLS_MPLSL_1, spec,
+			mask, sizeof(*mask),
+			priv, group, &local_cfg, DPAA2_FLOW_FS_TYPE);
+	if (ret)
+		return ret;
+
+	(*device_configured) |= local_cfg;
+
+	return 0;
+}
+
+static int
+dpaa2_configure_flow_pppoe(struct dpaa2_dev_flow *flow,
+	struct rte_eth_dev *dev,
+	const struct rte_flow_attr *attr,
+	const struct rte_dpaa2_flow_item *dpaa2_pattern,
+	const struct rte_flow_action actions[] __rte_unused,
+	struct rte_flow_error *error __rte_unused,
+	int *device_configured)
+{
+	int ret, local_cfg = 0;
+	uint32_t group;
+	const struct rte_flow_item_pppoe *spec, *mask;
+	struct dpaa2_dev_priv *priv = dev->data->dev_private;
+	const struct rte_flow_item *pattern =
+		&dpaa2_pattern->generic_item;
+
+	group = attr->group;
+
+	/* Parse pattern list to get the matching parameters */
+	spec = pattern->spec;
+	mask = pattern->mask ?
+		pattern->mask : &dpaa2_flow_item_pppoe_mask;
+
+	/* Get traffic class index and flow id to be configured */
+	flow->tc_id = group;
+	flow->tc_index = attr->priority;
+
+	if (dpaa2_pattern->in_tunnel) {
+		DPAA2_PMD_ERR("Tunnel-PPPoE distribution not support");
+		return -ENOTSUP;
+	}
+
+	if (!spec) {
+		ret = dpaa2_flow_identify_by_faf(priv, flow,
+				FAF_PPPOE_PPP_FRAM, DPAA2_FLOW_QOS_TYPE,
+				group, &local_cfg);
+		if (ret)
+			return ret;
+
+		ret = dpaa2_flow_identify_by_faf(priv, flow,
+				FAF_PPPOE_PPP_FRAM, DPAA2_FLOW_FS_TYPE,
+				group, &local_cfg);
+		if (ret)
+			return ret;
+
+		(*device_configured) |= local_cfg;
+		return 0;
+	}
+
+	ret = dpaa2_flow_extract_support((const uint8_t *)mask,
+		RTE_FLOW_ITEM_TYPE_PPPOES);
+	if (ret) {
+		DPAA2_PMD_WARN("Extract field(s) of PPPoE not support.");
+		return ret;
+	}
+
+	if (!mask->session_id)
+		return 0;
+
+	ret = dpaa2_flow_add_hdr_extract_rule(flow, NET_PROT_PPPOE,
+			NH_FLD_PPPOE_SID, &spec->session_id,
+			&mask->session_id, sizeof(rte_be16_t),
+			priv, group, &local_cfg, DPAA2_FLOW_QOS_TYPE);
+	if (ret)
+		return ret;
+
+	ret = dpaa2_flow_add_hdr_extract_rule(flow, NET_PROT_PPPOE,
+			NH_FLD_PPPOE_SID, &spec->session_id,
+			&mask->session_id, sizeof(rte_be16_t),
+			priv, group, &local_cfg, DPAA2_FLOW_FS_TYPE);
+	if (ret)
+		return ret;
+
+	(*device_configured) |= local_cfg;
+
+	return 0;
+}
+
+static int
 dpaa2_configure_flow_raw(struct dpaa2_dev_flow *flow,
 	struct rte_eth_dev *dev,
 	const struct rte_flow_attr *attr,
@@ -4207,6 +4386,13 @@ dpaa2_flow_verify_action(struct dpaa2_dev_priv *priv,
 		switch (actions[j].type) {
 		case RTE_FLOW_ACTION_TYPE_QUEUE:
 			dest_queue = actions[j].conf;
+			if (dest_queue->index >= MAX_RX_QUEUES ||
+				!priv->rx_vq[dest_queue->index]) {
+				DPAA2_PMD_ERR("Invalid FSQ index(%d)",
+					dest_queue->index);
+
+				return -EINVAL;
+			}
 			rxq = priv->rx_vq[dest_queue->index];
 			if (attr->group != rxq->tc_index) {
 				DPAA2_PMD_ERR("FSQ(%d.%d) not in TC[%d]",
@@ -4245,6 +4431,7 @@ dpaa2_flow_verify_action(struct dpaa2_dev_priv *priv,
 			break;
 		case RTE_FLOW_ACTION_TYPE_PF:
 			/* Skip this action, have to add for vxlan */
+		case RTE_FLOW_ACTION_TYPE_DROP:
 			break;
 		case RTE_FLOW_ACTION_TYPE_END:
 			end_of_list = 1;
@@ -4268,6 +4455,7 @@ dpaa2_configure_flow_fs_action(struct dpaa2_dev_priv *priv,
 	struct dpaa2_dev_priv *dest_priv;
 	const struct rte_flow_action_queue *dest_queue;
 	struct dpaa2_queue *dest_q;
+	uint64_t flc = 0;
 
 	memset(&flow->fs_action_cfg, 0,
 		sizeof(struct dpni_fs_action_cfg));
@@ -4275,7 +4463,41 @@ dpaa2_configure_flow_fs_action(struct dpaa2_dev_priv *priv,
 
 	if (flow->action_type == RTE_FLOW_ACTION_TYPE_QUEUE) {
 		dest_queue = rte_action->conf;
+		if (dest_queue->index >= MAX_RX_QUEUES ||
+			!priv->rx_vq[dest_queue->index]) {
+			DPAA2_PMD_ERR("Invalid FSQ index(%d)",
+				dest_queue->index);
+
+			return -EINVAL;
+		}
 		dest_q = priv->rx_vq[dest_queue->index];
+		if (flow->tc_id != dest_q->tc_index) {
+			DPAA2_PMD_ERR("RXQ[%d](%d.%d) not in TC[%d]",
+				dest_queue->index,
+				dest_q->tc_index, dest_q->flow_id,
+				flow->tc_id);
+
+			return -EINVAL;
+		}
+		flow->fs_action_cfg.options =
+			DPNI_FS_OPT_SET_FLC | DPNI_FS_OPT_SET_STASH_CONTROL;
+
+		if (dest_q->data_stashing_off) {
+			dpaa2_flc_stashing_set(DPAA2_FLC_DATA_STASHING,
+				0, &flc);
+		} else {
+			dpaa2_flc_stashing_set(DPAA2_FLC_DATA_STASHING,
+				1, &flc);
+		}
+		if ((dpaa2_svr_family & 0xffff0000) != SVR_LX2160A) {
+			dpaa2_flc_stashing_set(DPAA2_FLC_ANNO_STASHING,
+				1, &flc);
+		}
+
+		flc |= ((uint64_t)1) << DPAA2_FS_FLC_FS_MARK_OFFSET;
+		flc |= ((uint64_t)dest_q->tc_index) << DPAA2_FS_FLC_TC_OFFSET;
+		flc |= ((uint64_t)dest_q->flow_id) << DPAA2_FS_FLC_FLOW_OFFSET;
+		flow->fs_action_cfg.flc = flc;
 		flow->fs_action_cfg.flow_id = dest_q->flow_id;
 	} else if (flow->action_type == RTE_FLOW_ACTION_TYPE_PORT_ID ||
 		   flow->action_type == RTE_FLOW_ACTION_TYPE_REPRESENTED_PORT) {
@@ -4292,13 +4514,15 @@ dpaa2_configure_flow_fs_action(struct dpaa2_dev_priv *priv,
 		flow->fs_action_cfg.redirect_obj_token =
 			dest_priv->token;
 		flow->fs_action_cfg.flow_id = dest_q->flow_id;
+	} else if (flow->action_type == RTE_FLOW_ACTION_TYPE_DROP) {
+		flow->fs_action_cfg.options = DPNI_FS_OPT_DISCARD;
 	}
 
 	return 0;
 }
 
 static inline uint16_t
-dpaa2_flow_entry_size(uint16_t key_max_size)
+dpaa2_flow_entry_size(struct dpaa2_dev_priv *priv, uint16_t key_max_size)
 {
 	if (key_max_size > DPAA2_FLOW_ENTRY_MAX_SIZE) {
 		DPAA2_PMD_ERR("Key size(%d) > max(%d)",
@@ -4308,11 +4532,11 @@ dpaa2_flow_entry_size(uint16_t key_max_size)
 		return 0;
 	}
 
-	if (key_max_size > DPAA2_FLOW_ENTRY_MIN_SIZE)
+	if (key_max_size > DPAA2_FLOW_ENTRY_MIN_SIZE ||
+			dpaa2_dev_cmp_dpni_ver(priv, 8, 7) < 0)
 		return DPAA2_FLOW_ENTRY_MAX_SIZE;
 
-	/* Current MC only support fixed entry size(56)*/
-	return DPAA2_FLOW_ENTRY_MAX_SIZE;
+	return DPAA2_FLOW_ENTRY_MIN_SIZE;
 }
 
 static inline int
@@ -4374,7 +4598,7 @@ dpaa2_configure_fs_rss_table(struct dpaa2_dev_priv *priv,
 	}
 
 	key_max_size = tc_extract->key_profile.key_max_size;
-	entry_size = dpaa2_flow_entry_size(key_max_size);
+	entry_size = dpaa2_flow_entry_size(priv, key_max_size);
 
 	dpaa2_flow_fs_extracts_log(priv, tc_id);
 	ret = dpkg_prepare_key_cfg(&tc_extract->dpkg,
@@ -4409,8 +4633,12 @@ dpaa2_configure_fs_rss_table(struct dpaa2_dev_priv *priv,
 	if (rss_dist)
 		return 0;
 
+	uint16_t nb_rxq = priv->eth_dev->data->nb_rx_queues;
+	uint16_t first = tc_id * dist_size;
+
 	tc_cfg.enable = true;
-	tc_cfg.fs_miss_flow_id = dpaa2_flow_miss_flow_id;
+	tc_cfg.fs_miss_flow_id = nb_rxq > first ?
+		RTE_MIN(dist_size, nb_rxq - first) - 1 : 0;
 	ret = dpni_set_rx_fs_dist(dpni, CMD_PRI_LOW,
 			priv->token, &tc_cfg);
 	if (ret < 0) {
@@ -4465,7 +4693,7 @@ dpaa2_configure_qos_table(struct dpaa2_dev_priv *priv,
 	}
 
 	key_max_size = qos_extract->key_profile.key_max_size;
-	entry_size = dpaa2_flow_entry_size(key_max_size);
+	entry_size = dpaa2_flow_entry_size(priv, key_max_size);
 
 	dpaa2_flow_qos_extracts_log(priv);
 
@@ -4712,6 +4940,26 @@ dpaa2_generic_flow_set(struct dpaa2_dev_flow *flow,
 				goto end_flow_set;
 			}
 			break;
+		case RTE_FLOW_ITEM_TYPE_MPLS:
+			ret = dpaa2_configure_flow_mpls(flow,
+					dev, attr, &dpaa2_pattern[i],
+					actions, error,
+					&is_keycfg_configured);
+			if (ret) {
+				DPAA2_PMD_ERR("MPLS flow config failed!");
+				goto end_flow_set;
+			}
+			break;
+		case RTE_FLOW_ITEM_TYPE_PPPOES:
+			ret = dpaa2_configure_flow_pppoe(flow,
+					dev, attr, &dpaa2_pattern[i],
+					actions, error,
+					&is_keycfg_configured);
+			if (ret) {
+				DPAA2_PMD_ERR("PPPoE flow config failed!");
+				goto end_flow_set;
+			}
+			break;
 		case RTE_FLOW_ITEM_TYPE_RAW:
 			ret = dpaa2_configure_flow_raw(flow, dev, attr,
 					&dpaa2_pattern[i],
@@ -4736,11 +4984,11 @@ dpaa2_generic_flow_set(struct dpaa2_dev_flow *flow,
 
 	qos_key_extract = &priv->extract.qos_key_extract;
 	key_size = qos_key_extract->key_profile.key_max_size;
-	flow->qos_rule.key_size = dpaa2_flow_entry_size(key_size);
+	flow->qos_rule.key_size = dpaa2_flow_entry_size(priv, key_size);
 
 	tc_key_extract = &priv->extract.tc_key_extract[flow->tc_id];
 	key_size = tc_key_extract->key_profile.key_max_size;
-	flow->fs_rule.key_size = dpaa2_flow_entry_size(key_size);
+	flow->fs_rule.key_size = dpaa2_flow_entry_size(priv, key_size);
 
 	/* Let's parse action on matching traffic */
 	end_of_list = 0;
@@ -4749,6 +4997,7 @@ dpaa2_generic_flow_set(struct dpaa2_dev_flow *flow,
 		case RTE_FLOW_ACTION_TYPE_QUEUE:
 		case RTE_FLOW_ACTION_TYPE_REPRESENTED_PORT:
 		case RTE_FLOW_ACTION_TYPE_PORT_ID:
+		case RTE_FLOW_ACTION_TYPE_DROP:
 			ret = dpaa2_configure_flow_fs_action(priv, flow,
 							     &actions[j]);
 			if (ret)
@@ -5023,17 +5272,6 @@ dpaa2_flow_create(struct rte_eth_dev *dev, const struct rte_flow_attr *attr,
 	dpaa2_flow_control_log =
 		getenv("DPAA2_FLOW_CONTROL_LOG");
 
-	if (getenv("DPAA2_FLOW_CONTROL_MISS_FLOW")) {
-		dpaa2_flow_miss_flow_id =
-			(uint16_t)atoi(getenv("DPAA2_FLOW_CONTROL_MISS_FLOW"));
-		if (dpaa2_flow_miss_flow_id >= priv->dist_queues) {
-			DPAA2_PMD_ERR("Missed flow ID %d >= dist size(%d)",
-				      dpaa2_flow_miss_flow_id,
-				      priv->dist_queues);
-			return NULL;
-		}
-	}
-
 	flow = rte_zmalloc(NULL, sizeof(struct dpaa2_dev_flow),
 			   RTE_CACHE_LINE_SIZE);
 	if (!flow) {
@@ -5150,6 +5388,7 @@ dpaa2_flow_destroy(struct rte_eth_dev *dev, struct rte_flow *_flow,
 	case RTE_FLOW_ACTION_TYPE_QUEUE:
 	case RTE_FLOW_ACTION_TYPE_REPRESENTED_PORT:
 	case RTE_FLOW_ACTION_TYPE_PORT_ID:
+	case RTE_FLOW_ACTION_TYPE_DROP:
 		if (priv->num_rx_tc > 1) {
 			/* Remove entry from QoS table first */
 			ret = dpni_remove_qos_entry(dpni, CMD_PRI_LOW,

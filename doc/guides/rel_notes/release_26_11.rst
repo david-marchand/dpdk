@@ -117,15 +117,21 @@ New Features
   loss of lock and Tx fault flags.
   The SFF-8472 decoder also reports the Rx loss of signal and Tx fault state.
 
-* **Added flow item default mask lookup.**
+* **Added flow item default mask and size lookup.**
 
-  Added ``RTE_FLOW_CONV_OP_ITEM_DEFAULT_MASK_PTR`` conversion operation
-  to ``rte_flow_conv()`` to retrieve the default mask of a flow item type.
+  Added ``RTE_FLOW_CONV_OP_ITEM_DEFAULT_MASK_PTR`` and
+  ``RTE_FLOW_CONV_OP_ITEM_SIZE`` conversion operations
+  to ``rte_flow_conv()`` to retrieve the default mask
+  and the specification structure size of a flow item type.
 
 * **Added internal ethdev flow graph parser helper API.**
 
   Added internal ``flow_graph`` API in ethdev
   for PMD drivers to build graph-based flow pattern parsers.
+
+* **Updated AF_PACKET driver.**
+
+  Added ``ignore_outgoing`` devarg to only receive incoming packets.
 
 * **Updated AF_XDP driver.**
 
@@ -177,6 +183,11 @@ New Features
 
   * Added the inner IP header to the RSS hash so tunneled traffic is
     distributed across the Rx queues.
+  * Removed ``DPAA2_FLOW_CONTROL_MISS_FLOW`` environment variable. The
+    flow steering miss queue now defaults to the last Rx queue configured
+    in the traffic class. Users who previously redirected unmatched
+    frames to a specific queue via this variable must use the rte_flow
+    API instead.
 
 * **Updated NXP ENETC4 PMD.**
 
@@ -199,6 +210,23 @@ New Features
   * Updated ENETC4 VF link status reporting to use bitmask encoding.
   * Added Tx pause support for the ENETC4 VF via Rx congestion mode.
   * Added WRR Tx scheduler devarg (``enetc4_txq_wrr``) for ENETC4 VF ring weights.
+
+* **Updated NXP DPAA drivers.**
+
+  * Changed the default number of Rx queues in FMCLESS mode to the maximum
+    supported per port instead of the number of lcores, because several
+    queues may be processed on the same core.
+  * Renamed the fmlib ``create_device()`` and ``get_device_id()`` helpers to
+    ``fm_create_device()`` and ``fm_get_device_id()`` to avoid clashing with
+    other drivers when DPDK is linked statically.
+  * Added device arguments to the DPAA QDMA driver to control existing
+    driver behaviour at runtime: ``dpaa_dma_sg_disable`` submits each
+    descriptor as an individual single-entry transfer instead of the
+    default scatter-gather batching, ``dpaa_dma_data_validation`` enables
+    the post-transfer data validation helper for debugging, and, when the
+    driver is built with ``RTE_DMA_DPAA_ERRATA_ERR050757``,
+    ``dpaa_dma_pci_read_disable`` skips the ERR050757 source
+    read-transaction programming.
 
 * **Updated Solarflare network driver.**
 
@@ -457,11 +485,20 @@ API Changes
   * Removed the ``unused`` field.
   * Changed the ``objs`` array from fixed size to variable size.
 
+* ethdev: Updated multi-queue mode validation at port configuration time:
+
+  * DCB modes (Rx ``RTE_ETH_MQ_RX_DCB_FLAG``, Tx ``RTE_ETH_MQ_TX_DCB``/``RTE_ETH_MQ_TX_VMDQ_DCB``)
+    are rejected if the driver has no ``get_dcb_info`` callback.
+  * RSS mode (Rx ``RTE_ETH_MQ_RX_RSS_FLAG``) is rejected with more than
+    one Rx queue if the driver reports no ``flow_type_rss_offloads``,
+    and ignored with a single Rx queue.
+  * VMDq modes (Rx ``RTE_ETH_MQ_RX_VMDQ_FLAG``,
+    Tx ``RTE_ETH_MQ_TX_VMDQ_DCB``/``RTE_ETH_MQ_TX_VMDQ_ONLY``) are rejected
+    if the driver reports no VMDq pool.
+  * Unknown Rx and Tx modes are rejected.
+
 * ethdev: Updated VMDq related API.
 
-  * At port configuration time, the number of VMDq pools advertised by a driver
-    is now used to validate VMDq related Rx and Tx modes
-    (``RTE_ETH_MQ_RX_VMDQ_FLAG``, ``RTE_ETH_MQ_TX_VMDQ_DCB``, ``RTE_ETH_MQ_TX_VMDQ_ONLY``).
   * A check was added in ``rte_eth_dev_mac_addr_add`` to validate that
     the ``pool`` parameter is 0 when VMDq is not configured.
   * The ``RTE_ETH_NUM_RECEIVE_MAC_ADDR`` and ``RTE_ETH_VMDQ_NUM_UC_HASH_ARRAY`` macros

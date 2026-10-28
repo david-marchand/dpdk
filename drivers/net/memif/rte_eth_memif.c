@@ -904,6 +904,8 @@ eth_memif_tx(void *queue, struct rte_mbuf **bufs, uint16_t nb_pkts)
 				mq->in_port, rte_strerror(-ret));
 		return 0;
 	}
+	if (unlikely(nb_pkts == 0))
+		return 0;
 
 	ring_size = 1 << mq->log2_ring_size;
 	mask = ring_size - 1;
@@ -1252,11 +1254,9 @@ no_free_slots:
 	rte_atomic_store_explicit(&ring->head, slot, rte_memory_order_release);
 
 	/* Send interrupt, if enabled. */
-	if ((ring->flags & MEMIF_RING_FLAG_MASK_INT) == 0) {
+	if ((ring->flags & MEMIF_RING_FLAG_MASK_INT) == 0 &&
+	    rte_intr_fd_get(mq->intr_handle) >= 0) {
 		uint64_t a = 1;
-		if (rte_intr_fd_get(mq->intr_handle) < 0)
-			return -1;
-
 		ssize_t size = write(rte_intr_fd_get(mq->intr_handle),
 				     &a, sizeof(a));
 		if (unlikely(size < 0)) {
@@ -1287,13 +1287,13 @@ memif_free_regions(struct rte_eth_dev *dev)
 		if (r != NULL) {
 			/* This is memzone */
 			if (i > 0 && (pmd->flags & ETH_MEMIF_FLAG_ZERO_COPY)) {
+				/* memseg fd is owned by EAL, do not close */
 				r->addr = NULL;
-				if (r->fd > 0)
-					close(r->fd);
+				r->fd = -1;
 			}
 			if (r->addr != NULL) {
 				munmap(r->addr, r->region_size);
-				if (r->fd > 0) {
+				if (r->fd >= 0) {
 					close(r->fd);
 					r->fd = -1;
 				}
@@ -1414,7 +1414,7 @@ memif_region_init_shm(struct rte_eth_dev *dev, uint8_t has_buffers)
 	return ret;
 
 error:
-	if (r->fd > 0)
+	if (r->fd >= 0)
 		close(r->fd);
 	r->fd = -1;
 
@@ -1609,8 +1609,7 @@ memif_connect(struct rte_eth_dev *dev)
 				}
 			}
 			if (i > 0 && (pmd->flags & ETH_MEMIF_FLAG_ZERO_COPY)) {
-				/* close memseg file */
-				close(mr->fd);
+				/* memseg fd is owned by EAL, do not close */
 				mr->fd = -1;
 			}
 		}
@@ -1698,6 +1697,12 @@ memif_dev_stop(struct rte_eth_dev *dev)
 	rte_eal_alarm_cancel(memif_bad_desc_disconnect, dev);
 	rte_atomic_store_explicit(&pmd->bad_desc, false, rte_memory_order_relaxed);
 
+	/* Refuse peers while stopped: a server must not accept a connection
+	 * after dev_stop, which would leave a live control channel on a
+	 * stopped port.
+	 */
+	pmd->flags |= ETH_MEMIF_FLAG_DISABLED;
+
 	memif_disconnect(dev);
 
 	for (i = 0; i < dev->data->nb_rx_queues; i++)
@@ -1716,6 +1721,10 @@ memif_dev_close(struct rte_eth_dev *dev)
 
 	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
 		memif_msg_enq_disconnect(pmd->cc, "Device closed", 0);
+		/* Flush the disconnect and tear down the control channel;
+		 * memif_disconnect() is idempotent if dev_stop already ran.
+		 */
+		memif_disconnect(dev);
 
 		for (i = 0; i < dev->data->nb_rx_queues; i++)
 			memif_rx_queue_release(dev, i);
@@ -1956,18 +1965,18 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	const unsigned int numa_node = vdev->device.numa_node;
 	const char *name = rte_vdev_device_name(vdev);
 
+	/* Allocate process-private data before reserving the port. */
+	process_private = rte_zmalloc(name, sizeof(struct pmd_process_private),
+				      RTE_CACHE_LINE_SIZE);
+	if (process_private == NULL) {
+		MIF_LOG(ERR, "Failed to alloc memory for process private");
+		return -ENOMEM;
+	}
+
 	eth_dev = rte_eth_vdev_allocate(vdev, sizeof(*pmd));
 	if (eth_dev == NULL) {
 		MIF_LOG(ERR, "%s: Unable to allocate device struct.", name);
-		return -1;
-	}
-
-	process_private = (struct pmd_process_private *)
-		rte_zmalloc(name, sizeof(struct pmd_process_private),
-			    RTE_CACHE_LINE_SIZE);
-
-	if (process_private == NULL) {
-		MIF_LOG(ERR, "Failed to alloc memory for process private");
+		rte_free(process_private);
 		return -1;
 	}
 	eth_dev->process_private = process_private;
@@ -1987,7 +1996,7 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 
 	ret = memif_socket_init(eth_dev, socket_filename);
 	if (ret < 0)
-		return ret;
+		goto error;
 
 	memset(pmd->secret, 0, sizeof(char) * ETH_MEMIF_SECRET_SIZE);
 	if (secret != NULL)
@@ -2022,6 +2031,13 @@ memif_create(struct rte_vdev_device *vdev, enum memif_role_t role,
 	rte_eth_dev_probing_finish(eth_dev);
 
 	return 0;
+
+error:
+	/* rte_eth_dev_release_port() does not free process_private. */
+	rte_free(eth_dev->process_private);
+	eth_dev->process_private = NULL;
+	rte_eth_dev_release_port(eth_dev);
+	return ret;
 }
 
 static int
@@ -2231,11 +2247,8 @@ rte_pmd_memif_probe(struct rte_vdev_device *vdev)
 	gid_t owner_gid = -1;
 	uint32_t flags = 0;
 	const char *secret = NULL;
-	struct rte_ether_addr *ether_addr = rte_zmalloc("",
-		sizeof(struct rte_ether_addr), 0);
+	struct rte_ether_addr *ether_addr = NULL;
 	struct rte_eth_dev *eth_dev;
-
-	rte_eth_random_addr(ether_addr->addr_bytes);
 
 	MIF_LOG(INFO, "Initialize MEMIF: %s.", name);
 
@@ -2263,13 +2276,20 @@ rte_pmd_memif_probe(struct rte_vdev_device *vdev)
 		if (eth_dev->process_private == NULL) {
 			MIF_LOG(ERR,
 				"Failed to alloc memory for process private");
-			return -1;
+			return -ENOMEM;
 		}
 
 		rte_eth_dev_probing_finish(eth_dev);
 
 		return 0;
 	}
+
+	ether_addr = rte_zmalloc("", sizeof(struct rte_ether_addr), 0);
+	if (ether_addr == NULL) {
+		MIF_LOG(ERR, "Failed to alloc MAC address");
+		return -ENOMEM;
+	}
+	rte_eth_random_addr(ether_addr->addr_bytes);
 
 	ret = rte_mp_action_register(MEMIF_MP_SEND_REGION, memif_mp_send_region);
 	/*
@@ -2345,6 +2365,12 @@ rte_pmd_memif_probe(struct rte_vdev_device *vdev)
 			   log2_ring_size, pkt_buffer_size, secret, ether_addr);
 
 exit:
+	/*
+	 * On success memif_create() takes ownership of ether_addr
+	 * (data->mac_addrs); free it on any failure or early exit.
+	 */
+	if (ret != 0)
+		rte_free(ether_addr);
 	rte_kvargs_free(kvlist);
 	return ret;
 }

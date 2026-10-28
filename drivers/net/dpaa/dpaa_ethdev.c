@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
  *
  *   Copyright 2016 Freescale Semiconductor, Inc. All rights reserved.
- *   Copyright 2017-2020,2022-2025 NXP
+ *   Copyright 2017-2020,2022-2026 NXP
  *
  */
 /* System headers */
@@ -143,7 +143,32 @@ static const struct rte_dpaa_xstats_name_off dpaa_xstats_strings[] = {
 		offsetof(struct dpaa_if_rx_bmi_stats, fmbm_rodc)},
 	{"rx_buf_deallocate",
 		offsetof(struct dpaa_if_rx_bmi_stats, fmbm_rbdc)},
+	{"tx_frame_counter",
+		offsetof(struct dpaa_if_tx_bmi_stats, fmbm_tfrc)},
+	{"tx_bad_frames_count",
+		offsetof(struct dpaa_if_tx_bmi_stats, fmbm_tfdc)},
+	{"tx_frame_length_discard",
+		offsetof(struct dpaa_if_tx_bmi_stats, fmbm_tfledc)},
+	{"tx_frames_unsupported_format",
+		offsetof(struct dpaa_if_tx_bmi_stats, fmbm_tfufdc)},
+	{"tx_buf_deallocate",
+		offsetof(struct dpaa_if_tx_bmi_stats, fmbm_tbdc)},
 };
+
+/* Number of BMI entries at the tail of dpaa_xstats_strings[].
+ * Must equal RTE_DIM(dpaa_xstats_strings) - number_of_non_bmi_entries.
+ */
+#define DPAA_MAC_XSTATS_COUNT   13
+#define DPAA_BMI_XSTATS_COUNT   (RTE_DIM(dpaa_xstats_strings) - DPAA_MAC_XSTATS_COUNT)
+static_assert(sizeof(struct dpaa_if_rx_bmi_stats) / sizeof(uint32_t)
+		+ sizeof(struct dpaa_if_tx_bmi_stats) / sizeof(uint32_t)
+		== DPAA_BMI_XSTATS_COUNT,
+		"DPAA_BMI_XSTATS_COUNT out of sync with BMI stats structs");
+/* Every BMI counter read by fman_if_bmi_stats_get_all() must have a name
+ * entry above, and vice versa.
+ */
+static_assert(FMAN_IF_BMI_STATS_COUNT == DPAA_BMI_XSTATS_COUNT,
+		"DPAA_BMI_XSTATS_COUNT out of sync with BMI register windows");
 
 static struct rte_dpaa_driver rte_dpaa_pmd;
 int dpaa_valid_dev;
@@ -480,7 +505,7 @@ static int dpaa_eth_dev_stop(struct rte_eth_dev *dev)
 	PMD_INIT_FUNC_TRACE();
 	dev->data->dev_started = 0;
 
-	if (!fif->is_shared_mac) {
+	if (!fif->is_shared_mac && fif->mac_type != fman_onic) {
 		fman_if_bmi_stats_disable(fif);
 		fman_if_disable_rx(fif);
 	}
@@ -516,15 +541,6 @@ static int dpaa_eth_dev_close(struct rte_eth_dev *dev)
 		return -ENOENT;
 	}
 
-	/* DPAA FM deconfig */
-	if (!(default_q || fmc_q)) {
-		ret = dpaa_fm_deconfig(dpaa_intf, dev->process_private);
-		if (ret) {
-			DPAA_PMD_WARN("%s: FM deconfig failed(%d)",
-				dev->data->name, ret);
-		}
-	}
-
 	dpaa_dev = RTE_CLASS_TO_BUS_DEVICE(dev, *dpaa_dev);
 	intr_handle = dpaa_dev->intr_handle;
 	__fif = container_of(fif, struct __fman_if, __if);
@@ -537,7 +553,7 @@ static int dpaa_eth_dev_close(struct rte_eth_dev *dev)
 
 	if (fif->mac_type == fman_offline_internal ||
 	    fif->mac_type == fman_onic)
-		return 0;
+		goto clean_1;
 
 	/* Reset link to autoneg */
 	if (link->link_status && !link->link_autoneg) {
@@ -562,10 +578,29 @@ static int dpaa_eth_dev_close(struct rte_eth_dev *dev)
 				dev->data->name, ret);
 		}
 	}
-
+clean_1:
 	/* release configuration memory */
 	rte_free(dpaa_intf->fc_conf);
+	dpaa_intf->fc_conf = NULL;
 
+	/* For FMCLESS mode of share MAC, deconfig FM to direct
+	 * ingress traffic to kernel before fq shutdown.
+	 */
+	if (!(default_q || fmc_q) && dpaa_intf->port_handle) {
+		ret = dpaa_fm_deconfig(dpaa_intf, dev->process_private);
+		if (ret) {
+			DPAA_PMD_WARN("%s: FM deconfig failed(%d)",
+				dev->data->name, ret);
+		}
+	}
+	if (fif->num_profiles) {
+		ret = dpaa_port_vsp_cleanup(dpaa_intf);
+		if (ret) {
+			DPAA_PMD_WARN("%s: cleanup VSP failed(%d)",
+				dev->data->name, ret);
+		}
+	}
+	/* Release congestion Groups after releasing FQIDs */
 	/* Release RX congestion Groups */
 	if (dpaa_intf->cgr_rx) {
 		for (loop = 0; loop < dpaa_intf->nb_rx_queues; loop++) {
@@ -609,20 +644,9 @@ static int dpaa_eth_dev_close(struct rte_eth_dev *dev)
 
 	rte_free(dpaa_intf->tx_queues);
 	dpaa_intf->tx_queues = NULL;
-	if (dpaa_intf->port_handle) {
-		ret = dpaa_fm_deconfig(dpaa_intf, fif);
-		if (ret) {
-			DPAA_PMD_WARN("%s: FM deconfig failed(%d)",
-				dev->data->name, ret);
-		}
-	}
-	if (fif->num_profiles) {
-		ret = dpaa_port_vsp_cleanup(dpaa_intf, fif);
-		if (ret) {
-			DPAA_PMD_WARN("%s: cleanup VSP failed(%d)",
-				dev->data->name, ret);
-		}
-	}
+
+	rte_free(dpaa_intf->tx_conf_queues);
+	dpaa_intf->tx_conf_queues = NULL;
 
 	return ret;
 }
@@ -662,7 +686,6 @@ static int dpaa_eth_dev_info(struct rte_eth_dev *dev,
 	dev_info->max_mac_addrs = DPAA_MAX_MAC_FILTER;
 	dev_info->max_hash_mac_addrs = 0;
 	dev_info->max_vfs = 0;
-	dev_info->max_vmdq_pools = RTE_ETH_16_POOLS;
 	dev_info->flow_type_rss_offloads = DPAA_RSS_OFFLOAD_ALL;
 
 	if (fif->mac_type == fman_mac_1g) {
@@ -863,7 +886,7 @@ dpaa_dev_xstats_get(struct rte_eth_dev *dev, struct rte_eth_xstat *xstats,
 {
 	unsigned int i = 0, j, num = RTE_DIM(dpaa_xstats_strings);
 	uint64_t values[sizeof(struct dpaa_if_stats) / 8];
-	unsigned int bmi_count = sizeof(struct dpaa_if_rx_bmi_stats) / 4;
+	unsigned int bmi_count = DPAA_BMI_XSTATS_COUNT;
 
 	if (n < num)
 		return num;
@@ -874,7 +897,7 @@ dpaa_dev_xstats_get(struct rte_eth_dev *dev, struct rte_eth_xstat *xstats,
 	fman_if_stats_get_all(dev->process_private, values,
 			      sizeof(struct dpaa_if_stats) / 8);
 
-	for (i = 0; i < num - (bmi_count - 1); i++) {
+	for (i = 0; i < num - bmi_count; i++) {
 		xstats[i].id = i;
 		xstats[i].value = values[dpaa_xstats_strings[i].offset / 8];
 	}
@@ -912,7 +935,7 @@ dpaa_xstats_get_by_id(struct rte_eth_dev *dev, const uint64_t *ids,
 {
 	unsigned int i, j, stat_cnt = RTE_DIM(dpaa_xstats_strings);
 	uint64_t values_copy[sizeof(struct dpaa_if_stats) / 8];
-	unsigned int bmi_count = sizeof(struct dpaa_if_rx_bmi_stats) / 4;
+	unsigned int bmi_count = DPAA_BMI_XSTATS_COUNT;
 
 	if (!ids) {
 		if (n < stat_cnt)
@@ -924,7 +947,7 @@ dpaa_xstats_get_by_id(struct rte_eth_dev *dev, const uint64_t *ids,
 		fman_if_stats_get_all(dev->process_private, values_copy,
 				      sizeof(struct dpaa_if_stats) / 8);
 
-		for (i = 0; i < stat_cnt - (bmi_count - 1); i++)
+		for (i = 0; i < stat_cnt - bmi_count; i++)
 			values[i] =
 				values_copy[dpaa_xstats_strings[i].offset / 8];
 
@@ -1078,11 +1101,20 @@ static inline int dpaa_eth_rx_queue_bp_check(struct rte_eth_dev *dev,
 			vsp_id = 0;
 	}
 
-	if (dpaa_intf->vsp_bpid[vsp_id] &&
-		bpid != dpaa_intf->vsp_bpid[vsp_id]) {
+	/* vsp_id originates from the FMC profile IDs, and base_profile_id from
+	 * the DTS vsp-window, so bound it against the array before indexing.
+	 */
+	if (vsp_id >= DPAA_VSP_PROFILE_MAX_NUM) {
+		DPAA_PMD_ERR("Invalid VSP ID(%d) >= max(%d)",
+			     vsp_id, DPAA_VSP_PROFILE_MAX_NUM);
+		return -EINVAL;
+	}
+
+	if (dpaa_intf->vsp[vsp_id].bp_num != 0 &&
+		bpid != dpaa_intf->vsp[vsp_id].bpid[0]) {
 		DPAA_PMD_ERR("Various MPs are assigned to RXQs with same VSP");
 
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -1127,10 +1159,10 @@ int dpaa_eth_rx_queue_setup(struct rte_eth_dev *dev, uint16_t queue_idx,
 			return -EINVAL;
 		}
 	} else {
-		if (dpaa_eth_rx_queue_bp_check(dev, rxq->vsp_id,
-			DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid)) {
-			return -EINVAL;
-		}
+		ret = dpaa_eth_rx_queue_bp_check(dev, rxq->vsp_id,
+				DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid);
+		if (ret)
+			return ret;
 	}
 
 	if (dpaa_intf->bp_info && dpaa_intf->bp_info->bp &&
@@ -1170,9 +1202,12 @@ int dpaa_eth_rx_queue_setup(struct rte_eth_dev *dev, uint16_t queue_idx,
 		int8_t vsp_id = rxq->vsp_id;
 
 		if (vsp_id >= 0) {
-			ret = dpaa_port_vsp_update(dpaa_intf, fmc_q, vsp_id,
-					DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid,
-					fif, buffsz + RTE_PKTMBUF_HEADROOM);
+			dpaa_intf->vsp[vsp_id].bpid[0] =
+				DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid;
+			dpaa_intf->vsp[vsp_id].size[0] =
+				DPAA_MEMPOOL_TO_POOL_INFO(mp)->size;
+			dpaa_intf->vsp[vsp_id].bp_num = 1;
+			ret = dpaa_port_vsp_update(dpaa_intf, fmc_q, vsp_id, fif);
 			if (ret) {
 				DPAA_PMD_ERR("dpaa_port_vsp_update failed");
 				return ret;
@@ -1185,12 +1220,16 @@ int dpaa_eth_rx_queue_setup(struct rte_eth_dev *dev, uint16_t queue_idx,
 					     " to shared interface on DPDK.");
 				return -EINVAL;
 			}
-			dpaa_intf->vsp_bpid[fif->base_profile_id] =
+			dpaa_intf->vsp[fif->base_profile_id].bpid[0] =
 				DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid;
+			dpaa_intf->vsp[fif->base_profile_id].size[0] =
+				DPAA_MEMPOOL_TO_POOL_INFO(mp)->size;
+			dpaa_intf->vsp[fif->base_profile_id].bp_num = 1;
 		}
 	} else {
-		dpaa_intf->vsp_bpid[0] =
-			DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid;
+		dpaa_intf->vsp[0].bpid[0] = DPAA_MEMPOOL_TO_POOL_INFO(mp)->bpid;
+		dpaa_intf->vsp[0].size[0] = DPAA_MEMPOOL_TO_POOL_INFO(mp)->size;
+		dpaa_intf->vsp[0].bp_num = 1;
 	}
 
 	dpaa_intf->valid = 1;
@@ -2259,6 +2298,7 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 		if (num_rx_fqs < 0) {
 			DPAA_PMD_ERR("%s FMC initializes failed!",
 				dpaa_intf->name);
+			ret = num_rx_fqs;
 			goto free_rx;
 		}
 		if (!num_rx_fqs) {
@@ -2271,8 +2311,8 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 				dpaa_intf->name);
 		}
 	} else {
-		/* FMCLESS mode, load balance to multiple cores.*/
-		num_rx_fqs = rte_lcore_count();
+		/* FMCLESS: create the max; configure() picks how many are used. */
+		num_rx_fqs = DPAA_MAX_NUM_PCD_QUEUES;
 	}
 
 	/* Each device can not have more than DPAA_MAX_NUM_PCD_QUEUES RX
@@ -2355,7 +2395,7 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 		/* Clean up a frame queue left behind by a previous run
 		 * before it is initialized.
 		 */
-		qman_shutdown_fq(fqid);
+		qman_shutdown_fq_by_fqid(fqid);
 
 		if (dpaa_intf->cgr_rx)
 			dpaa_intf->cgr_rx[loop].cgrid = cgrid[loop];
@@ -2384,7 +2424,7 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 	if (!dpaa_intf->tx_conf_queues) {
 		DPAA_PMD_ERR("Failed to alloc mem for TX conf queues");
 		ret = -ENOMEM;
-		goto free_rx;
+		goto free_tx;
 	}
 
 	/* If congestion control is enabled globally*/
@@ -2395,7 +2435,7 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 		if (!dpaa_intf->cgr_tx) {
 			DPAA_PMD_ERR("Failed to alloc mem for cgr_tx");
 			ret = -ENOMEM;
-			goto free_rx;
+			goto free_tx;
 		}
 
 		ret = qman_alloc_cgrid_range(&cgrid_tx[0], MAX_DPAA_CORES,
@@ -2403,7 +2443,7 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 		if (ret != MAX_DPAA_CORES) {
 			DPAA_PMD_WARN("insufficient CGRIDs available");
 			ret = -EINVAL;
-			goto free_rx;
+			goto free_tx;
 		}
 	} else {
 		dpaa_intf->cgr_tx = NULL;
@@ -2499,6 +2539,8 @@ dpaa_dev_init(struct rte_eth_dev *eth_dev)
 	return 0;
 
 free_tx:
+	rte_free(dpaa_intf->tx_conf_queues);
+	dpaa_intf->tx_conf_queues = NULL;
 	rte_free(dpaa_intf->tx_queues);
 	dpaa_intf->tx_queues = NULL;
 	dpaa_intf->nb_tx_queues = 0;
@@ -2601,24 +2643,30 @@ rte_dpaa_probe(struct rte_dpaa_driver *dpaa_drv,
 
 	/* Invoke PMD device initialization function */
 	diag = dpaa_dev_init(eth_dev);
-	if (diag == 0) {
-		if (!dpaa_tx_sg_pool) {
-			dpaa_tx_sg_pool =
-				rte_pktmbuf_pool_create("dpaa_mbuf_tx_sg_pool",
-				DPAA_POOL_SIZE,
-				DPAA_POOL_CACHE_SIZE, 0,
-				DPAA_MAX_SGS * sizeof(struct qm_sg_entry),
-				rte_socket_id());
-			if (dpaa_tx_sg_pool == NULL) {
-				DPAA_PMD_ERR("SG pool creation failed");
-				return -ENOMEM;
-			}
+	if (diag != 0)
+		goto release_port;
+
+	if (dpaa_tx_sg_pool == NULL) {
+		dpaa_tx_sg_pool =
+			rte_pktmbuf_pool_create("dpaa_mbuf_tx_sg_pool",
+			DPAA_POOL_SIZE,
+			DPAA_POOL_CACHE_SIZE, 0,
+			DPAA_MAX_SGS * sizeof(struct qm_sg_entry),
+			rte_socket_id());
+		if (dpaa_tx_sg_pool == NULL) {
+			DPAA_PMD_ERR("SG pool creation failed");
+			diag = -ENOMEM;
+			goto close_dev;
 		}
-		rte_eth_dev_probing_finish(eth_dev);
-		dpaa_valid_dev++;
-		return 0;
 	}
 
+	rte_eth_dev_probing_finish(eth_dev);
+	dpaa_valid_dev++;
+	return 0;
+
+close_dev:
+	dpaa_eth_dev_close(eth_dev);
+release_port:
 	rte_eth_dev_release_port(eth_dev);
 	return diag;
 }
@@ -2679,11 +2727,18 @@ rte_dpaa_remove(struct rte_dpaa_device *dpaa_dev)
 	PMD_INIT_FUNC_TRACE();
 
 	eth_dev = rte_eth_dev_allocated(dpaa_dev->device.name);
-	ret = dpaa_eth_dev_close(eth_dev);
-	if (eth_dev->state !=  RTE_ETH_DEV_UNUSED) {
-		dpaa_eth_dev_close(eth_dev);
+
+	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
+		return eth_dev != NULL ? rte_eth_dev_release_port(eth_dev) : 0;
+
+	if (eth_dev != NULL && eth_dev->state != RTE_ETH_DEV_UNUSED) {
+		ret = dpaa_eth_dev_close(eth_dev);
+		if (ret != 0)
+			DPAA_PMD_WARN("%s: close failed(%d), releasing port",
+				dpaa_dev->device.name, ret);
 		ret = rte_eth_dev_release_port(eth_dev);
 	}
+
 	dpaa_valid_dev--;
 	if (!dpaa_valid_dev)
 		rte_mempool_free(dpaa_tx_sg_pool);

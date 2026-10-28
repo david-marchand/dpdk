@@ -25,6 +25,8 @@ Some of these, in turn, will be used to configure the PACKET_MMAP settings.
     disabled by default);
 *   ``fanout_mode`` - set fanout algorithm.
     Possible choices: hash, lb, cpu, rollover, rnd, qm (optional, default hash);
+*   ``ignore_outgoing`` - ``rte_eth_rx_burst()`` returns only incoming
+    packets (optional, disabled by default);
 *   ``blocksz`` - PACKET_MMAP block size (optional, default 4096);
 *   ``framesz`` - PACKET_MMAP frame size (optional, default 2048B; Note: multiple
     of 16B);
@@ -40,6 +42,12 @@ the socket will be selected based on the CPU on which the packet arrived.
 Only one ``fanout_mode`` can be chosen.
 If left unspecified, the default is to use the ``PACKET_FANOUT_HASH`` behavior
 of AF_PACKET for frame reception.
+
+When ``ignore_outgoing`` is set, ``PACKET_IGNORE_OUTGOING`` is set for
+single-queue ports, which moves the filtering from the PMD to the kernel.
+For multi-queue ports ``PACKET_FANOUT_FLAG_IGNORE_OUTGOING`` is set to
+achieve the same but this only works from Linux 6.2. For earlier Linux
+versions, the PMD does the filtering for multi-queue ports.
 
 Because this implementation is based on PACKET_MMAP, and PACKET_MMAP has its
 own pre-requisites, it should be noted that the inner workings of PACKET_MMAP

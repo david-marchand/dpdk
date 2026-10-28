@@ -82,6 +82,25 @@ fs_dev_configure(struct rte_eth_dev *dev)
 			else
 				sdev->rmv_callback = 1;
 		}
+		/*
+		 * Without RMV interrupts, a hot-unplug is only reported by the
+		 * bus (e.g. a VFIO device release request) as a device event.
+		 * Only the primary registers for it; a secondary learns of the
+		 * removal through the shared sub_device state checked by
+		 * fs_rx_unsafe()/fs_tx_unsafe() on every burst.
+		 */
+		if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
+		    !rmv_interrupt && sdev->dev != NULL &&
+		    sdev->dev_event_callback == 0) {
+			ret = rte_dev_event_callback_register(rte_dev_name(sdev->dev),
+					failsafe_dev_event_callback,
+					sdev);
+			if (ret)
+				WARN("Failed to register device event callback for sub_device %d",
+				     SUB_ID(sdev));
+			else
+				sdev->dev_event_callback = 1;
+		}
 		dev->data->dev_conf.intr_conf.rmv = 0;
 		if (lsc_interrupt && sdev->lsc_callback == 0) {
 			ret = rte_eth_dev_callback_register(PORT_ID(sdev),
@@ -398,7 +417,8 @@ fs_rx_queue_release(struct rte_eth_dev *dev, uint16_t qid)
 	if (rxq->event_fd >= 0)
 		close(rxq->event_fd);
 	FOREACH_SUBDEV_STATE(sdev, i, dev, DEV_ACTIVE) {
-		if (ETH(sdev)->data->rx_queues != NULL &&
+		if (SUBOPS(sdev, rx_queue_release) != NULL &&
+		    ETH(sdev)->data->rx_queues != NULL &&
 		    ETH(sdev)->data->rx_queues[rxq->qid] != NULL)
 			SUBOPS(sdev, rx_queue_release)(ETH(sdev), rxq->qid);
 	}
@@ -574,7 +594,8 @@ fs_tx_queue_release(struct rte_eth_dev *dev, uint16_t qid)
 	if (fs_lock(dev, 0) != 0)
 		return;
 	FOREACH_SUBDEV_STATE(sdev, i, dev, DEV_ACTIVE) {
-		if (ETH(sdev)->data->tx_queues != NULL &&
+		if (SUBOPS(sdev, tx_queue_release) != NULL &&
+		    ETH(sdev)->data->tx_queues != NULL &&
 		    ETH(sdev)->data->tx_queues[txq->qid] != NULL)
 			SUBOPS(sdev, tx_queue_release)(ETH(sdev), txq->qid);
 	}
@@ -1458,7 +1479,7 @@ fs_mac_addr_add(struct rte_eth_dev *dev,
 	}
 	if (index >= PRIV(dev)->nb_mac_addr) {
 		DEBUG("Growing mac_addrs array");
-		PRIV(dev)->nb_mac_addr = index;
+		PRIV(dev)->nb_mac_addr = index + 1;
 	}
 	PRIV(dev)->mac_addr_pool[index] = vmdq;
 	fs_unlock(dev, 0);

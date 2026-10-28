@@ -229,6 +229,7 @@ static const struct rte_flow_desc_data rte_flow_desc_item[] = {
 			rte_flow_item_l2tpv2_mask),
 	MK_FLOW_ITEM_MASK(PPP, sizeof(struct rte_flow_item_ppp),
 			rte_flow_item_ppp_mask),
+	MK_FLOW_ITEM(MACSEC, sizeof(struct rte_flow_item_macsec)),
 	MK_FLOW_ITEM_MASK(METER_COLOR, sizeof(struct rte_flow_item_meter_color),
 			rte_flow_item_meter_color_mask),
 	MK_FLOW_ITEM(IPV6_ROUTING_EXT, sizeof(struct rte_flow_item_ipv6_routing_ext)),
@@ -323,6 +324,8 @@ static const struct rte_flow_desc_data rte_flow_desc_action[] = {
 	MK_FLOW_ACTION(SET_IPV6_DSCP, sizeof(struct rte_flow_action_set_dscp)),
 	MK_FLOW_ACTION(AGE, sizeof(struct rte_flow_action_age)),
 	MK_FLOW_ACTION(SAMPLE, sizeof(struct rte_flow_action_sample)),
+	/* Deprecated; handle stored in conf as for INDIRECT. */
+	MK_FLOW_ACTION(SHARED, 0),
 	MK_FLOW_ACTION(MODIFY_FIELD,
 		       sizeof(struct rte_flow_action_modify_field)),
 	/**
@@ -333,11 +336,13 @@ static const struct rte_flow_desc_data rte_flow_desc_action[] = {
 	 */
 	MK_FLOW_ACTION(INDIRECT, 0),
 	MK_FLOW_ACTION(CONNTRACK, sizeof(struct rte_flow_action_conntrack)),
+	MK_FLOW_ACTION(METER_COLOR, sizeof(struct rte_flow_action_meter_color)),
 	MK_FLOW_ACTION(PORT_REPRESENTOR, sizeof(struct rte_flow_action_ethdev)),
 	MK_FLOW_ACTION(REPRESENTED_PORT, sizeof(struct rte_flow_action_ethdev)),
 	MK_FLOW_ACTION(METER_MARK, sizeof(struct rte_flow_action_meter_mark)),
 	MK_FLOW_ACTION(SEND_TO_KERNEL, 0),
 	MK_FLOW_ACTION(QUOTA, sizeof(struct rte_flow_action_quota)),
+	MK_FLOW_ACTION(SKIP_CMAN, 0),
 	MK_FLOW_ACTION(IPV6_EXT_PUSH, sizeof(struct rte_flow_action_ipv6_ext_push)),
 	MK_FLOW_ACTION(IPV6_EXT_REMOVE, sizeof(struct rte_flow_action_ipv6_ext_remove)),
 	MK_FLOW_ACTION(INDIRECT_LIST,
@@ -921,7 +926,12 @@ rte_flow_conv_pattern(struct rte_flow_item *dst,
 	size_t ret;
 	unsigned int i;
 
-	for (i = 0, off = 0; !num || i != num; ++i, ++src, ++dst) {
+	/*
+	 * dst may be NULL when size is zero, so it is only ever indexed
+	 * inside the size-guarded writes below; pointer arithmetic on a
+	 * NULL pointer is undefined behavior.
+	 */
+	for (i = 0, off = 0; !num || i != num; ++i, ++src) {
 		/**
 		 * allow PMD private flow item
 		 */
@@ -932,7 +942,7 @@ rte_flow_conv_pattern(struct rte_flow_item *dst,
 				(error, ENOTSUP, RTE_FLOW_ERROR_TYPE_ITEM, src,
 				 "cannot convert unknown item type");
 		if (size >= off + sizeof(*dst))
-			*dst = (struct rte_flow_item){
+			dst[i] = (struct rte_flow_item){
 				.type = src->type,
 			};
 		off += sizeof(*dst);
@@ -941,8 +951,7 @@ rte_flow_conv_pattern(struct rte_flow_item *dst,
 	}
 	num = i;
 	src -= num;
-	dst -= num;
-	do {
+	for (i = 0; i != num; ++i, ++src) {
 		if (src->spec) {
 			off = RTE_ALIGN_CEIL(off, sizeof(double));
 			ret = rte_flow_conv_item_spec
@@ -950,7 +959,7 @@ rte_flow_conv_pattern(struct rte_flow_item *dst,
 				 size > off ? size - off : 0, src,
 				 RTE_FLOW_CONV_ITEM_SPEC);
 			if (size && size >= off + ret)
-				dst->spec = (void *)(data + off);
+				dst[i].spec = (void *)(data + off);
 			off += ret;
 
 		}
@@ -961,7 +970,7 @@ rte_flow_conv_pattern(struct rte_flow_item *dst,
 				 size > off ? size - off : 0, src,
 				 RTE_FLOW_CONV_ITEM_LAST);
 			if (size && size >= off + ret)
-				dst->last = (void *)(data + off);
+				dst[i].last = (void *)(data + off);
 			off += ret;
 		}
 		if (src->mask) {
@@ -971,12 +980,10 @@ rte_flow_conv_pattern(struct rte_flow_item *dst,
 				 size > off ? size - off : 0, src,
 				 RTE_FLOW_CONV_ITEM_MASK);
 			if (size && size >= off + ret)
-				dst->mask = (void *)(data + off);
+				dst[i].mask = (void *)(data + off);
 			off += ret;
 		}
-		++src;
-		++dst;
-	} while (--num);
+	}
 	return off;
 }
 
@@ -1014,7 +1021,12 @@ rte_flow_conv_actions(struct rte_flow_action *dst,
 	size_t ret;
 	unsigned int i;
 
-	for (i = 0, off = 0; !num || i != num; ++i, ++src, ++dst) {
+	/*
+	 * dst may be NULL when size is zero, so it is only ever indexed
+	 * inside the size-guarded writes below; pointer arithmetic on a
+	 * NULL pointer is undefined behavior.
+	 */
+	for (i = 0, off = 0; !num || i != num; ++i, ++src) {
 		/**
 		 * allow PMD private flow action
 		 */
@@ -1025,7 +1037,7 @@ rte_flow_conv_actions(struct rte_flow_action *dst,
 				(error, ENOTSUP, RTE_FLOW_ERROR_TYPE_ACTION,
 				 src, "cannot convert unknown action type");
 		if (size >= off + sizeof(*dst))
-			*dst = (struct rte_flow_action){
+			dst[i] = (struct rte_flow_action){
 				.type = src->type,
 			};
 		off += sizeof(*dst);
@@ -1034,28 +1046,26 @@ rte_flow_conv_actions(struct rte_flow_action *dst,
 	}
 	num = i;
 	src -= num;
-	dst -= num;
-	do {
-		if (src->type == RTE_FLOW_ACTION_TYPE_INDIRECT) {
+	for (i = 0; i != num; ++i, ++src) {
+		if (src->type == RTE_FLOW_ACTION_TYPE_INDIRECT ||
+		    src->type == RTE_FLOW_ACTION_TYPE_SHARED) {
 			/*
 			 * Indirect action conf fills the indirect action
 			 * handler. Copy the action handle directly instead
 			 * of duplicating the pointer memory.
 			 */
-			if (size)
-				dst->conf = src->conf;
+			if (size >= (i + 1) * sizeof(*dst))
+				dst[i].conf = src->conf;
 		} else if (src->conf) {
 			off = RTE_ALIGN_CEIL(off, sizeof(double));
 			ret = rte_flow_conv_action_conf
 				((void *)(data + off),
 				 size > off ? size - off : 0, src);
 			if (size && size >= off + ret)
-				dst->conf = (void *)(data + off);
+				dst[i].conf = (void *)(data + off);
 			off += ret;
 		}
-		++src;
-		++dst;
-	} while (--num);
+	}
 	return off;
 }
 
@@ -1173,7 +1183,7 @@ rte_flow_conv_name(int is_action,
 	const struct desc_info *const info = &info_rep[!!is_action];
 	unsigned int type = (uintptr_t)src;
 
-	if (type >= info->num)
+	if (type >= info->num || info->data[type].name == NULL)
 		return rte_flow_error_set
 			(error, EINVAL, RTE_FLOW_ERROR_TYPE_UNSPECIFIED, NULL,
 			 "unknown object type to retrieve the name of");
@@ -1193,13 +1203,33 @@ rte_flow_conv_item_default_mask(void *dst,
 {
 	unsigned int type = (uintptr_t)src;
 
-	if (type >= RTE_DIM(rte_flow_desc_item))
+	if (type >= RTE_DIM(rte_flow_desc_item) ||
+	    rte_flow_desc_item[type].name == NULL)
 		return rte_flow_error_set
 			(error, EINVAL, RTE_FLOW_ERROR_TYPE_UNSPECIFIED, NULL,
 			 "unknown item type to retrieve the default mask of");
 	if (size >= sizeof(const void **))
 		*((const void **)dst) = rte_flow_desc_item[type].default_mask;
 	return sizeof(const void **);
+}
+
+/** Retrieve the specification structure size of a flow item type. */
+static int
+rte_flow_conv_item_size(void *dst,
+			const size_t size,
+			const void *src,
+			struct rte_flow_error *error)
+{
+	unsigned int type = (uintptr_t)src;
+
+	if (type >= RTE_DIM(rte_flow_desc_item) ||
+	    rte_flow_desc_item[type].name == NULL)
+		return rte_flow_error_set
+			(error, EINVAL, RTE_FLOW_ERROR_TYPE_UNSPECIFIED, NULL,
+			 "unknown item type to retrieve the size of");
+	if (size >= sizeof(size_t))
+		*(size_t *)dst = rte_flow_desc_item[type].size;
+	return sizeof(size_t);
 }
 
 /** Helper function to convert flow API objects. */
@@ -1265,6 +1295,9 @@ rte_flow_conv(enum rte_flow_conv_op op,
 		break;
 	case RTE_FLOW_CONV_OP_ITEM_DEFAULT_MASK_PTR:
 		ret = rte_flow_conv_item_default_mask(dst, size, src, error);
+		break;
+	case RTE_FLOW_CONV_OP_ITEM_SIZE:
+		ret = rte_flow_conv_item_size(dst, size, src, error);
 		break;
 	default:
 		ret = rte_flow_error_set

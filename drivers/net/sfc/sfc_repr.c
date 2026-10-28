@@ -378,45 +378,14 @@ fail_stop:
 }
 
 static int
-sfc_repr_check_conf(struct sfc_repr *sr, uint16_t nb_rx_queues,
-		    const struct rte_eth_conf *conf)
+sfc_repr_check_conf(struct sfc_repr *sr, const struct rte_eth_conf *conf)
 {
-	const struct rte_eth_rss_conf *rss_conf;
 	int ret = 0;
 
 	sfcr_info(sr, "entry");
 
 	if (conf->link_speeds != 0) {
 		sfcr_err(sr, "specific link speeds not supported");
-		ret = -EINVAL;
-	}
-
-	switch (conf->rxmode.mq_mode) {
-	case RTE_ETH_MQ_RX_RSS:
-		if (nb_rx_queues != 1) {
-			sfcr_err(sr, "Rx RSS is not supported with %u queues",
-				 nb_rx_queues);
-			ret = -EINVAL;
-			break;
-		}
-
-		rss_conf = &conf->rx_adv_conf.rss_conf;
-		if (rss_conf->rss_key != NULL || rss_conf->rss_key_len != 0 ||
-		    rss_conf->rss_hf != 0) {
-			sfcr_err(sr, "Rx RSS configuration is not supported");
-			ret = -EINVAL;
-		}
-		break;
-	case RTE_ETH_MQ_RX_NONE:
-		break;
-	default:
-		sfcr_err(sr, "Rx mode MQ modes other than RSS not supported");
-		ret = -EINVAL;
-		break;
-	}
-
-	if (conf->txmode.mq_mode != RTE_ETH_MQ_TX_NONE) {
-		sfcr_err(sr, "Tx mode MQ modes not supported");
 		ret = -EINVAL;
 	}
 
@@ -452,8 +421,7 @@ sfc_repr_check_conf(struct sfc_repr *sr, uint16_t nb_rx_queues,
 
 
 static int
-sfc_repr_configure(struct sfc_repr *sr, uint16_t nb_rx_queues,
-		   const struct rte_eth_conf *conf)
+sfc_repr_configure(struct sfc_repr *sr, const struct rte_eth_conf *conf)
 {
 	int ret;
 
@@ -461,7 +429,7 @@ sfc_repr_configure(struct sfc_repr *sr, uint16_t nb_rx_queues,
 
 	SFC_ASSERT(sfc_repr_lock_is_locked(sr));
 
-	ret = sfc_repr_check_conf(sr, nb_rx_queues, conf);
+	ret = sfc_repr_check_conf(sr, conf);
 	if (ret != 0)
 		goto fail_check_conf;
 
@@ -491,8 +459,7 @@ sfc_repr_dev_configure(struct rte_eth_dev *dev)
 	case SFC_ETHDEV_CONFIGURED:
 		/* FALLTHROUGH */
 	case SFC_ETHDEV_INITIALIZED:
-		ret = sfc_repr_configure(sr, dev_data->nb_rx_queues,
-					 &dev_data->dev_conf);
+		ret = sfc_repr_configure(sr, &dev_data->dev_conf);
 		break;
 	default:
 		sfcr_err(sr, "unexpected adapter state %u to configure",

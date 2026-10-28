@@ -1144,12 +1144,6 @@ igb_check_mq_mode(struct rte_eth_dev *dev)
 	uint16_t nb_rx_q = dev->data->nb_rx_queues;
 	uint16_t nb_tx_q = dev->data->nb_tx_queues;
 
-	if ((rx_mq_mode & RTE_ETH_MQ_RX_DCB_FLAG) ||
-	    tx_mq_mode == RTE_ETH_MQ_TX_DCB ||
-	    tx_mq_mode == RTE_ETH_MQ_TX_VMDQ_DCB) {
-		PMD_INIT_LOG(ERR, "DCB mode is not supported.");
-		return -EINVAL;
-	}
 	if (RTE_ETH_DEV_SRIOV(dev).active != 0) {
 		/* Check multi-queue mode.
 		 * To no break software we accept RTE_ETH_MQ_RX_NONE as this might
@@ -1185,24 +1179,11 @@ igb_check_mq_mode(struct rte_eth_dev *dev)
 			return -EINVAL;
 		}
 	} else {
-		/* To no break software that set invalid mode, only display
-		 * warning if invalid mode is used.
-		 */
-		if (rx_mq_mode != RTE_ETH_MQ_RX_NONE &&
-		    rx_mq_mode != RTE_ETH_MQ_RX_VMDQ_ONLY &&
-		    rx_mq_mode != RTE_ETH_MQ_RX_RSS) {
+		if (rx_mq_mode == RTE_ETH_MQ_RX_VMDQ_RSS) {
 			/* RSS together with VMDq not supported*/
 			PMD_INIT_LOG(ERR, "RX mode %d is not supported.",
 				     rx_mq_mode);
 			return -EINVAL;
-		}
-
-		if (tx_mq_mode != RTE_ETH_MQ_TX_NONE &&
-		    tx_mq_mode != RTE_ETH_MQ_TX_VMDQ_ONLY) {
-			PMD_INIT_LOG(WARNING, "TX mode %d is not supported."
-					" Due to txmode is meaningless in this"
-					" driver, just ignore.",
-					tx_mq_mode);
 		}
 	}
 	return 0;
